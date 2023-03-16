@@ -24,7 +24,7 @@ from pvi.device import (
 )
 from softioc import builder
 
-from pandablocks.ioc._types import OUT_RECORD_FUNCTIONS, EpicsName
+from ._types import OUT_RECORD_FUNCTIONS, EpicsName
 
 
 class PviGroup(Enum):
@@ -196,5 +196,4 @@ class Pvi:
                         Pvi.bob_file_dict.update({f"{device.label}.bob": f.read()})
 
                 except NotImplementedError:
-
                     logging.exception("Cannot create TABLES yet")

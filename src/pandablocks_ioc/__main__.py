@@ -5,6 +5,7 @@ from . import __version__
 __all__ = ["main"]
 
 
+# TODO: Proper Argument parser
 def main(args=None):
     parser = ArgumentParser()
     parser.add_argument("--version", action="version", version=__version__)

@@ -4,20 +4,24 @@ import asyncio
 import logging
 import time
 from asyncio import CancelledError
+from io import BufferedReader
 from pathlib import Path
-from typing import Generator
+from typing import Generator, Iterator
 
 import h5py
 import numpy
 import pytest
 import pytest_asyncio
 from aioca import caget, camonitor, caput
-from conftest import TIMEOUT, custom_logger, get_multiprocessing_context
+from conftest import (
+    TIMEOUT,
+    DummyServer,
+    Rows,
+    custom_logger,
+    get_multiprocessing_context,
+)
 from mock.mock import AsyncMock, MagicMock, patch
-from softioc import asyncio_dispatcher, builder, softioc
-
 from pandablocks.asyncio import AsyncioClient
-from pandablocks.ioc._hdf_ioc import HDF5RecordController
 from pandablocks.responses import (
     EndData,
     EndReason,
@@ -26,10 +30,40 @@ from pandablocks.responses import (
     ReadyData,
     StartData,
 )
-from tests.conftest import DummyServer, Rows
+from softioc import asyncio_dispatcher, builder, softioc
+
+from pandablocks_ioc._hdf_ioc import HDF5RecordController
 
 NAMESPACE_PREFIX = "HDF-RECORD-PREFIX"
 HDF5_PREFIX = NAMESPACE_PREFIX + ":HDF5"
+
+
+def chunked_read(f: BufferedReader, size: int) -> Iterator[bytes]:
+    data = f.read(size)
+    while data:
+        yield data
+        data = f.read(size)
+
+
+@pytest_asyncio.fixture
+def slow_dump():
+    with open(Path(__file__).parent / "slow_dump.txt", "rb") as f:
+        # Simulate small chunked read, sized so we hit the middle of a "BIN " marker
+        yield chunked_read(f, 44)
+
+
+@pytest_asyncio.fixture
+def fast_dump():
+    with open(Path(__file__).parent / "fast_dump.txt", "rb") as f:
+        # Simulate larger chunked read
+        yield chunked_read(f, 500)
+
+
+@pytest_asyncio.fixture
+def raw_dump():
+    with open(Path(__file__).parent / "raw_dump.txt", "rb") as f:
+        # Simulate largest chunked read
+        yield chunked_read(f, 200000)
 
 
 @pytest_asyncio.fixture
@@ -263,8 +297,8 @@ def test_hdf_parameter_validate_capturing(hdf5_controller: HDF5RecordController)
 
 
 @pytest.mark.asyncio
-@patch("pandablocks.ioc._hdf_ioc.stop_pipeline")
-@patch("pandablocks.ioc._hdf_ioc.create_default_pipeline")
+@patch("pandablocks_ioc._hdf_ioc.stop_pipeline")
+@patch("pandablocks_ioc._hdf_ioc.create_default_pipeline")
 async def test_handle_data(
     mock_create_default_pipeline: MagicMock,
     mock_stop_pipeline: MagicMock,
@@ -302,8 +336,8 @@ async def test_handle_data(
 
 
 @pytest.mark.asyncio
-@patch("pandablocks.ioc._hdf_ioc.stop_pipeline")
-@patch("pandablocks.ioc._hdf_ioc.create_default_pipeline")
+@patch("pandablocks_ioc._hdf_ioc.stop_pipeline")
+@patch("pandablocks_ioc._hdf_ioc.create_default_pipeline")
 async def test_handle_data_two_start_data(
     mock_create_default_pipeline: MagicMock,
     mock_stop_pipeline: MagicMock,
@@ -344,8 +378,8 @@ async def test_handle_data_two_start_data(
 
 
 @pytest.mark.asyncio
-@patch("pandablocks.ioc._hdf_ioc.stop_pipeline")
-@patch("pandablocks.ioc._hdf_ioc.create_default_pipeline")
+@patch("pandablocks_ioc._hdf_ioc.stop_pipeline")
+@patch("pandablocks_ioc._hdf_ioc.create_default_pipeline")
 async def test_handle_data_mismatching_start_data(
     mock_create_default_pipeline: MagicMock,
     mock_stop_pipeline: MagicMock,
@@ -416,8 +450,8 @@ async def test_handle_data_mismatching_start_data(
 
 
 @pytest.mark.asyncio
-@patch("pandablocks.ioc._hdf_ioc.stop_pipeline")
-@patch("pandablocks.ioc._hdf_ioc.create_default_pipeline")
+@patch("pandablocks_ioc._hdf_ioc.stop_pipeline")
+@patch("pandablocks_ioc._hdf_ioc.create_default_pipeline")
 async def test_handle_data_cancelled_error(
     mock_create_default_pipeline: MagicMock,
     mock_stop_pipeline: MagicMock,
@@ -472,8 +506,8 @@ async def test_handle_data_cancelled_error(
 
 
 @pytest.mark.asyncio
-@patch("pandablocks.ioc._hdf_ioc.stop_pipeline")
-@patch("pandablocks.ioc._hdf_ioc.create_default_pipeline")
+@patch("pandablocks_ioc._hdf_ioc.stop_pipeline")
+@patch("pandablocks_ioc._hdf_ioc.create_default_pipeline")
 async def test_handle_data_unexpected_exception(
     mock_create_default_pipeline: MagicMock,
     mock_stop_pipeline: MagicMock,

@@ -6,9 +6,9 @@ from typing import AsyncGenerator, Dict
 import aiohttp
 import pytest
 from aiohttp.test_utils import TestClient, TestServer
+from conftest import DummyServer
 
-from pandablocks.ioc.ioc import BOB_FILE_HOST, BOB_FILE_PORT, initialise_server
-from tests.conftest import DummyServer
+from pandablocks_ioc.ioc import BOB_FILE_HOST, BOB_FILE_PORT, initialise_server
 
 # Tests for the bobfile server
 TEST_FILE_NAME = "TEST.bob"
@@ -58,7 +58,6 @@ async def test_system_bobfile_creation(
     """A system test for both the bobfile creation and running the server."""
     loop = asyncio.get_event_loop()
     async with aiohttp.ClientSession(loop=loop) as session:
-
         async with session.get(f"http://{BOB_FILE_HOST}:{BOB_FILE_PORT}") as response:
             bob_file_list = json.loads(await response.text())
             assert bob_file_list == ["PCAP1.bob", "SEQ1.bob", "PandA.bob"]

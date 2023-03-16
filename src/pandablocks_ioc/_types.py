@@ -3,10 +3,9 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, List, NewType, Optional, Union
 
+from pandablocks.responses import FieldInfo
 from softioc import builder
 from softioc.pythonSoftIoc import RecordWrapper
-
-from pandablocks.responses import FieldInfo
 
 
 class InErrorException(Exception):

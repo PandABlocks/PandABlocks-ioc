@@ -1,4 +1,4 @@
-from pandablocks.ioc._types import (
+from pandablocks_ioc._types import (
     EpicsName,
     PandAName,
     epics_to_panda_name,

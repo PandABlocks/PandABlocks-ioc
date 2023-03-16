@@ -7,26 +7,8 @@ import pytest
 from conftest import TEST_PREFIX
 from mock import AsyncMock, patch
 from mock.mock import MagicMock, call
-from softioc import builder, fields
-
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import GetLine, Put
-from pandablocks.ioc._pvi import PviGroup
-from pandablocks.ioc._types import (
-    ONAM_STR,
-    ZNAM_STR,
-    EpicsName,
-    InErrorException,
-    RecordInfo,
-    ScalarRecordValue,
-)
-from pandablocks.ioc.ioc import (
-    IocRecordFactory,
-    StringRecordLabelValidator,
-    _RecordUpdater,
-    _TimeRecordUpdater,
-    update,
-)
 from pandablocks.responses import (
     BitMuxFieldInfo,
     BitOutFieldInfo,
@@ -41,6 +23,24 @@ from pandablocks.responses import (
     SubtypeTimeFieldInfo,
     TimeFieldInfo,
     UintFieldInfo,
+)
+from softioc import builder, fields
+
+from pandablocks_ioc._pvi import PviGroup
+from pandablocks_ioc._types import (
+    ONAM_STR,
+    ZNAM_STR,
+    EpicsName,
+    InErrorException,
+    RecordInfo,
+    ScalarRecordValue,
+)
+from pandablocks_ioc.ioc import (
+    IocRecordFactory,
+    StringRecordLabelValidator,
+    _RecordUpdater,
+    _TimeRecordUpdater,
+    update,
 )
 
 
@@ -507,8 +507,8 @@ def test_create_record(
     assert all(key in returned_records for key in expected_records)
 
 
-@patch("pandablocks.ioc.ioc.IocRecordFactory._make_ext_out")
-@patch("pandablocks.ioc.ioc.builder.records")
+@patch("pandablocks_ioc.ioc.IocRecordFactory._make_ext_out")
+@patch("pandablocks_ioc.ioc.builder.records")
 def test_make_ext_out_bits(
     mocked_builder_records: MagicMock,
     mocked_ext_out: MagicMock,
@@ -649,7 +649,7 @@ def test_create_record_info_value_error(
 
 
 @pytest.mark.asyncio
-@patch("pandablocks.ioc.ioc.db_put_field")
+@patch("pandablocks_ioc.ioc.db_put_field")
 @pytest.mark.parametrize("new_val", ["TEST2", 2])
 async def test_time_record_updater_update_egu(
     db_put_field: MagicMock, mocked_time_record_updater: _TimeRecordUpdater, new_val
@@ -671,7 +671,7 @@ async def test_time_record_updater_update_egu(
 
 
 @pytest.mark.asyncio
-@patch("pandablocks.ioc.ioc.db_put_field")
+@patch("pandablocks_ioc.ioc.db_put_field")
 async def test_time_record_updater_update_drvl(
     db_put_field: MagicMock, mocked_time_record_updater: _TimeRecordUpdater
 ):

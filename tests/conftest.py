@@ -1,11 +1,14 @@
 import asyncio
 import logging
 import multiprocessing
+import os
 import sys
+import threading
 import time
+from collections import deque
 from contextlib import contextmanager
 from logging import handlers
-from typing import Dict, Generator, List
+from typing import Deque, Dict, Generator, Iterable, List
 
 import pytest
 import pytest_asyncio
@@ -13,13 +16,12 @@ from aioca import purge_channel_caches
 from epicsdbbuilder import ResetRecords
 from mock import MagicMock, patch
 from numpy import array, int32, ndarray, uint8, uint16, uint32
+from pandablocks.connections import Buffer
+from pandablocks.responses import TableFieldDetails, TableFieldInfo
 from softioc.device_core import RecordLookup
 
-from pandablocks.ioc import create_softioc
-from pandablocks.ioc._types import EpicsName
-from pandablocks.ioc.ioc import _TimeRecordUpdater
-from pandablocks.responses import TableFieldDetails, TableFieldInfo
-from tests.conftest import DummyServer
+from pandablocks_ioc._types import EpicsName
+from pandablocks_ioc.ioc import _TimeRecordUpdater, create_softioc
 
 # Record prefix used in many tests
 TEST_PREFIX = "TEST-PREFIX"
@@ -46,10 +48,11 @@ def caplog_workaround():
     """Create a logger handler to capture all log messages done in child process,
     then print them to the main thread's stdout/stderr so pytest's caplog fixture
     can see them
-    See https://stackoverflow.com/questions/63052171/empty-messages-in-caplog-when-logs-emmited-in-a-different-process/63054881#63054881"""  # noqa: E501
+    See https://stackoverflow.com/questions/63052171/empty-messages-in-caplog-when-logs-emmited-in-a-different-process/63054881#63054881
+    """  # noqa: E501
 
     @contextmanager
-    def ctx():
+    def ctx() -> Generator[None, None, None]:
         ctx = get_multiprocessing_context()
         logger_queue = ctx.Queue()
         logger = logging.getLogger()
@@ -57,6 +60,7 @@ def caplog_workaround():
         yield
         while not logger_queue.empty():
             log_record: logging.LogRecord = logger_queue.get()
+            assert log_record.args  # Make mypy happy
             logger._log(
                 level=log_record.levelno,
                 msg=log_record.message,
@@ -65,6 +69,82 @@ def caplog_workaround():
             )
 
     return ctx
+
+
+class DummyServer:
+    # Flag for useful debug output when writing tests
+    # for diagnosing mismatching sent data.
+    debug = False
+    _debug_file = "out.txt"
+
+    # Mechanism to tell the server to send a specific response back to the client
+    # when it sees an expected string. When the expected message is seen the
+    # response will be left-appended to the send buffer so it is sent next.
+    # Items are removed from the Dict when they are sent.
+    expected_message_responses: Dict[str, str] = {}
+
+    def __init__(self) -> None:
+        # This will be added to whenever control port gets a message
+        self.received: List[str] = []
+        # Add to this to give the control port something to send back
+        self.send: Deque[str] = deque()
+        # Add to this to give the data port something to send
+        self.data: Iterable[bytes] = []
+
+        if self.debug and os.path.isfile(self._debug_file):
+            os.remove(self._debug_file)
+
+    async def handle_ctrl(
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+    ):
+        buf = Buffer()
+        is_multiline = False
+
+        while True:
+            received = await reader.read(4096)
+            if not received:
+                break
+            buf += received
+            for line in buf:
+                decoded_line = line.decode()
+                self.received.append(decoded_line)
+                if decoded_line in self.expected_message_responses:
+                    self.send.appendleft(self.expected_message_responses[decoded_line])
+                    del self.expected_message_responses[decoded_line]
+                if line.endswith(b"<") or line.endswith(b"<B"):
+                    is_multiline = True
+                if not is_multiline or not line:
+                    is_multiline = False
+                    to_send = self.send.popleft() + "\n"
+                    if self.debug:
+                        with open(self._debug_file, "a") as f:
+                            print(line, to_send, flush=True, file=f)
+                    writer.write(to_send.encode())
+                    await writer.drain()
+
+    async def handle_data(
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+    ):
+        # oneshot data writer
+        await reader.read(4096)
+        for data in self.data:
+            await asyncio.sleep(0.1)
+            writer.write(data)
+            await writer.drain()
+
+    async def open(self):
+        self._ctrl_server = await asyncio.start_server(
+            self.handle_ctrl, "127.0.0.1", 8888
+        )
+        self._data_server = await asyncio.start_server(
+            self.handle_data, "127.0.0.1", 8889
+        )
+
+    async def close(self):
+        self._ctrl_server.close()
+        self._data_server.close()
+        await self._ctrl_server.wait_closed()
+        await self._data_server.wait_closed()
 
 
 def _clear_records():
@@ -427,8 +507,8 @@ def dummy_server_time(dummy_server_in_thread: DummyServer):
     yield dummy_server_in_thread
 
 
-@patch("pandablocks.ioc.ioc.AsyncioClient.close")
-@patch("pandablocks.ioc.ioc.softioc.interactive_ioc")
+@patch("pandablocks_ioc.ioc.AsyncioClient.close")
+@patch("pandablocks_ioc.ioc.softioc.interactive_ioc")
 def ioc_wrapper(mocked_interactive_ioc: MagicMock, mocked_client_close: MagicMock):
     """Wrapper function to start the IOC and do some mocking"""
 
@@ -506,3 +586,34 @@ def get_multiprocessing_context():
     else:
         start_method = "forkserver"
     return multiprocessing.get_context(start_method)
+
+
+@pytest_asyncio.fixture
+async def dummy_server_async():
+    server = DummyServer()
+    await server.open()
+    yield server
+    await server.close()
+
+
+@pytest_asyncio.fixture
+def dummy_server_in_thread():
+    loop = asyncio.new_event_loop()
+    server = DummyServer()
+    t = threading.Thread(target=loop.run_forever)
+    t.start()
+    f = asyncio.run_coroutine_threadsafe(server.open(), loop)
+    f.result()
+    yield server
+    asyncio.run_coroutine_threadsafe(server.close(), loop).result()
+    loop.call_soon_threadsafe(loop.stop())
+    t.join()
+
+
+class Rows:
+    def __init__(self, *rows):
+        self.rows = rows
+
+    def __eq__(self, o):
+        same = o.tolist() == [pytest.approx(row) for row in self.rows]
+        return same

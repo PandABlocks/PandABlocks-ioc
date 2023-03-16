@@ -5,9 +5,6 @@ from asyncio import CancelledError
 from importlib.util import find_spec
 from typing import List, Optional
 
-from softioc import alarm, builder
-from softioc.pythonSoftIoc import RecordWrapper
-
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.hdf import (
     EndData,
@@ -17,8 +14,11 @@ from pandablocks.hdf import (
     create_default_pipeline,
     stop_pipeline,
 )
-from pandablocks.ioc._types import ONAM_STR, ZNAM_STR
 from pandablocks.responses import EndReason, ReadyData
+from softioc import alarm, builder
+from softioc.pythonSoftIoc import RecordWrapper
+
+from ._types import ONAM_STR, ZNAM_STR
 
 
 class HDF5RecordController:
@@ -143,7 +143,7 @@ class HDF5RecordController:
             return False
         return True
 
-    async def _handle_hdf5_data(self):
+    async def _handle_hdf5_data(self) -> None:
         """Handles writing HDF5 data from the PandA to file, based on configuration
         in the various HDF5 records.
         This method expects to be run as an asyncio Task."""

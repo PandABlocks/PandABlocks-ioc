@@ -5,23 +5,22 @@ import numpy
 import numpy.testing
 import pytest
 from aioca import caget, camonitor, caput
-from conftest import TEST_PREFIX, TIMEOUT
+from conftest import TEST_PREFIX, TIMEOUT, DummyServer
 from mock import AsyncMock, patch
 from mock.mock import MagicMock, PropertyMock, call
 from numpy import array, ndarray
-from softioc import alarm, fields
-
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import GetMultiline, Put
-from pandablocks.ioc._tables import (
+from pandablocks.responses import TableFieldDetails, TableFieldInfo
+from softioc import alarm, fields
+
+from pandablocks_ioc._tables import (
     TableFieldRecordContainer,
     TableModeEnum,
     TablePacking,
     TableUpdater,
 )
-from pandablocks.ioc._types import EpicsName, InErrorException, RecordInfo, RecordValue
-from pandablocks.responses import TableFieldDetails, TableFieldInfo
-from tests.conftest import DummyServer
+from pandablocks_ioc._types import EpicsName, InErrorException, RecordInfo, RecordValue
 
 PANDA_FORMAT_TABLE_NAME = "SEQ1.TABLE"
 EPICS_FORMAT_TABLE_NAME = "SEQ1:TABLE"
@@ -594,7 +593,7 @@ async def test_table_updater_update_mode_other(
     table_updater.mode_record_info.record.set.assert_not_called()
 
 
-@patch("pandablocks.ioc._tables.db_put_field")
+@patch("pandablocks_ioc._tables.db_put_field")
 def test_table_updater_update_table(
     db_put_field: MagicMock,
     table_updater: TableUpdater,

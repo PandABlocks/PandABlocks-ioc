@@ -13,7 +13,15 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 description = "One line description of your module"
-dependencies = [] # Add project dependencies here, e.g. ["click", "numpy"]
+dependencies = [
+    "numpy",
+    "click",
+    "h5py",
+    "softioc>=4.1.0",
+    "pandablocks>=0.3.1",
+    "pvi[cli]>=0.4",
+    "aiohttp",
+] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"
 readme = "README.rst"
@@ -21,13 +29,16 @@ requires-python = ">=3.8"
 
 [project.optional-dependencies]
 dev = [
+    "aioca",
     "black",
+    "mock",
     "mypy",
     "flake8-isort",
     "Flake8-pyproject",
     "pipdeptree",
     "pre-commit",
     "pydata-sphinx-theme>=0.12",
+    "pytest-asyncio",
     "pytest-cov",
     "sphinx-autobuild",
     "sphinx-copybutton",
@@ -42,9 +53,12 @@ PandABlocks-ioc = "pandablocks_ioc.__main__:main"
 [project.urls]
 GitHub = "https://github.com/PandABlocks/PandABlocks-ioc"
 
-[[project.authors]] # Further authors may be added by duplicating this section
+[[project.authors]]
 email = "tom.cobb@diamond.ac.uk"
 name = "Tom Cobb"
+[[project.authors]] # Further authors may be added by duplicating this section
+email = "alex.wells@diamond.ac.uk"
+name = "Alex Wells"
 
 
 [tool.setuptools_scm]

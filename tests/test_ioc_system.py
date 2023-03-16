@@ -4,23 +4,22 @@ from typing import Dict, List
 import numpy
 import pytest
 from aioca import caget, camonitor, caput
-from conftest import TEST_PREFIX, TIMEOUT
+from conftest import TEST_PREFIX, TIMEOUT, DummyServer
 from numpy import ndarray
-
 from pandablocks.asyncio import AsyncioClient
-from pandablocks.ioc._types import EpicsName
-from pandablocks.ioc.ioc import (
-    _BlockAndFieldInfo,
-    _ensure_block_number_present,
-    introspect_panda,
-)
 from pandablocks.responses import (
     BitMuxFieldInfo,
     BlockInfo,
     EnumFieldInfo,
     TableFieldInfo,
 )
-from tests.conftest import DummyServer
+
+from pandablocks_ioc._types import EpicsName
+from pandablocks_ioc.ioc import (
+    _BlockAndFieldInfo,
+    _ensure_block_number_present,
+    introspect_panda,
+)
 
 # Test file for all tests that require a full setup system, with an IOC running in one
 # process, a DummyServer in another, and the test in the main thread accessing data

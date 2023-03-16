@@ -8,10 +8,6 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 from aiohttp import web
-from softioc import alarm, asyncio_dispatcher, builder, fields, softioc
-from softioc.imports import db_put_field
-from softioc.pythonSoftIoc import RecordWrapper
-
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import (
     Arm,
@@ -22,26 +18,6 @@ from pandablocks.commands import (
     GetFieldInfo,
     GetLine,
     Put,
-)
-from pandablocks.ioc._hdf_ioc import HDF5RecordController
-from pandablocks.ioc._pvi import Pvi, PviGroup, add_positions_table_row, add_pvi_info
-from pandablocks.ioc._tables import TableRecordWrapper, TableUpdater
-from pandablocks.ioc._types import (
-    ONAM_STR,
-    OUT_RECORD_FUNCTIONS,
-    ZNAM_STR,
-    EpicsName,
-    InErrorException,
-    PandAName,
-    RecordInfo,
-    RecordValue,
-    ScalarRecordValue,
-    check_num_labels,
-    device_and_record_to_panda_name,
-    epics_to_panda_name,
-    panda_to_epics_name,
-    trim_description,
-    trim_string_value,
 )
 from pandablocks.responses import (
     BitMuxFieldInfo,
@@ -59,6 +35,30 @@ from pandablocks.responses import (
     TableFieldInfo,
     TimeFieldInfo,
     UintFieldInfo,
+)
+from softioc import alarm, asyncio_dispatcher, builder, fields, softioc
+from softioc.imports import db_put_field
+from softioc.pythonSoftIoc import RecordWrapper
+
+from ._hdf_ioc import HDF5RecordController
+from ._pvi import Pvi, PviGroup, add_positions_table_row, add_pvi_info
+from ._tables import TableRecordWrapper, TableUpdater
+from ._types import (
+    ONAM_STR,
+    OUT_RECORD_FUNCTIONS,
+    ZNAM_STR,
+    EpicsName,
+    InErrorException,
+    PandAName,
+    RecordInfo,
+    RecordValue,
+    ScalarRecordValue,
+    check_num_labels,
+    device_and_record_to_panda_name,
+    epics_to_panda_name,
+    panda_to_epics_name,
+    trim_description,
+    trim_string_value,
 )
 
 # TODO: Try turning python.analysis.typeCheckingMode on, as it does highlight a couple
@@ -229,7 +229,8 @@ def _ensure_block_number_present(block_and_field_name: str) -> str:
 async def introspect_panda(
     client: AsyncioClient,
 ) -> Tuple[Dict[str, _BlockAndFieldInfo], Dict[EpicsName, RecordValue]]:
-    """Query the PandA for all its Blocks, Fields of each Block, and Values of each Field
+    """Query the PandA for all its Blocks, Fields of each Block, and Values of each
+    Field
 
     Args:
         client (AsyncioClient): Client used for commuication with the PandA
@@ -448,7 +449,6 @@ class _TimeRecordUpdater(_RecordUpdater):
     is_type_time: bool
 
     async def update(self, new_val: Any):
-
         # Must allow UNITS value change to be pushed to the PandA
         # as this triggers the MIN field to be recalculated
         await super().update(new_val)
@@ -456,7 +456,6 @@ class _TimeRecordUpdater(_RecordUpdater):
         await self.update_parent_record(new_val)
 
     async def update_parent_record(self, new_val):
-
         self.update_egu(new_val)
 
         if self.is_type_time:
@@ -1143,7 +1142,6 @@ class IocRecordFactory:
         field_info: FieldInfo,
         values: Dict[EpicsName, ScalarRecordValue],
     ) -> Dict[EpicsName, RecordInfo]:
-
         self._check_num_values(values, 1)
         assert isinstance(field_info, PosMuxFieldInfo)
 
@@ -1424,7 +1422,6 @@ class IocRecordFactory:
         group: PviGroup,
         **kwargs,
     ) -> Dict[EpicsName, RecordInfo]:
-
         return {
             record_name: self._create_record_info(
                 record_name,
@@ -1500,7 +1497,6 @@ class IocRecordFactory:
         field_info: FieldInfo,
         values: Dict[EpicsName, ScalarRecordValue],
     ) -> Dict[EpicsName, RecordInfo]:
-
         self._check_num_values(values, 0)
 
         updater: _WriteRecordUpdater
@@ -1868,7 +1864,6 @@ async def create_records(
                 raise Exception(f"Duplicate record name {new_record} detected.")
 
         for block_num in range(block_info.number):
-
             for field, field_info in panda_info.fields.items():
                 # For consistency in this module, always suffix the block with its
                 # number. This means all records will have the block number.
@@ -1931,7 +1926,6 @@ async def update(
     fields_to_reset: List[Tuple[RecordWrapper, Any]] = []
 
     while True:
-
         try:
             for record, value in fields_to_reset:
                 record.set(value)
