@@ -15,7 +15,7 @@
                 "SOME-PREFIX"
             ],
             "console": "integratedTerminal",
-            "justMyCode": true
+            "justMyCode": false
         },
         {
             "name": "Introspect Panda",

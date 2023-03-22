@@ -63,7 +63,8 @@ def caplog_workaround():
             # Make mypy happy
             assert (
                 log_record.args
-            ), f"args were none, how did that happen? {log_record}  {log_record.args}"
+            ), f"args were none, how did that happen?\nRecord: {log_record}\n"
+            f"Args: {log_record.args}"
             logger._log(
                 level=log_record.levelno,
                 msg=log_record.message,
