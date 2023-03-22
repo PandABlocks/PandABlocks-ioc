@@ -60,7 +60,10 @@ def caplog_workaround():
         yield
         while not logger_queue.empty():
             log_record: logging.LogRecord = logger_queue.get()
-            assert log_record.args  # Make mypy happy
+            # Make mypy happy
+            assert (
+                log_record.args
+            ), f"args were none, how did that happen? {log_record}  {log_record.args}"
             logger._log(
                 level=log_record.levelno,
                 msg=log_record.message,
@@ -126,11 +129,15 @@ class DummyServer:
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ):
         # oneshot data writer
-        await reader.read(4096)
-        for data in self.data:
-            await asyncio.sleep(0.1)
-            writer.write(data)
-            await writer.drain()
+        try:
+            await reader.read(4096)
+            for data in self.data:
+                await asyncio.sleep(0.1)
+                writer.write(data)
+                await writer.drain()
+        except IOError:
+            # During shutdown we see exceptions due to the client side disconnecting
+            pass
 
     async def open(self):
         self._ctrl_server = await asyncio.start_server(
@@ -145,6 +152,16 @@ class DummyServer:
         self._data_server.close()
         await self._ctrl_server.wait_closed()
         await self._data_server.wait_closed()
+
+    def drain_expected_messages(self, timeout=TIMEOUT):
+        """Waits for the expected_message_responses to be empty"""
+        sleep_period = 0.2
+
+        start_time = time.time()
+        while self.expected_message_responses:
+            time.sleep(sleep_period)
+            if time.time() - start_time > timeout:
+                raise Exception("Timeout waiting for server expected messages to clear")
 
 
 def _clear_records():
@@ -603,9 +620,9 @@ def dummy_server_in_thread():
     t = threading.Thread(target=loop.run_forever)
     t.start()
     f = asyncio.run_coroutine_threadsafe(server.open(), loop)
-    f.result()
+    f.result(timeout=TIMEOUT)
     yield server
-    asyncio.run_coroutine_threadsafe(server.close(), loop).result()
+    asyncio.run_coroutine_threadsafe(server.close(), loop).result(timeout=TIMEOUT)
     loop.call_soon_threadsafe(loop.stop())
     t.join()
 

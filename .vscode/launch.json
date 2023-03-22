@@ -8,13 +8,14 @@
             "name": "SoftIOC",
             "type": "python",
             "request": "launch",
-            "module": "pandablocks",
-            "justMyCode": true,
+            "program": "src/pandablocks_ioc/__main__.py",
             "args": [
                 "softioc",
                 "172.23.252.201",
                 "SOME-PREFIX"
-            ]
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
         },
         {
             "name": "Introspect Panda",

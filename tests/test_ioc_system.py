@@ -227,8 +227,8 @@ async def test_create_softioc_time_panda_changes(
 ):
     """Test that the UNITS and MIN values of a TIME field correctly reflect into EPICS
     records when the value changes on the PandA"""
-    # Check that the server has started, and has drained all messages
-    assert not dummy_server_time.expected_message_responses
+
+    dummy_server_time.drain_expected_messages()
 
     try:
         # Set up monitors for expected changes when the UNITS are changed,
@@ -278,8 +278,8 @@ async def test_create_softioc_time_epics_changes(
 ):
     """Test that the UNITS and MIN values of a TIME field correctly sent to the PandA
     when an EPICS record is updated"""
-    # Check that the server has started, and has drained all messages
-    assert not dummy_server_time.expected_message_responses
+
+    dummy_server_time.drain_expected_messages()
 
     try:
         # Set up monitors for expected changes when the UNITS are changed,

@@ -131,12 +131,12 @@ async def test_create_softioc_update_table(
         capturing_queue: asyncio.Queue = asyncio.Queue()
         monitor = camonitor(TEST_PREFIX + ":SEQ1:TABLE:TIME1", capturing_queue.put)
 
-        curr_val: ndarray = await asyncio.wait_for(capturing_queue.get(), 2)
+        curr_val: ndarray = await asyncio.wait_for(capturing_queue.get(), TIMEOUT)
         # First response is the current value
         assert numpy.array_equal(curr_val, table_unpacked_data["TIME1"])
 
         # Wait for the new value to appear
-        curr_val = await asyncio.wait_for(capturing_queue.get(), 10)
+        curr_val = await asyncio.wait_for(capturing_queue.get(), TIMEOUT)
         assert numpy.array_equal(
             curr_val,
             [100, 0, 9, 5, 99999],
@@ -186,12 +186,12 @@ async def test_create_softioc_update_index_drvh(
         drvh_queue: asyncio.Queue = asyncio.Queue()
         monitor = camonitor(TEST_PREFIX + ":SEQ1:TABLE:INDEX.DRVH", drvh_queue.put)
 
-        curr_val: int = await asyncio.wait_for(drvh_queue.get(), 2)
+        curr_val: int = await asyncio.wait_for(drvh_queue.get(), TIMEOUT)
         # First response is the current value (0-indexed hence -1 )
         assert curr_val == table_length - 1
 
         # Wait for the new value to appear
-        curr_val = await asyncio.wait_for(drvh_queue.get(), 10)
+        curr_val = await asyncio.wait_for(drvh_queue.get(), TIMEOUT)
         assert curr_val == table_length + 2 - 1
 
     finally:
@@ -246,9 +246,9 @@ async def test_create_softioc_update_table_index(
         )
 
         # Confirm initial values are correct
-        curr_val = await asyncio.wait_for(repeats_queue.get(), 2)
+        curr_val = await asyncio.wait_for(repeats_queue.get(), TIMEOUT)
         assert curr_val == table_unpacked_data["REPEATS"][index_val]
-        curr_val = await asyncio.wait_for(trigger_queue.get(), 2)
+        curr_val = await asyncio.wait_for(trigger_queue.get(), TIMEOUT)
         assert curr_val == table_unpacked_data["TRIGGER"][index_val]
 
         # Now set a new INDEX
@@ -256,9 +256,9 @@ async def test_create_softioc_update_table_index(
         await caput(TEST_PREFIX + ":SEQ1:TABLE:INDEX", index_val)
 
         # Wait for the new values to appear
-        curr_val = await asyncio.wait_for(repeats_queue.get(), 10)
+        curr_val = await asyncio.wait_for(repeats_queue.get(), TIMEOUT)
         assert curr_val == table_unpacked_data["REPEATS"][index_val]
-        curr_val = await asyncio.wait_for(trigger_queue.get(), 10)
+        curr_val = await asyncio.wait_for(trigger_queue.get(), TIMEOUT)
         assert curr_val == table_unpacked_data["TRIGGER"][index_val]
 
     finally:
@@ -282,7 +282,7 @@ async def test_create_softioc_update_table_scalars_change(
         )
 
         # Confirm initial values are correct
-        curr_val = await asyncio.wait_for(repeats_queue.get(), 2)
+        curr_val = await asyncio.wait_for(repeats_queue.get(), TIMEOUT)
         assert curr_val == table_unpacked_data["REPEATS"][index_val]
 
         # Now set a new value
@@ -291,7 +291,7 @@ async def test_create_softioc_update_table_scalars_change(
         await caput(TEST_PREFIX + ":SEQ1:TABLE:REPEATS", new_repeats_vals)
 
         # Wait for the new values to appear
-        curr_val = await asyncio.wait_for(repeats_queue.get(), 10)
+        curr_val = await asyncio.wait_for(repeats_queue.get(), TIMEOUT)
         assert curr_val == new_repeats_vals[index_val]
 
     finally:

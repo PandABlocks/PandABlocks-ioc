@@ -48,7 +48,7 @@ dev = [
 ]
 
 [project.scripts]
-PandABlocks-ioc = "pandablocks_ioc.__main__:main"
+PandABlocks-ioc = "pandablocks_ioc.__main__:cli"
 
 [project.urls]
 GitHub = "https://github.com/PandABlocks/PandABlocks-ioc"
@@ -88,7 +88,17 @@ addopts = """
     --cov=pandablocks_ioc --cov-report term --cov-report xml:cov.xml
     """
 # https://iscinumpy.gitlab.io/post/bound-version-constraints/#watch-for-warnings
-filterwarnings = "error"
+# The ignores are all related to the test DummyServer, both async and in_thread variants, 
+# which appear to have issues cleanly shutting down and raise exceptions in their destructors.
+# The issue seems like all we need is to add await asyncio.sleep(0) to allow asyncio to
+# clean up its connections, but that doesn't seem to behave as expected inside pytest.
+filterwarnings = """
+    error
+    ignore:unclosed transport <_SelectorSocketTransport:
+    ignore:unclosed <socket.socket:
+    ignore:unclosed event loop <_UnixSelectorEventLoop:
+"""
+# ignore::ResourceWarning
 # Doctest python code in docs, python code in src docstrings, test functions in tests
 testpaths = "docs src tests"
 
