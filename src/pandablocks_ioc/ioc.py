@@ -1068,6 +1068,10 @@ class IocRecordFactory:
 
         # Each row of the table has a VAL and a NAME.
         for i, label in enumerate(field_info.bits):
+            if label == "":
+                # Some rows are empty. Do not create records.
+                continue
+            label = _ensure_block_number_present(label)
             link = self._record_prefix + ":" + label.replace(".", ":") + " CP"
             enumerated_bits_prefix = f"BITS:{offset + i}"
             builder.records.bi(
