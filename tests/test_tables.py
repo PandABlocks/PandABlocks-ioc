@@ -310,8 +310,9 @@ def test_table_packing_unpack(
         table_field_info.row_words, table_fields_records, table_data
     )
 
-    for actual, expected in zip(unpacked, table_unpacked_data.values()):
-        assert numpy.array_equal(actual, expected)
+    for field_name, actual in unpacked.items():
+        expected = table_unpacked_data[field_name]
+        numpy.testing.assert_array_equal(actual, expected)
 
 
 def test_table_packing_pack(
@@ -357,9 +358,9 @@ def test_table_packing_roundtrip(
 
     # Put these values into Mocks for the Records
     data: Dict[str, TableFieldRecordContainer] = {}
-    for (field_name, field_info), data_array in zip(table_fields.items(), unpacked):
+    for field_name, field_info in table_fields.items():
         mocked_record = MagicMock()
-        mocked_record.get = MagicMock(return_value=data_array)
+        mocked_record.get = MagicMock(return_value=unpacked[field_name])
         record_info = RecordInfo(lambda x: None)
         record_info.add_record(mocked_record)
         data[field_name] = TableFieldRecordContainer(field_info, record_info)
@@ -367,23 +368,6 @@ def test_table_packing_roundtrip(
     packed = TablePacking.pack(table_field_info.row_words, data)
 
     assert packed == table_data
-
-
-def test_table_updater_fields_sorted(table_updater: TableUpdater):
-    """Test that the field sorting done in init has occurred"""
-
-    # Bits start at 0
-    curr_bit = -1
-    for field in table_updater.table_fields_records.values():
-        field_details = field.field
-        assert curr_bit < field_details.bit_low, "Fields are not in bit order"
-        assert (
-            field_details.bit_low <= field_details.bit_high  # fields may be 1 bit wide
-        ), "Field had incorrect bit_low and bit_high order"
-        assert (
-            curr_bit < field_details.bit_high
-        ), "Field had bit_high lower than bit_low"
-        curr_bit = field_details.bit_high
 
 
 def test_table_updater_validate_mode_view(table_updater: TableUpdater):

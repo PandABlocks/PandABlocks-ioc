@@ -1,6 +1,8 @@
 # IOC Table record support
 
 import logging
+import typing
+from collections import OrderedDict
 from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional, Union
@@ -66,14 +68,13 @@ class TablePacking:
         row_words: int,
         table_fields_records: Dict[str, TableFieldRecordContainer],
         table_data: List[str],
-    ) -> List[UnpackedArray]:
+    ) -> Dict[str, UnpackedArray]:
         """Unpacks the given `packed` data based on the fields provided.
-        Returns the unpacked data in column-indexed format
+        Returns the unpacked data in {column_name: column_data} column-indexed format
 
         Args:
             row_words: The number of 32-bit words per row
-            table_fields: The list of fields present in the packed data. Must be ordered
-                in bit-ascending order (i.e. lowest bit_low field first)
+            table_fields: The list of fields present in the packed data.
             table_data: The list of data for this table, from PandA. Each item is
                 expected to be the string representation of a uint32.
 
@@ -87,8 +88,16 @@ class TablePacking:
         data = data.reshape(len(data) // row_words, row_words)
         packed = data.T
 
-        unpacked = []
-        for field_record in table_fields_records.values():
+        # Ensure fields are in bit-order
+        table_fields_records = dict(
+            sorted(
+                table_fields_records.items(),
+                key=lambda item: item[1].field.bit_low,
+            )
+        )
+
+        unpacked: Dict[str, UnpackedArray] = {}
+        for field_name, field_record in table_fields_records.items():
             field_details = field_record.field
             offset = field_details.bit_low
             bit_len = field_details.bit_high - field_details.bit_low + 1
@@ -118,7 +127,7 @@ class TablePacking:
                 elif bit_len <= 16:
                     val = val.astype(np.uint16)
 
-            unpacked.append(val)
+            unpacked.update({field_name: val})
 
         return unpacked
 
@@ -132,14 +141,21 @@ class TablePacking:
         Args:
             row_words: The number of 32-bit words per row
             table_fields_records: The list of fields and their associated RecordInfo
-                structure, used to access the value of each record. The fields and
-                records must be in bit-ascending order (i.e. lowest bit_low field first)
+                structure, used to access the value of each record.
 
         Returns:
             List[str]: The list of data ready to be sent to PandA
         """
 
         packed = None
+
+        # Ensure fields are in bit-order
+        table_fields_records = dict(
+            sorted(
+                table_fields_records.items(),
+                key=lambda item: item[1].field.bit_low,
+            )
+        )
 
         # Iterate over the zipped fields and their associated records to construct the
         # packed array.
@@ -195,8 +211,9 @@ class TableUpdater:
     client: AsyncioClient
     table_name: EpicsName
     field_info: TableFieldInfo
-    # Collection of the records that comprise the table's fields
-    table_fields_records: Dict[str, TableFieldRecordContainer]
+    # Collection of the records that comprise the table's fields.
+    # Order is exactly that which PandA sent.
+    table_fields_records: typing.OrderedDict[str, TableFieldRecordContainer]
     # Collection of the records that comprise the SCALAR records for each field
     table_scalar_records: Dict[EpicsName, RecordInfo] = {}
     all_values_dict: Dict[EpicsName, RecordValue]
@@ -238,9 +255,12 @@ class TableUpdater:
             },
         )
 
-        self.table_fields_records = {
-            k: TableFieldRecordContainer(v, None) for k, v in field_info.fields.items()
-        }
+        self.table_fields_records = OrderedDict(
+            {
+                k: TableFieldRecordContainer(v, None)
+                for k, v in field_info.fields.items()
+            }
+        )
         self.all_values_dict = all_values_dict
 
         # The PVI group to put all records into
@@ -250,15 +270,6 @@ class TableUpdater:
         #     pvi_group,
         #     SignalRW(table_name, table_name, TableWrite([])),
         # )
-
-        # The input field order will be whatever was configured in the PandA.
-        # Ensure fields in bit order from lowest to highest so we can parse data
-        self.table_fields_records = dict(
-            sorted(
-                self.table_fields_records.items(),
-                key=lambda item: item[1].field.bit_low,
-            )
-        )
 
         # The INDEX record's starting value
         DEFAULT_INDEX = 0
@@ -274,9 +285,7 @@ class TableUpdater:
             value,
         )
 
-        for (field_name, field_record_container), data in zip(
-            self.table_fields_records.items(), field_data
-        ):
+        for field_name, field_record_container in self.table_fields_records.items():
             field_details = field_record_container.field
 
             full_name = table_name + ":" + field_name
@@ -288,7 +297,9 @@ class TableUpdater:
                 DESC=description,
                 validate=self.validate_waveform,
                 on_update_name=self.update_waveform,
-                initial_value=[str(x).encode() for x in data],
+                # TODO: Map the integers back to strings
+                # initial_value=[str(x).encode() for x in data],
+                initial_value=field_data[field_name],
                 length=field_info.max_length,
             )
             field_record.add_info(
@@ -302,7 +313,9 @@ class TableUpdater:
                     }
                 },
             )
-            print(list(field_info.fields.keys()).index(field_name))
+            # TODO: last column needs meta stuff:
+            # "": {"+type": "meta", "+channel": "VAL"},
+
             # TODO: TableWrite currently isn't implemented in PVI
             # Pvi.add_pvi_info(
             #     full_name,
@@ -321,7 +334,11 @@ class TableUpdater:
             scalar_record_desc = "Scalar val (set by INDEX rec) of column"
             # No better default than zero, despite the fact it could be a valid value
             # PythonSoftIOC issue #53 may alleviate this.
-            initial_value = data[DEFAULT_INDEX] if data.size > 0 else 0
+            initial_value = (
+                field_data[field_name][DEFAULT_INDEX]
+                if field_data[field_name].size > 0
+                else 0
+            )
 
             # Three possible field types, do per-type config
             if field_details.subtype == "int":
@@ -408,7 +425,7 @@ class TableUpdater:
             initial_value=DEFAULT_INDEX,
             on_update=self.update_index,
             DRVL=0,
-            DRVH=data.size - 1,
+            DRVH=field_data[field_name].size - 1,
         )
 
         Pvi.add_pvi_info(
@@ -511,12 +528,12 @@ class TableUpdater:
                 field_data = TablePacking.unpack(
                     self.field_info.row_words, self.table_fields_records, old_val
                 )
-                for field_record, data in zip(
-                    self.table_fields_records.values(), field_data
-                ):
+                for field_name, field_record in self.table_fields_records.items():
                     assert field_record.record_info
                     # Table records are never In type, so can always disable processing
-                    field_record.record_info.record.set(data, process=False)
+                    field_record.record_info.record.set(
+                        field_data[field_name], process=False
+                    )
             finally:
                 # Already in on_update of this record, so disable processing to
                 # avoid recursion
@@ -534,11 +551,11 @@ class TableUpdater:
                 self.field_info.row_words, self.table_fields_records, panda_vals
             )
 
-            for field_record, data in zip(
-                self.table_fields_records.values(), field_data
-            ):
+            for field_name, field_record in self.table_fields_records.items():
                 assert field_record.record_info
-                field_record.record_info.record.set(data, process=False)
+                field_record.record_info.record.set(
+                    field_data[field_name], process=False
+                )
 
             # Already in on_update of this record, so disable processing to
             # avoid recursion
@@ -560,16 +577,16 @@ class TableUpdater:
                 self.field_info.row_words, self.table_fields_records, list(new_values)
             )
 
-            for field_record, data in zip(
-                self.table_fields_records.values(), field_data
-            ):
+            for field_name, field_record in self.table_fields_records.items():
                 assert field_record.record_info
                 # Must skip processing as the validate method would reject the update
-                field_record.record_info.record.set(data, process=False)
+                field_record.record_info.record.set(
+                    field_data[field_name], process=False
+                )
                 self._update_scalar(field_record.record_info.record.name)
 
             # All items in field_data have the same length, so just use 0th.
-            self._update_index_drvh(field_data[0])
+            self._update_index_drvh(list(field_data.values())[0])
         else:
             # No other mode allows PandA updates to EPICS records
             logging.warning(
