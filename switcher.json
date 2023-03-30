@@ -2,5 +2,9 @@
   {
     "version": "remove-file-server",
     "url": "https://PandABlocks.github.io/PandABlocks-ioc/remove-file-server/"
+  },
+  {
+    "version": "try_pva_merge",
+    "url": "https://PandABlocks.github.io/PandABlocks-ioc/try_pva_merge/"
   }
 ]
