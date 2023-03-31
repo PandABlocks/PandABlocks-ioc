@@ -165,6 +165,12 @@ class TablePacking:
             assert record_info
 
             curr_val = record_info.record.get()
+
+            if field_details.labels:
+                # Must convert the list of strings into integers
+                curr_val = [field_details.labels.index(x) for x in curr_val]
+                curr_val = np.array(curr_val)
+
             assert isinstance(curr_val, np.ndarray)  # Check no SCALAR records here
             # PandA always handles tables in uint32 format
             curr_val = np.uint32(curr_val)
@@ -292,14 +298,16 @@ class TableUpdater:
             full_name = EpicsName(full_name)
             description = trim_description(field_details.description, full_name)
 
+            waveform_val = self._construct_waveform_val(
+                field_data, field_name, field_details
+            )
+
             field_record: RecordWrapper = builder.WaveformOut(
                 full_name,
                 DESC=description,
                 validate=self.validate_waveform,
                 on_update_name=self.update_waveform,
-                # TODO: Map the integers back to strings
-                # initial_value=[str(x).encode() for x in data],
-                initial_value=field_data[field_name],
+                initial_value=waveform_val,
                 length=field_info.max_length,
             )
             field_record.add_info(
@@ -434,6 +442,21 @@ class TableUpdater:
             SignalRW(index_record_name, index_record_name, TextWrite()),
         )
 
+    def _construct_waveform_val(
+        self,
+        field_data: Dict[str, UnpackedArray],
+        field_name: str,
+        field_details: TableFieldDetails,
+    ):
+        """Convert the values into the right form. For enums this means converting
+        the numeric values PandA sends us into the string representation. For all other
+        types the numeric representation is used."""
+        return (
+            [field_details.labels[x] for x in field_data[field_name]]
+            if field_details.labels
+            else field_data[field_name]
+        )
+
     def validate_waveform(self, record: RecordWrapper, new_val) -> bool:
         """Controls whether updates to the waveform records are processed, based on the
         value of the MODE record.
@@ -492,6 +515,7 @@ class TableUpdater:
 
         assert self.mode_record_info.labels
 
+        packed_data: List[str] = []
         new_label = self.mode_record_info.labels[new_val]
 
         if new_label == TableModeEnum.SUBMIT.name:
@@ -579,10 +603,11 @@ class TableUpdater:
 
             for field_name, field_record in self.table_fields_records.items():
                 assert field_record.record_info
-                # Must skip processing as the validate method would reject the update
-                field_record.record_info.record.set(
-                    field_data[field_name], process=False
+                waveform_val = self._construct_waveform_val(
+                    field_data, field_name, field_record.field
                 )
+                # Must skip processing as the validate method would reject the update
+                field_record.record_info.record.set(waveform_val, process=False)
                 self._update_scalar(field_record.record_info.record.name)
 
             # All items in field_data have the same length, so just use 0th.
@@ -624,12 +649,25 @@ class TableUpdater:
 
         index = self.index_record.get()
 
+        labels = self.table_fields_records[field_name].field.labels
+
         try:
             scalar_val = waveform_data[index]
+            if labels:
+                # mbbi/o records must use the numeric index
+                scalar_val = labels.index(scalar_val)
             sev = alarm.NO_ALARM
         except IndexError as e:
             logging.warning(
                 f"Index {index} of record {waveform_record_name} is out of bounds.",
+                exc_info=e,
+            )
+            scalar_val = 0
+            sev = alarm.INVALID_ALARM
+        except ValueError as e:
+            logging.warning(
+                f"Value {scalar_val} of record {waveform_record_name} is not "
+                "a recognised value.",
                 exc_info=e,
             )
             scalar_val = 0

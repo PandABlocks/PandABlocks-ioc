@@ -144,7 +144,11 @@ async def test_create_softioc_update_table(
 
         # And check some other columns too
         curr_val = await caget(TEST_PREFIX + ":SEQ1:TABLE:TRIGGER")
-        assert numpy.array_equal(curr_val, [0, 0, 0, 9, 12])
+        assert numpy.array_equal(
+            curr_val,
+            # Numeric values: [0, 0, 0, 9, 12]
+            ["Immediate", "Immediate", "Immediate", "POSB>=POSITION", "POSC<=POSITION"],
+        )
 
         curr_val = await caget(TEST_PREFIX + ":SEQ1:TABLE:POSITION")
         assert numpy.array_equal(curr_val, [-5, 0, 0, 444444, -99])
@@ -241,8 +245,10 @@ async def test_create_softioc_update_table_index(
             TEST_PREFIX + ":SEQ1:TABLE:REPEATS:SCALAR", repeats_queue.put
         )
         trigger_queue: asyncio.Queue = asyncio.Queue()
+        # TRIGGER is an mbbin so must specify datatype to get its strings, otherwise
+        # cothread will return the integer representation
         trigger_monitor = camonitor(
-            TEST_PREFIX + ":SEQ1:TABLE:TRIGGER:SCALAR", trigger_queue.put
+            TEST_PREFIX + ":SEQ1:TABLE:TRIGGER:SCALAR", trigger_queue.put, datatype=str
         )
 
         # Confirm initial values are correct
@@ -302,7 +308,7 @@ def test_table_packing_unpack(
     table_field_info: TableFieldInfo,
     table_fields_records: Dict[str, TableFieldRecordContainer],
     table_data: List[str],
-    table_unpacked_data,
+    table_unpacked_data: Dict[EpicsName, ndarray],
 ):
     """Test table unpacking works as expected"""
     assert table_field_info.row_words
@@ -312,6 +318,9 @@ def test_table_packing_unpack(
 
     for field_name, actual in unpacked.items():
         expected = table_unpacked_data[field_name]
+        if expected.dtype.char in ("S", "U"):
+            # Convert numeric array back to strings
+            actual = [table_fields_records[field_name].field.labels[x] for x in actual]
         numpy.testing.assert_array_equal(actual, expected)
 
 
@@ -359,8 +368,13 @@ def test_table_packing_roundtrip(
     # Put these values into Mocks for the Records
     data: Dict[str, TableFieldRecordContainer] = {}
     for field_name, field_info in table_fields.items():
+        return_value = unpacked[field_name]
+        if field_info.labels:
+            # Convert to string representation
+            return_value = [field_info.labels[x] for x in return_value]
+
         mocked_record = MagicMock()
-        mocked_record.get = MagicMock(return_value=unpacked[field_name])
+        mocked_record.get = MagicMock(return_value=return_value)
         record_info = RecordInfo(lambda x: None)
         record_info.add_record(mocked_record)
         data[field_name] = TableFieldRecordContainer(field_info, record_info)
@@ -487,7 +501,12 @@ async def test_table_updater_update_mode_submit_exception(
         # numpy arrays don't play nice with mock's equality comparisons, do it ourself
         called_args = record_info.record.set.call_args
 
-        numpy.testing.assert_array_equal(data, called_args[0][0])
+        expected = called_args[0][0]
+        labels = table_updater.table_fields_records[field_name].field.labels
+        if labels:
+            expected = [labels[x] for x in expected]
+
+        numpy.testing.assert_array_equal(data, expected)
 
     table_updater.mode_record_info.record.set.assert_called_once_with(
         TableModeEnum.VIEW.value, process=False
@@ -544,7 +563,13 @@ async def test_table_updater_update_mode_discard(
         # numpy arrays don't play nice with mock's equality comparisons, do it ourself
         called_args = record_info.record.set.call_args
 
-        numpy.testing.assert_array_equal(data, called_args[0][0])
+        expected = called_args[0][0]
+
+        labels = table_updater.table_fields_records[field_name].field.labels
+        if labels:
+            expected = [labels[x] for x in expected]
+
+        numpy.testing.assert_array_equal(data, expected)
 
     table_updater.mode_record_info.record.set.assert_called_once_with(
         TableModeEnum.VIEW.value, process=False
