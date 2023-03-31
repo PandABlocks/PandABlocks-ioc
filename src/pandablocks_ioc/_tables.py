@@ -291,6 +291,8 @@ class TableUpdater:
             value,
         )
 
+        putorder_index = 0
+
         for field_name, field_record_container in self.table_fields_records.items():
             field_details = field_record_container.field
 
@@ -310,19 +312,24 @@ class TableUpdater:
                 initial_value=waveform_val,
                 length=field_info.max_length,
             )
+
+            pva_info = {
+                f"value.{field_name}": {
+                    "+type": "plain",
+                    "+channel": "VAL",
+                    "+putorder": putorder_index,
+                }
+            }
+
+            if putorder_index == len(self.table_fields_records) - 1:
+                pva_info.update({"": {"+type": "meta", "+channel": "VAL"}})
+
             field_record.add_info(
                 "Q:group",
-                {
-                    pva_table_name: {
-                        f"value.{field_name}": {
-                            "+type": "plain",
-                            "+channel": "VAL",
-                        }
-                    }
-                },
+                {pva_table_name: pva_info},
             )
-            # TODO: last column needs meta stuff:
-            # "": {"+type": "meta", "+channel": "VAL"},
+
+            putorder_index += 1
 
             # TODO: TableWrite currently isn't implemented in PVI
             # Pvi.add_pvi_info(

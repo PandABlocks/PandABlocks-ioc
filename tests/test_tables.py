@@ -1,5 +1,5 @@
 import asyncio
-from typing import Dict, List
+from typing import Dict, List, Union
 
 import numpy
 import numpy.testing
@@ -19,6 +19,7 @@ from pandablocks_ioc._tables import (
     TableModeEnum,
     TablePacking,
     TableUpdater,
+    UnpackedArray,
 )
 from pandablocks_ioc._types import EpicsName, InErrorException, RecordInfo, RecordValue
 
@@ -316,8 +317,9 @@ def test_table_packing_unpack(
         table_field_info.row_words, table_fields_records, table_data
     )
 
+    actual: Union[UnpackedArray, List[str]]
     for field_name, actual in unpacked.items():
-        expected = table_unpacked_data[field_name]
+        expected = table_unpacked_data[EpicsName(field_name)]
         if expected.dtype.char in ("S", "U"):
             # Convert numeric array back to strings
             actual = [table_fields_records[field_name].field.labels[x] for x in actual]
@@ -368,7 +370,7 @@ def test_table_packing_roundtrip(
     # Put these values into Mocks for the Records
     data: Dict[str, TableFieldRecordContainer] = {}
     for field_name, field_info in table_fields.items():
-        return_value = unpacked[field_name]
+        return_value: Union[UnpackedArray, List[str]] = unpacked[field_name]
         if field_info.labels:
             # Convert to string representation
             return_value = [field_info.labels[x] for x in return_value]
