@@ -27,6 +27,8 @@ from pandablocks_ioc.ioc import _TimeRecordUpdater, create_softioc
 # Record prefix used in many tests
 TEST_PREFIX = "TEST-PREFIX"
 
+BOBFILE_DIR = "./tests/test-bobfiles"
+
 # Timeout value (in seconds)
 TIMEOUT = 10
 
@@ -535,11 +537,13 @@ def dummy_server_time(dummy_server_in_thread: DummyServer):
 
 @patch("pandablocks_ioc.ioc.AsyncioClient.close")
 @patch("pandablocks_ioc.ioc.softioc.interactive_ioc")
-def ioc_wrapper(mocked_interactive_ioc: MagicMock, mocked_client_close: MagicMock):
+def ioc_wrapper(
+    bobfile_dir: str, mocked_interactive_ioc: MagicMock, mocked_client_close: MagicMock
+):
     """Wrapper function to start the IOC and do some mocking"""
 
     async def inner_wrapper():
-        create_softioc("localhost", TEST_PREFIX)
+        create_softioc("localhost", TEST_PREFIX, bobfile_dir)
         # If you see an error on the below line, it probably means an unexpected
         # exception occurred during IOC startup
         mocked_interactive_ioc.assert_called_once()
@@ -552,17 +556,20 @@ def ioc_wrapper(mocked_interactive_ioc: MagicMock, mocked_client_close: MagicMoc
 
 
 @pytest_asyncio.fixture
-def subprocess_ioc(enable_codecov_multiprocess, caplog, caplog_workaround) -> Generator:
+def subprocess_ioc(
+    tmp_path, enable_codecov_multiprocess, caplog, caplog_workaround
+) -> Generator:
     """Run the IOC in its own subprocess. When finished check logging logged no
     messages of WARNING or higher level."""
     with caplog.at_level(logging.WARNING):
         with caplog_workaround():
+            temp_directory = tmp_path
             ctx = get_multiprocessing_context()
-            p = ctx.Process(target=ioc_wrapper)
+            p = ctx.Process(target=ioc_wrapper, args=(temp_directory,))
             try:
                 p.start()
                 time.sleep(3)  # Give IOC some time to start up
-                yield
+                yield temp_directory
             finally:
                 p.terminate()
                 p.join(10)

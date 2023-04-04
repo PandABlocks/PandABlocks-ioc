@@ -1,5 +1,4 @@
 import logging
-import tempfile
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -141,7 +140,6 @@ class Pvi:
 
     # pvi_info_dict: Dict[EpicsName, PviInfo] = {}
     pvi_info_dict: Dict[str, Dict[PviGroup, List[Component]]] = {}
-    bob_file_dict: Dict[str, str] = {}
 
     @staticmethod
     def add_pvi_info(record_name: EpicsName, group: PviGroup, component: Component):
@@ -158,7 +156,7 @@ class Pvi:
             Pvi.pvi_info_dict[record_base] = {group: [component]}
 
     @staticmethod
-    def create_pvi_records(record_prefix: str):
+    def create_pvi_records(record_prefix: str, screens: str):
         """Create the :PVI records, one for each block and one at the top level"""
 
         devices: List[Device] = []
@@ -211,16 +209,12 @@ class Pvi:
 
         # TODO: label widths need some tweaking - some are pretty long right now
         formatter = DLSFormatter(label_width=250)
-        with tempfile.TemporaryDirectory() as temp_dir:
-            for device in devices:
-                try:
-                    formatter.format(
-                        device,
-                        record_prefix + ":",
-                        Path(f"{temp_dir}/{device.label}.bob"),
-                    )
-                    with open(f"{temp_dir}/{device.label}.bob") as f:
-                        Pvi.bob_file_dict.update({f"{device.label}.bob": f.read()})
-
-                except NotImplementedError:
-                    logging.exception("Cannot create TABLES yet")
+        for device in devices:
+            try:
+                formatter.format(
+                    device,
+                    record_prefix + ":",
+                    Path(f"{screens}/{device.label}.bob"),
+                )
+            except NotImplementedError:
+                logging.exception("Cannot create TABLES yet")

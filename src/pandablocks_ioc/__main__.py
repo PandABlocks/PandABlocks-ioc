@@ -31,11 +31,12 @@ def cli(ctx, log_level: str):
 @cli.command()
 @click.argument("host")
 @click.argument("prefix")
-def softioc(host: str, prefix: str):
+@click.argument("screens")
+def softioc(host: str, prefix: str, screens: str):
     """
     Create a soft IOC, using "prefix" for the namespace of the records.
     """
-    create_softioc(host, prefix)
+    create_softioc(host=host, record_prefix=prefix, screens=screens)
 
 
 # test with: python -m pandablocks_ioc

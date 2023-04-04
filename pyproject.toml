@@ -102,6 +102,7 @@ filterwarnings = """
 # ignore::ResourceWarning
 # Doctest python code in docs, python code in src docstrings, test functions in tests
 testpaths = "docs src tests"
+asyncio_mode = "auto"
 
 [tool.coverage.run]
 data_file = "/tmp/pandablocks_ioc.coverage"

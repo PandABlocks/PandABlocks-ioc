@@ -7,7 +7,6 @@ from string import digits
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
-from aiohttp import web
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import (
     Arm,
@@ -64,11 +63,6 @@ from ._types import (
 # TODO: Try turning python.analysis.typeCheckingMode on, as it does highlight a couple
 # of possible errors
 
-REQUEST_FILE_NAME = "filename"
-INTERNAL_DICT_NAME = "bob_file_dict"
-BOB_FILE_HOST = "0.0.0.0"
-BOB_FILE_PORT = 8080
-
 
 @dataclass
 class _BlockAndFieldInfo:
@@ -90,67 +84,11 @@ def _when_finished(task):
     create_softioc_task = None
 
 
-async def _handle_file(request: web.Request) -> web.Response:
-    """Handles HTTP GET requests for individual bob files.
-
-    This function will handle incoming requests for .bob files. Returns a reponse
-    containing the contents of the bobfile.
-
-    Args:
-        request: An incoming HTTP request
-    Returns:
-        Response: A HTTP response
-    """
-    bob_file_dict = request.app[INTERNAL_DICT_NAME]
-    filename = request.match_info["URL_FILENAME"]
-    if filename in bob_file_dict:
-        return web.Response(text=bob_file_dict[filename])
-    else:
-        raise web.HTTPNotFound()
-
-
-async def _handle_available_files(request: web.Request) -> web.Response:
-    """Handles HTTP GET requests to the sever root (/).
-
-    This function handles requests to the sites root and returns a response containing
-    a json array of all the bob files in the internal dictionary.
-
-    Args:
-        Request: An incoming HTTP request
-    Returns:
-        Response: A HTTP response
-    """
-    bob_file_dict = request.app[INTERNAL_DICT_NAME]
-    return web.json_response(list(bob_file_dict.keys()))
-
-
-def initialise_server(bob_file_dict: Dict[str, str]) -> web.Application:
-    """Initialises the server configuration."""
-    app = web.Application()
-    app[INTERNAL_DICT_NAME] = bob_file_dict
-    app.add_routes(
-        [
-            web.get("/", _handle_available_files),
-            web.get("/{URL_FILENAME}", _handle_file),
-        ]
-    )
-    return app
-
-
-async def _start_bobfile_server(host: str, port: int) -> None:
-    """Sets up and starts the bobfile server."""
-    app = initialise_server(Pvi.bob_file_dict)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, host=host, port=port)
-    await site.start()
-    logging.info(f"Running bob file server on http://{host}:{port}\n")
-
-
 async def _create_softioc(
     client: AsyncioClient,
     record_prefix: str,
     dispatcher: asyncio_dispatcher.AsyncioDispatcher,
+    screens: str,
 ):
     """Asynchronous wrapper for IOC creation"""
     try:
@@ -159,7 +97,7 @@ async def _create_softioc(
         logging.exception("Unable to connect to PandA")
         raise
     (all_records, all_values_dict) = await create_records(
-        client, dispatcher, record_prefix
+        client, dispatcher, record_prefix, screens
     )
 
     global create_softioc_task
@@ -173,7 +111,7 @@ async def _create_softioc(
     create_softioc_task.add_done_callback(_when_finished)
 
 
-def create_softioc(host: str, record_prefix: str) -> None:
+def create_softioc(host: str, record_prefix: str, screens: str) -> None:
     """Create a PythonSoftIOC from fields and attributes of a PandA.
 
     This function will introspect a PandA for all defined Blocks, Fields of each Block,
@@ -190,13 +128,8 @@ def create_softioc(host: str, record_prefix: str) -> None:
         dispatcher = asyncio_dispatcher.AsyncioDispatcher()
         client = AsyncioClient(host)
         asyncio.run_coroutine_threadsafe(
-            _create_softioc(client, record_prefix, dispatcher), dispatcher.loop
+            _create_softioc(client, record_prefix, dispatcher, screens), dispatcher.loop
         ).result()
-
-        asyncio.run_coroutine_threadsafe(
-            _start_bobfile_server(host=BOB_FILE_HOST, port=BOB_FILE_PORT),
-            dispatcher.loop,
-        )
 
         # Must leave this blocking line here, in the main thread, not in the
         # dispatcher's loop or it'll block every async process in this module
@@ -1790,6 +1723,7 @@ async def create_records(
     client: AsyncioClient,
     dispatcher: asyncio_dispatcher.AsyncioDispatcher,
     record_prefix: str,
+    screens: str,
 ) -> Tuple[Dict[EpicsName, RecordInfo], Dict[EpicsName, RecordValue]]:
     """Query the PandA and create the relevant records based on the information
     returned"""
@@ -1855,7 +1789,7 @@ async def create_records(
 
         all_records.update(block_records)
 
-    Pvi.create_pvi_records(record_prefix)
+    Pvi.create_pvi_records(record_prefix, screens)
 
     record_factory.initialise(dispatcher)
 

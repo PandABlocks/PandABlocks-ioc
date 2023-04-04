@@ -12,7 +12,8 @@
             "args": [
                 "softioc",
                 "172.23.252.201",
-                "SOME-PREFIX"
+                "SOME-PREFIX",
+                "./screens"
             ],
             "console": "integratedTerminal",
             "justMyCode": false

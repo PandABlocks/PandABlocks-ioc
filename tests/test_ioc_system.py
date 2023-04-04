@@ -1,11 +1,13 @@
 import asyncio
 import typing
+import filecmp
+import os
 from typing import List
 
 import numpy
 import pytest
 from aioca import caget, camonitor, caput
-from conftest import TEST_PREFIX, TIMEOUT, DummyServer
+from conftest import BOBFILE_DIR, TEST_PREFIX, TIMEOUT, DummyServer
 from numpy import ndarray
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.responses import (
@@ -374,3 +376,11 @@ async def test_pending_changes_blocks_record_set(
             await asyncio.sleep(0.1)
 
     await asyncio.wait_for(expected_messages_received(), timeout=TIMEOUT)
+
+
+def test_bobfiles_created(dummy_server_system: DummyServer, subprocess_ioc):
+    bobfile_temp_dir = subprocess_ioc
+    assert os.path.exists(bobfile_temp_dir) and os.path.exists(BOBFILE_DIR)
+    old_files = os.listdir(BOBFILE_DIR)
+    for file in old_files:
+        assert filecmp.cmp(f"{bobfile_temp_dir}/{file}", f"{BOBFILE_DIR}/{file}")
