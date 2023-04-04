@@ -1,4 +1,5 @@
 import asyncio
+import typing
 from typing import Dict, List, Union
 
 import numpy
@@ -35,7 +36,7 @@ def table_data_dict(table_data: List[str]) -> Dict[EpicsName, RecordValue]:
 @pytest.fixture
 def table_fields_records(
     table_fields: Dict[str, TableFieldDetails],
-    table_unpacked_data: Dict[EpicsName, ndarray],
+    table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
 ) -> Dict[str, TableFieldRecordContainer]:
     """A faked list of records containing the table_unpacked_data"""
 
@@ -59,7 +60,7 @@ def table_updater(
     table_field_info: TableFieldInfo,
     table_data_dict: Dict[EpicsName, RecordValue],
     clear_records: None,
-    table_unpacked_data: Dict[EpicsName, ndarray],
+    table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
 ) -> TableUpdater:
     """Provides a TableUpdater with configured records and mocked functionality"""
     client = AsyncioClient("123")
@@ -134,7 +135,7 @@ async def test_create_softioc_update_table(
 
         curr_val: ndarray = await asyncio.wait_for(capturing_queue.get(), TIMEOUT)
         # First response is the current value
-        assert numpy.array_equal(curr_val, table_unpacked_data["TIME1"])
+        numpy.testing.assert_array_equal(curr_val, table_unpacked_data["TIME1"])
 
         # Wait for the new value to appear
         curr_val = await asyncio.wait_for(capturing_queue.get(), TIMEOUT)
@@ -309,7 +310,7 @@ def test_table_packing_unpack(
     table_field_info: TableFieldInfo,
     table_fields_records: Dict[str, TableFieldRecordContainer],
     table_data: List[str],
-    table_unpacked_data: Dict[EpicsName, ndarray],
+    table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
 ):
     """Test table unpacking works as expected"""
     assert table_field_info.row_words
@@ -480,7 +481,7 @@ async def test_table_updater_update_mode_submit(
 async def test_table_updater_update_mode_submit_exception(
     table_updater: TableUpdater,
     table_data: List[str],
-    table_unpacked_data: Dict[EpicsName, ndarray],
+    table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
 ):
     """Test that update_mode with new value of SUBMIT handles an exception from Put
     correctly"""
@@ -544,7 +545,7 @@ async def test_table_updater_update_mode_submit_exception_data_error(
 async def test_table_updater_update_mode_discard(
     table_updater: TableUpdater,
     table_data: List[str],
-    table_unpacked_data: Dict[EpicsName, ndarray],
+    table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
 ):
     """Test that update_mode with new value of DISCARD resets record data"""
     assert isinstance(table_updater.client.send, AsyncMock)
@@ -584,7 +585,7 @@ async def test_table_updater_update_mode_discard(
 )
 async def test_table_updater_update_mode_other(
     table_updater: TableUpdater,
-    table_unpacked_data: Dict[EpicsName, ndarray],
+    table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
     enum_val: int,
 ):
     """Test that update_mode with non-SUBMIT or DISCARD values takes no action"""
@@ -609,7 +610,7 @@ def test_table_updater_update_table(
     db_put_field: MagicMock,
     table_updater: TableUpdater,
     table_data: List[str],
-    table_unpacked_data: Dict[EpicsName, ndarray],
+    table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
 ):
     """Test that update_table updates records with the new values"""
 
@@ -648,7 +649,7 @@ def test_table_updater_update_table(
 def test_table_updater_update_table_not_view(
     table_updater: TableUpdater,
     table_data: List[str],
-    table_unpacked_data: Dict[EpicsName, ndarray],
+    table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
 ):
     """Test that update_table does nothing when mode is not VIEW"""
 

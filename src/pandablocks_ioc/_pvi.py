@@ -206,7 +206,6 @@ class Pvi:
         # Create top level Device, with references to all child Devices
         device_refs = [DeviceRef(x, x) for x in pvi_records]
 
-        # # TODO: What should the label be?
         device = Device("TOP", device_refs)
         devices.append(device)
 

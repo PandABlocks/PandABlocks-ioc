@@ -321,6 +321,7 @@ class TableUpdater:
                 }
             }
 
+            # Add metadata to the last column in the table
             if putorder_index == len(self.table_fields_records) - 1:
                 pva_info.update({"": {"+type": "meta", "+channel": "VAL"}})
 

@@ -5,7 +5,8 @@ import os
 import sys
 import threading
 import time
-from collections import deque
+import typing
+from collections import OrderedDict, deque
 from contextlib import contextmanager
 from logging import handlers
 from typing import Deque, Dict, Generator, Iterable, List
@@ -119,7 +120,14 @@ class DummyServer:
                     is_multiline = True
                 if not is_multiline or not line:
                     is_multiline = False
-                    to_send = self.send.popleft() + "\n"
+
+                    try:
+                        data = self.send.popleft()
+                    except IndexError:
+                        # Keep this server running, just send a blank message
+                        # This is most likely being consumed by GetChanges
+                        data = "."
+                    to_send = data + "\n"
                     if self.debug:
                         with open(self._debug_file, "a") as f:
                             print(line, to_send, flush=True, file=f)
@@ -370,7 +378,7 @@ def table_data() -> List[str]:
 @pytest.fixture
 def table_unpacked_data(
     table_fields: Dict[str, TableFieldDetails]
-) -> Dict[EpicsName, ndarray]:
+) -> typing.OrderedDict[EpicsName, ndarray]:
     """The unpacked equivalent of table_data"""
     array_values: List[ndarray] = [
         array([5, 0, 50000], dtype=uint16),
@@ -392,10 +400,9 @@ def table_unpacked_data(
         array([0, 0, 1], dtype=uint8),
         array([1, 0, 1], dtype=uint8),
     ]
-    data: Dict[EpicsName, ndarray] = {}
+    data: OrderedDict[EpicsName, ndarray] = OrderedDict()
     for field_name, data_array in zip(table_fields.keys(), array_values):
         data[EpicsName(field_name)] = data_array
-
     return data
 
 

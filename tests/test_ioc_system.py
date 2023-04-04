@@ -1,5 +1,6 @@
 import asyncio
-from typing import Dict, List
+import typing
+from typing import List
 
 import numpy
 import pytest
@@ -81,7 +82,7 @@ async def test_introspect_panda(
 async def test_create_softioc_system(
     dummy_server_system,
     subprocess_ioc,
-    table_unpacked_data: Dict[EpicsName, ndarray],
+    table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
 ):
     """Top-level system test of the entire program, using some pre-canned data. Tests
     that the input data is turned into a collection of records with the appropriate
