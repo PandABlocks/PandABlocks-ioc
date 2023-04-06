@@ -91,7 +91,6 @@ async def test_create_softioc_system(
     assert await caget(TEST_PREFIX + ":PCAP1:TRIG_EDGE") == 1  # == Falling
     assert await caget(TEST_PREFIX + ":PCAP1:GATE") == "CLOCK1.OUT"
     assert await caget(TEST_PREFIX + ":PCAP1:GATE:DELAY") == 1
-    assert await caget(TEST_PREFIX + ":PCAP1:GATE:MAX_DELAY") == 100
 
     pcap1_label = await caget(TEST_PREFIX + ":PCAP1:LABEL")
     assert numpy.array_equal(

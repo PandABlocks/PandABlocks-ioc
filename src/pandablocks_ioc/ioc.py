@@ -857,26 +857,6 @@ class IocRecordFactory:
             initial_value=values[record_name],
         )
 
-        cw_record_name = EpicsName(record_name + ":CAPTURE_WORD")
-        record_dict[cw_record_name] = self._create_record_info(
-            cw_record_name,
-            "Name of field containing this bit",
-            builder.stringIn,
-            type(field_info.capture_word),
-            PviGroup.OUTPUTS,
-            initial_value=field_info.capture_word,
-        )
-
-        offset_record_name = EpicsName(record_name + ":OFFSET")
-        record_dict[offset_record_name] = self._create_record_info(
-            offset_record_name,
-            "Position of this bit in captured word",
-            builder.longIn,
-            type(field_info.offset),
-            PviGroup.OUTPUTS,
-            initial_value=field_info.offset,
-        )
-
         # TODO: Add BITS table support here
 
         return record_dict
@@ -891,6 +871,8 @@ class IocRecordFactory:
         assert isinstance(field_info, PosOutFieldInfo)
         record_dict: Dict[EpicsName, RecordInfo] = {}
 
+        units_record_name = EpicsName(record_name + ":UNITS")
+
         record_dict[record_name] = self._create_record_info(
             record_name,
             field_info.description,
@@ -898,6 +880,7 @@ class IocRecordFactory:
             int,
             PviGroup.OUTPUTS,
             initial_value=values[record_name],
+            EGU=values[units_record_name],
         )
 
         capture_record_name = EpicsName(record_name + ":CAPTURE")
@@ -934,7 +917,6 @@ class IocRecordFactory:
             initial_value=values[scale_record_name],
         )
 
-        units_record_name = EpicsName(record_name + ":UNITS")
         record_dict[units_record_name] = self._create_record_info(
             units_record_name,
             "Units string",
@@ -1134,15 +1116,8 @@ class IocRecordFactory:
             initial_value=values[delay_record_name],
         )
 
-        max_delay_record_name = EpicsName(record_name + ":MAX_DELAY")
-        record_dict[max_delay_record_name] = self._create_record_info(
-            max_delay_record_name,
-            "Maximum valid input delay",
-            builder.longIn,
-            type(field_info.max_delay),
-            PviGroup.INPUTS,
-            initial_value=field_info.max_delay,
-        )
+        record_dict[delay_record_name].record.DRVH = field_info.max_delay
+        record_dict[delay_record_name].record.DRVL = 0
 
         return record_dict
 
@@ -1350,37 +1325,8 @@ class IocRecordFactory:
             record_creation_func,
             float,
             PviGroup.READBACKS,
+            EGU=field_info.units,
             **kwargs,
-        )
-
-        offset_record_name = EpicsName(record_name + ":OFFSET")
-        record_dict[offset_record_name] = self._create_record_info(
-            offset_record_name,
-            "Offset from scaled data to value",
-            builder.aIn,
-            type(field_info.offset),
-            PviGroup.READBACKS,
-            initial_value=field_info.offset,
-        )
-
-        scale_record_name = EpicsName(record_name + ":SCALE")
-        record_dict[scale_record_name] = self._create_record_info(
-            scale_record_name,
-            "Scaling from raw data to value",
-            builder.aIn,
-            type(field_info.scale),
-            PviGroup.READBACKS,
-            initial_value=field_info.scale,
-        )
-
-        units_record_name = EpicsName(record_name + ":UNITS")
-        record_dict[units_record_name] = self._create_record_info(
-            units_record_name,
-            "Units associated with value",
-            builder.stringIn,
-            type(field_info.units),
-            PviGroup.READBACKS,
-            initial_value=field_info.units,
         )
 
         return record_dict

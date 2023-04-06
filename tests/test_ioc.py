@@ -195,7 +195,7 @@ def idfn(val):
             {
                 f"{TEST_RECORD}": "0",
             },
-            [f"{TEST_RECORD}", f"{TEST_RECORD}:CAPTURE_WORD", f"{TEST_RECORD}:OFFSET"],
+            [f"{TEST_RECORD}"],
         ),
         (
             PosOutFieldInfo("pos_out", None, None, capture_labels=["No", "Diff"]),
@@ -250,7 +250,6 @@ def idfn(val):
             [
                 f"{TEST_RECORD}",
                 f"{TEST_RECORD}:DELAY",
-                f"{TEST_RECORD}:MAX_DELAY",
             ],
         ),
         (
@@ -353,9 +352,6 @@ def idfn(val):
             },
             [
                 f"{TEST_RECORD}",
-                f"{TEST_RECORD}:OFFSET",
-                f"{TEST_RECORD}:SCALE",
-                f"{TEST_RECORD}:UNITS",
             ],
         ),
         (
@@ -365,9 +361,6 @@ def idfn(val):
             },
             [
                 f"{TEST_RECORD}",
-                f"{TEST_RECORD}:OFFSET",
-                f"{TEST_RECORD}:SCALE",
-                f"{TEST_RECORD}:UNITS",
             ],
         ),
         (
@@ -377,9 +370,6 @@ def idfn(val):
             {},
             [
                 f"{TEST_RECORD}",
-                f"{TEST_RECORD}:OFFSET",
-                f"{TEST_RECORD}:SCALE",
-                f"{TEST_RECORD}:UNITS",
             ],
         ),
         (
