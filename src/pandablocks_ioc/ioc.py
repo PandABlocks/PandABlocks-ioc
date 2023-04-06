@@ -1134,7 +1134,8 @@ class IocRecordFactory:
 
         # This should be an mbbOut record, but there are too many posssible labels
         # TODO: There will need to be some mechanism to retrieve the labels,
-        # but there's a POSITIONS table that can probably be used
+        # but there's a POSITIONS table that can probably be used.
+        # OR PVAccess somehow?
         validator = StringRecordLabelValidator(field_info.labels)
         # Ensure we're putting a valid value to start with
         assert values[record_name] in field_info.labels
@@ -2025,6 +2026,7 @@ def set_all_records_severity(
 ):
     """Set the severity of all possible records to the given state"""
     logging.debug(f"Setting all record to severity {severity} alarm {alarm}")
-    for record_name, record_info in all_records.items():
+    for record_info in all_records.values():
+        # TODO: Update this if PythonSoftIOC issue #53 is fixed
         if record_info.is_in_record:
             record_info.record.set_alarm(severity, alarm)
