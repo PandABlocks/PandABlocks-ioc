@@ -31,12 +31,13 @@ def cli(ctx, log_level: str):
 @cli.command()
 @click.argument("host")
 @click.argument("prefix")
-@click.argument("screens")
-def softioc(host: str, prefix: str, screens: str):
+@click.argument("screens_dir")
+def softioc(host: str, prefix: str, screens_dir: str):
     """
-    Create a soft IOC, using "prefix" for the namespace of the records.
+    Connect to the given HOST and create an IOC with the given PREFIX.
+    Create .bob files for screens in the SCREENS_DIR. Directory must exist.
     """
-    create_softioc(host=host, record_prefix=prefix, screens=screens)
+    create_softioc(host=host, record_prefix=prefix, screens_dir=screens_dir)
 
 
 # test with: python -m pandablocks_ioc

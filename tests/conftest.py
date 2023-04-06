@@ -9,6 +9,7 @@ import typing
 from collections import OrderedDict, deque
 from contextlib import contextmanager
 from logging import handlers
+from pathlib import Path
 from typing import Deque, Dict, Generator, Iterable, List
 
 import pytest
@@ -557,19 +558,18 @@ def ioc_wrapper(
 
 @pytest_asyncio.fixture
 def subprocess_ioc(
-    tmp_path, enable_codecov_multiprocess, caplog, caplog_workaround
-) -> Generator:
+    tmp_path: Path, enable_codecov_multiprocess, caplog, caplog_workaround
+) -> Generator[Path, None, None]:
     """Run the IOC in its own subprocess. When finished check logging logged no
     messages of WARNING or higher level."""
     with caplog.at_level(logging.WARNING):
         with caplog_workaround():
-            temp_directory = tmp_path
             ctx = get_multiprocessing_context()
-            p = ctx.Process(target=ioc_wrapper, args=(temp_directory,))
+            p = ctx.Process(target=ioc_wrapper, args=(tmp_path,))
             try:
                 p.start()
                 time.sleep(3)  # Give IOC some time to start up
-                yield temp_directory
+                yield tmp_path
             finally:
                 p.terminate()
                 p.join(10)

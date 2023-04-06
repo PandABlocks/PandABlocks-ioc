@@ -88,7 +88,6 @@ async def _create_softioc(
     client: AsyncioClient,
     record_prefix: str,
     dispatcher: asyncio_dispatcher.AsyncioDispatcher,
-    screens: str,
 ):
     """Asynchronous wrapper for IOC creation"""
     try:
@@ -97,7 +96,7 @@ async def _create_softioc(
         logging.exception("Unable to connect to PandA")
         raise
     (all_records, all_values_dict) = await create_records(
-        client, dispatcher, record_prefix, screens
+        client, dispatcher, record_prefix
     )
 
     global create_softioc_task
@@ -111,7 +110,7 @@ async def _create_softioc(
     create_softioc_task.add_done_callback(_when_finished)
 
 
-def create_softioc(host: str, record_prefix: str, screens: str) -> None:
+def create_softioc(host: str, record_prefix: str, screens_dir: str) -> None:
     """Create a PythonSoftIOC from fields and attributes of a PandA.
 
     This function will introspect a PandA for all defined Blocks, Fields of each Block,
@@ -124,11 +123,13 @@ def create_softioc(host: str, record_prefix: str, screens: str) -> None:
     # TODO: This needs to read/take in a YAML configuration file, for various aspects
     # e.g. the update() wait time between calling GetChanges
 
+    Pvi.set_screens_dir(screens_dir)
+
     try:
         dispatcher = asyncio_dispatcher.AsyncioDispatcher()
         client = AsyncioClient(host)
         asyncio.run_coroutine_threadsafe(
-            _create_softioc(client, record_prefix, dispatcher, screens), dispatcher.loop
+            _create_softioc(client, record_prefix, dispatcher), dispatcher.loop
         ).result()
 
         # Must leave this blocking line here, in the main thread, not in the
@@ -1723,7 +1724,6 @@ async def create_records(
     client: AsyncioClient,
     dispatcher: asyncio_dispatcher.AsyncioDispatcher,
     record_prefix: str,
-    screens: str,
 ) -> Tuple[Dict[EpicsName, RecordInfo], Dict[EpicsName, RecordValue]]:
     """Query the PandA and create the relevant records based on the information
     returned"""
@@ -1789,7 +1789,7 @@ async def create_records(
 
         all_records.update(block_records)
 
-    Pvi.create_pvi_records(record_prefix, screens)
+    Pvi.create_pvi_records(record_prefix)
 
     record_factory.initialise(dispatcher)
 

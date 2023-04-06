@@ -138,8 +138,13 @@ def add_positions_table_row(
 class Pvi:
     """TODO: Docs"""
 
-    # pvi_info_dict: Dict[EpicsName, PviInfo] = {}
+    _screens_dir: Path = Path()
     pvi_info_dict: Dict[str, Dict[PviGroup, List[Component]]] = {}
+
+    @staticmethod
+    def set_screens_dir(screens_dir: str):
+        Pvi._screens_dir = Path(screens_dir)
+        assert Pvi._screens_dir.is_dir(), "Screens directory must exist"
 
     @staticmethod
     def add_pvi_info(record_name: EpicsName, group: PviGroup, component: Component):
@@ -156,7 +161,7 @@ class Pvi:
             Pvi.pvi_info_dict[record_base] = {group: [component]}
 
     @staticmethod
-    def create_pvi_records(record_prefix: str, screens: str):
+    def create_pvi_records(record_prefix: str):
         """Create the :PVI records, one for each block and one at the top level"""
 
         devices: List[Device] = []
@@ -208,13 +213,15 @@ class Pvi:
         devices.append(device)
 
         # TODO: label widths need some tweaking - some are pretty long right now
+        # TODO: Need to decide how to handle already existing directory/files.
+        # Could still be left over stuff from a previous run?
         formatter = DLSFormatter(label_width=250)
         for device in devices:
             try:
                 formatter.format(
                     device,
                     record_prefix + ":",
-                    Path(f"{screens}/{device.label}.bob"),
+                    Pvi._screens_dir / Path(f"{device.label}.bob"),
                 )
             except NotImplementedError:
                 logging.exception("Cannot create TABLES yet")
