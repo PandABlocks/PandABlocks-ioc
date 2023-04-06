@@ -153,7 +153,11 @@ async def _create_softioc(
     dispatcher: asyncio_dispatcher.AsyncioDispatcher,
 ):
     """Asynchronous wrapper for IOC creation"""
-    await client.connect()
+    try:
+        await client.connect()
+    except OSError:
+        logging.exception("Unable to connect to PandA")
+        raise
     (all_records, all_values_dict) = await create_records(
         client, dispatcher, record_prefix
     )
@@ -201,7 +205,8 @@ def create_softioc(host: str, record_prefix: str) -> None:
         logging.exception("Exception while initializing softioc")
     finally:
         # Client was connected in the _create_softioc method
-        asyncio.run_coroutine_threadsafe(client.close(), dispatcher.loop).result()
+        if client.is_connected():
+            asyncio.run_coroutine_threadsafe(client.close(), dispatcher.loop).result()
 
 
 def _ensure_block_number_present(block_and_field_name: str) -> str:
@@ -1930,13 +1935,30 @@ async def update(
 
     fields_to_reset: List[Tuple[RecordWrapper, Any]] = []
 
+    # Fairly arbitrary choice of timeout time
+    timeout = 10 * poll_period
+
     while True:
         try:
             for record, value in fields_to_reset:
                 record.set(value)
                 fields_to_reset.remove((record, value))
 
-            changes = await client.send(GetChanges(ChangeGroup.ALL, True))
+            try:
+                changes = await client.send(GetChanges(ChangeGroup.ALL, True), timeout)
+            except asyncio.TimeoutError:
+                # Indicates PandA did not reply within the timeout
+                logging.error(
+                    f"PandA did not respond to GetChanges within {timeout} seconds. "
+                    "Setting all records to major alarm state."
+                )
+                set_all_records_severity(
+                    all_records, alarm.MAJOR_ALARM, alarm.READ_ACCESS_ALARM
+                )
+                continue
+
+            # Clear any alarm state as we've received a new update from PandA
+            set_all_records_severity(all_records, alarm.NO_ALARM, alarm.UDF_ALARM)
 
             _, new_all_values_dict = _create_dicts_from_changes(changes)
 
@@ -2050,3 +2072,13 @@ async def update(
         except Exception:
             logging.exception("Exception while processing updates from PandA")
             continue
+
+
+def set_all_records_severity(
+    all_records: Dict[EpicsName, RecordInfo], severity: int, alarm: int
+):
+    """Set the severity of all possible records to the given state"""
+    logging.debug(f"Setting all record to severity {severity} alarm {alarm}")
+    for record_name, record_info in all_records.items():
+        if record_info.is_in_record:
+            record_info.record.set_alarm(severity, alarm)
