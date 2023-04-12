@@ -88,17 +88,19 @@ addopts = """
     --cov=pandablocks_ioc --cov-report term --cov-report xml:cov.xml
     """
 # https://iscinumpy.gitlab.io/post/bound-version-constraints/#watch-for-warnings
-# The ignores are all related to the test DummyServer, both async and in_thread variants, 
+# First ignore is due to p4p staticly linking an old numpy version and us installing
+# a more recent version with a different C API. See https://github.com/mdavidsaver/p4p/issues/102.
+# Remaining ignores are all related to the test DummyServer, both async and in_thread variants, 
 # which appear to have issues cleanly shutting down and raise exceptions in their destructors.
 # The issue seems like all we need is to add await asyncio.sleep(0) to allow asyncio to
 # clean up its connections, but that doesn't seem to behave as expected inside pytest.
 filterwarnings = """
     error
+    ignore:numpy.ufunc size changed
     ignore:unclosed transport <_SelectorSocketTransport:
     ignore:unclosed <socket.socket:
     ignore:unclosed event loop <_UnixSelectorEventLoop:
 """
-# ignore::ResourceWarning
 # Doctest python code in docs, python code in src docstrings, test functions in tests
 testpaths = "docs src tests"
 asyncio_mode = "auto"
