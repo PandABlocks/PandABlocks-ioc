@@ -1,7 +1,8 @@
 import asyncio
-import typing
 import filecmp
 import os
+import typing
+from pathlib import Path
 from typing import List
 
 import numpy
@@ -378,9 +379,12 @@ async def test_pending_changes_blocks_record_set(
     await asyncio.wait_for(expected_messages_received(), timeout=TIMEOUT)
 
 
-def test_bobfiles_created(dummy_server_system: DummyServer, subprocess_ioc):
+@pytest.mark.asyncio
+async def test_bobfiles_created(dummy_server_system: DummyServer, subprocess_ioc: Path):
     bobfile_temp_dir = subprocess_ioc
-    assert os.path.exists(bobfile_temp_dir) and os.path.exists(BOBFILE_DIR)
+    assert bobfile_temp_dir.exists() and BOBFILE_DIR.exists()
     old_files = os.listdir(BOBFILE_DIR)
     for file in old_files:
-        assert filecmp.cmp(f"{bobfile_temp_dir}/{file}", f"{BOBFILE_DIR}/{file}")
+        assert filecmp.cmp(
+            f"{bobfile_temp_dir}/{file}", f"{BOBFILE_DIR}/{file}"
+        ), f"File {bobfile_temp_dir/file} does not match {BOBFILE_DIR/file}"

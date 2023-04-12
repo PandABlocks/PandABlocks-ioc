@@ -1,0 +1,40 @@
+<display version="2.0.0">
+  <name>Display</name>
+  <x>0</x>
+  <y>0</y>
+  <width>278</width>
+  <height>80</height>
+  <widget type="label" version="2.0.0">
+    <name>Title</name>
+    <class>TITLE</class>
+    <text>TOP - TEST-PREFIX:</text>
+    <x use_class="true">0</x>
+    <y use_class="true">0</y>
+    <width>278</width>
+    <height>25</height>
+    <font use_class="true">
+      <font name="Header 1" family="Liberation Sans" style="BOLD" size="22.0">
+      </font>
+    </font>
+    <transparent use_class="true">true</transparent>
+    <horizontal_alignment>1</horizontal_alignment>
+  </widget>
+  <widget type="label" version="2.0.0">
+    <name>Label</name>
+    <text>PCAP1: PVI</text>
+    <x>23</x>
+    <y>30</y>
+    <width>250</width>
+    <height>20</height>
+  </widget>
+  <widget type="label" version="2.0.0">
+    <name>Label</name>
+    <text>SEQ1: PVI</text>
+    <x>23</x>
+    <y>55</y>
+    <width>250</width>
+    <height>20</height>
+  </widget>
+  <grid_step_x>4</grid_step_x>
+  <grid_step_y>4</grid_step_y>
+  </display>

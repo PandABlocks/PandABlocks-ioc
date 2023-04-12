@@ -9,6 +9,7 @@ import typing
 from collections import OrderedDict, deque
 from contextlib import contextmanager
 from logging import handlers
+from multiprocessing.connection import Connection
 from pathlib import Path
 from typing import Deque, Dict, Generator, Iterable, List
 
@@ -28,7 +29,7 @@ from pandablocks_ioc.ioc import _TimeRecordUpdater, create_softioc
 # Record prefix used in many tests
 TEST_PREFIX = "TEST-PREFIX"
 
-BOBFILE_DIR = "./tests/test-bobfiles"
+BOBFILE_DIR = Path(__file__).parent / "test-bobfiles"
 
 # Timeout value (in seconds)
 TIMEOUT = 10
@@ -539,7 +540,10 @@ def dummy_server_time(dummy_server_in_thread: DummyServer):
 @patch("pandablocks_ioc.ioc.AsyncioClient.close")
 @patch("pandablocks_ioc.ioc.softioc.interactive_ioc")
 def ioc_wrapper(
-    bobfile_dir: str, mocked_interactive_ioc: MagicMock, mocked_client_close: MagicMock
+    bobfile_dir: str,
+    child_conn: Connection,
+    mocked_interactive_ioc: MagicMock,
+    mocked_client_close: MagicMock,
 ):
     """Wrapper function to start the IOC and do some mocking"""
 
@@ -549,11 +553,29 @@ def ioc_wrapper(
         # exception occurred during IOC startup
         mocked_interactive_ioc.assert_called_once()
         mocked_client_close.assert_called_once()
+
+        child_conn.send("R")  # "Ready"
+
         # Leave this process running until its torn down by pytest
         await asyncio.Event().wait()
 
     custom_logger()
     asyncio.run(inner_wrapper())
+
+
+def select_and_recv(conn: Connection):
+    """Wait for the given Connection to have data to receive, and return it.
+    If a character is provided check its correct before returning it."""
+    rrdy = False
+    if conn.poll(TIMEOUT):
+        rrdy = True
+
+    if rrdy:
+        val = conn.recv()
+    else:
+        pytest.fail("Did not receive anything before timeout")
+
+    return val
 
 
 @pytest_asyncio.fixture
@@ -565,10 +587,11 @@ def subprocess_ioc(
     with caplog.at_level(logging.WARNING):
         with caplog_workaround():
             ctx = get_multiprocessing_context()
-            p = ctx.Process(target=ioc_wrapper, args=(tmp_path,))
+            parent_conn, child_conn = ctx.Pipe()
+            p = ctx.Process(target=ioc_wrapper, args=(tmp_path, child_conn))
             try:
                 p.start()
-                time.sleep(3)  # Give IOC some time to start up
+                select_and_recv(parent_conn)  # Wait for IOC to start up
                 yield tmp_path
             finally:
                 p.terminate()
