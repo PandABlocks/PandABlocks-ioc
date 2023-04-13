@@ -6,5 +6,9 @@
   {
     "version": "dev",
     "url": "https://PandABlocks.github.io/PandABlocks-ioc/dev/"
+  },
+  {
+    "version": "remove-file-server",
+    "url": "https://PandABlocks.github.io/PandABlocks-ioc/remove-file-server/"
   }
 ]
