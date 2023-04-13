@@ -388,3 +388,7 @@ async def test_bobfiles_created(dummy_server_system: DummyServer, subprocess_ioc
         assert filecmp.cmp(
             f"{bobfile_temp_dir}/{file}", f"{BOBFILE_DIR}/{file}"
         ), f"File {bobfile_temp_dir/file} does not match {BOBFILE_DIR/file}"
+
+    # And check that the same number of files are created
+    new_files = os.listdir(bobfile_temp_dir)
+    assert len(old_files) == len(new_files)
