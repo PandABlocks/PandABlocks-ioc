@@ -232,7 +232,7 @@ def _create_dicts_from_changes(
 
         block_name_number, field_name = block_and_field_name.split(".", maxsplit=1)
 
-        block_and_field_name = _ensure_block_number_present(block_and_field_name)
+        # block_and_field_name = _ensure_block_number_present(block_and_field_name)
 
         # Parse *METADATA.LABEL_<block><num> into "<block>" key and
         # "<block><num>:LABEL" value
@@ -991,7 +991,7 @@ class IocRecordFactory:
             if label == "":
                 # Some rows are empty. Do not create records.
                 continue
-            label = _ensure_block_number_present(label)
+            # label = _ensure_block_number_present(label)
             link = self._record_prefix + ":" + label.replace(".", ":") + " CP"
             enumerated_bits_prefix = f"BITS:{offset + i}"
             builder.records.bi(
@@ -1755,9 +1755,10 @@ async def create_records(
 
         for block_num in range(block_info.number):
             for field, field_info in panda_info.fields.items():
-                # For consistency in this module, always suffix the block with its
-                # number. This means all records will have the block number.
-                suffixed_block = block + str(block_num + 1)
+                if block_info.number == 1:
+                    suffixed_block = block
+                else:
+                    suffixed_block = block + str(block_num + 1)
 
                 # ":" separator for EPICS Record names, unlike PandA's "."
                 record_name = EpicsName(suffixed_block + ":" + field)
@@ -1849,7 +1850,7 @@ async def update(
             all_values_dict.update(new_all_values_dict)
 
             for field in changes.in_error:
-                field = _ensure_block_number_present(field)
+                # field = _ensure_block_number_present(field)
                 field = PandAName(field)
                 field = panda_to_epics_name(field)
 
@@ -1870,7 +1871,7 @@ async def update(
                     )
 
             for field, value in changes.values.items():
-                field = _ensure_block_number_present(field)
+                # field = _ensure_block_number_present(field)
                 field = PandAName(field)
                 field = panda_to_epics_name(field)
 
@@ -1927,7 +1928,6 @@ async def update(
                     logging.exception(
                         f"Exception setting record {record.name} to new value {value}"
                     )
-
             for table_field, value_list in changes.multiline_values.items():
                 table_field = PandAName(table_field)
                 table_field = panda_to_epics_name(table_field)
