@@ -10,10 +10,11 @@ from typing import Dict, List, Optional, Union
 import numpy as np
 import numpy.typing as npt
 from epicsdbbuilder import RecordName
+from epicsdbbuilder.recordbase import PP
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import GetMultiline, Put
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
-from pvi.device import ComboBox, SignalRW, TextWrite
+from pvi.device import ComboBox, SignalRW, TableWrite, TextWrite
 from softioc import alarm, builder, fields
 from softioc.imports import db_put_field
 from softioc.pythonSoftIoc import RecordWrapper
@@ -247,9 +248,11 @@ class TableUpdater:
         pva_table_name = RecordName(table_name)
 
         # Make a labels field
+        block, field = table_name.split(":", maxsplit=1)
         columns: RecordWrapper = builder.WaveformOut(
             table_name + ":LABELS",
             initial_value=np.array([k.encode() for k in field_info.fields]),
+            DESC=pva_table_name,
         )
         columns.add_info(
             "Q:group",
@@ -257,7 +260,13 @@ class TableUpdater:
                 pva_table_name: {
                     "+id": "epics:nt/NTTable:1.0",
                     "labels": {"+type": "plain", "+channel": "VAL"},
-                }
+                },
+                RecordName(f"{block}:PVI"): {
+                    f"pvi.{field.lower().replace(':', '_')}.rw": {
+                        "+channel": "DESC",
+                        "+type": "plain",
+                    }
+                },
             },
         )
 
@@ -271,11 +280,11 @@ class TableUpdater:
 
         # The PVI group to put all records into
         pvi_group = PviGroup.PARAMETERS
-        # Pvi.add_pvi_info(
-        #     table_name,
-        #     pvi_group,
-        #     SignalRW(table_name, table_name, TableWrite([])),
-        # )
+        Pvi.add_pvi_info(
+            table_name,
+            pvi_group,
+            SignalRW(table_name, table_name, TableWrite([])),
+        )
 
         # The INDEX record's starting value
         DEFAULT_INDEX = 0
@@ -291,7 +300,7 @@ class TableUpdater:
             value,
         )
 
-        putorder_index = 0
+        putorder_index = 1
 
         for field_name, field_record_container in self.table_fields_records.items():
             field_details = field_record_container.field
@@ -313,17 +322,21 @@ class TableUpdater:
                 length=field_info.max_length,
             )
 
-            pva_info = {
-                f"value.{field_name.lower()}": {
-                    "+type": "plain",
-                    "+channel": "VAL",
-                    "+putorder": putorder_index,
-                }
+            field_pva_info = {
+                "+type": "plain",
+                "+channel": "VAL",
+                "+putorder": putorder_index,
+                "+trigger": "",
             }
 
-            # Add metadata to the last column in the table
-            if putorder_index == len(self.table_fields_records) - 1:
-                pva_info.update({"": {"+type": "meta", "+channel": "VAL"}})
+            pva_info = {f"value.{field_name.lower()}": field_pva_info}
+
+            # For the last column in the table
+            if putorder_index == len(self.table_fields_records):
+                # Trigger a monitor update
+                field_pva_info["+trigger"] = "*"
+                # Add metadata
+                pva_info[""] = {"+type": "meta", "+channel": "VAL"}
 
             field_record.add_info(
                 "Q:group",
@@ -331,13 +344,6 @@ class TableUpdater:
             )
 
             putorder_index += 1
-
-            # TODO: TableWrite currently isn't implemented in PVI
-            # Pvi.add_pvi_info(
-            #     full_name,
-            #     pvi_group,
-            #     SignalRW(full_name, full_name, TableWrite([TextWrite()])),
-            # )
 
             field_record_container.record_info = RecordInfo(lambda x: x, None, False)
 
@@ -432,6 +438,30 @@ class TableUpdater:
         self.mode_record_info.record = TableRecordWrapper(
             self.mode_record_info.record, self
         )
+        # PVA needs a record to start and finish processing, but these don't need
+        # putting on a screen
+        for action in (TableModeEnum.EDIT, TableModeEnum.SUBMIT):
+            action_record = builder.records.ao(
+                mode_record_name + ":" + action.name,
+                VAL=action.value,
+                MDEL=-1,
+                OUT=PP(mode_record),
+            )
+            # Edit mode done first, Submit mode done last
+            putorder = 0 if action == TableModeEnum.EDIT else putorder_index
+            action_record.add_info(
+                "Q:group",
+                {
+                    pva_table_name: {
+                        f"_{action.name.lower()}": {
+                            "+type": "proc",
+                            "+channel": "PROC",
+                            "+putorder": putorder,
+                            "+trigger": "",
+                        }
+                    }
+                },
+            )
 
         # Index record specifies which element the scalar records should access
         index_record_name = EpicsName(table_name + ":INDEX")
