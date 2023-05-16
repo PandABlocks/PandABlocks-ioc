@@ -79,7 +79,7 @@ def add_pvi_info(
         "Q:group",
         {
             RecordName(f"{block}:PVI"): {
-                f"pvi.{field.replace(':', '_')}.{access}": {
+                f"pvi.{field.lower().replace(':', '_')}.{access}": {
                     "+channel": "NAME",
                     "+type": "plain",
                 }
@@ -175,7 +175,7 @@ class Pvi:
             for group, components in v.items():
                 children.append(Group(group.name, Grid(), components))
 
-            device = Device(block_name, children)
+            device = Device(block_name, children=children)
             devices.append(device)
 
             # Add PVI structure. Unfortunately we need something in the database
@@ -190,7 +190,7 @@ class Pvi:
                 "Q:group",
                 {
                     RecordName("PVI"): {
-                        f"pvi.{block_name}.d": {
+                        f"pvi.{block_name.lower()}.d": {
                             "+channel": "VAL",
                             "+type": "plain",
                         }
@@ -209,7 +209,8 @@ class Pvi:
         # Create top level Device, with references to all child Devices
         device_refs = [DeviceRef(x, x) for x in pvi_records]
 
-        device = Device("TOP", device_refs)
+        # # TODO: What should the label be?
+        device = Device("TOP", children=device_refs)
         devices.append(device)
 
         # TODO: label widths need some tweaking - some are pretty long right now
