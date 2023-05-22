@@ -314,7 +314,7 @@ class TableUpdater:
             )
 
             pva_info = {
-                f"value.{field_name}": {
+                f"value.{field_name.lower()}": {
                     "+type": "plain",
                     "+channel": "VAL",
                     "+putorder": putorder_index,
