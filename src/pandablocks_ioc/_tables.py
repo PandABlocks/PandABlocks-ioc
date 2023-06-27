@@ -13,6 +13,7 @@ from epicsdbbuilder import RecordName
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import GetMultiline, Put
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
+from pandablocks.utils import table_to_words, words_to_table
 from pvi.device import ComboBox, SignalRW, TextWrite
 from softioc import alarm, builder, fields
 from softioc.imports import db_put_field
@@ -58,148 +59,6 @@ class TableFieldRecordContainer:
 
     field: TableFieldDetails
     record_info: Optional[RecordInfo]
-
-
-class TablePacking:
-    """Class to handle packing and unpacking Table data to and from a PandA"""
-
-    @staticmethod
-    def unpack(
-        row_words: int,
-        table_fields_records: Dict[str, TableFieldRecordContainer],
-        table_data: List[str],
-    ) -> Dict[str, UnpackedArray]:
-        """Unpacks the given `packed` data based on the fields provided.
-        Returns the unpacked data in {column_name: column_data} column-indexed format
-
-        Args:
-            row_words: The number of 32-bit words per row
-            table_fields: The list of fields present in the packed data.
-            table_data: The list of data for this table, from PandA. Each item is
-                expected to be the string representation of a uint32.
-
-        Returns:
-            List of numpy arrays: A list of 1-D numpy arrays, one item per field.
-            Each item will have length equal to the PandA table's number of rows.
-        """
-
-        data = np.array(table_data, dtype=np.uint32)
-        # Convert 1-D array into 2-D, one row element per row in the PandA table
-        data = data.reshape(len(data) // row_words, row_words)
-        packed = data.T
-
-        # Ensure fields are in bit-order
-        table_fields_records = dict(
-            sorted(
-                table_fields_records.items(),
-                key=lambda item: item[1].field.bit_low,
-            )
-        )
-
-        unpacked: Dict[str, UnpackedArray] = {}
-        for field_name, field_record in table_fields_records.items():
-            field_details = field_record.field
-            offset = field_details.bit_low
-            bit_len = field_details.bit_high - field_details.bit_low + 1
-
-            # The word offset indicates which column this field is in
-            # (column is exactly one 32-bit word)
-            word_offset = offset // 32
-
-            # bit offset is location of field inside the word
-            bit_offset = offset & 0x1F
-
-            # Mask to remove every bit that isn't in the range we want
-            mask = (1 << bit_len) - 1
-
-            val: UnpackedArray
-            val = (packed[word_offset] >> bit_offset) & mask
-
-            if field_details.subtype == "int":
-                # First convert from 2's complement to offset, then add in offset.
-                # TODO: Test this with extreme values - int_max, int_min, etc.
-                val = (val ^ (1 << (bit_len - 1))) + (-1 << (bit_len - 1))
-                val = val.astype(np.int32)
-            else:
-                # Use shorter types, as these are used in waveform creation
-                if bit_len <= 8:
-                    val = val.astype(np.uint8)
-                elif bit_len <= 16:
-                    val = val.astype(np.uint16)
-
-            unpacked.update({field_name: val})
-
-        return unpacked
-
-    @staticmethod
-    def pack(
-        row_words: int, table_fields_records: Dict[str, TableFieldRecordContainer]
-    ) -> List[str]:
-        """Pack the records based on the field definitions into the format PandA expects
-        for table writes.
-
-        Args:
-            row_words: The number of 32-bit words per row
-            table_fields_records: The list of fields and their associated RecordInfo
-                structure, used to access the value of each record.
-
-        Returns:
-            List[str]: The list of data ready to be sent to PandA
-        """
-
-        packed = None
-
-        # Ensure fields are in bit-order
-        table_fields_records = dict(
-            sorted(
-                table_fields_records.items(),
-                key=lambda item: item[1].field.bit_low,
-            )
-        )
-
-        # Iterate over the zipped fields and their associated records to construct the
-        # packed array.
-        for field_container in table_fields_records.values():
-            field_details = field_container.field
-            record_info = field_container.record_info
-            assert record_info
-
-            curr_val = record_info.record.get()
-
-            if field_details.labels:
-                # Must convert the list of strings into integers
-                curr_val = [field_details.labels.index(x) for x in curr_val]
-                curr_val = np.array(curr_val)
-
-            assert isinstance(curr_val, np.ndarray)  # Check no SCALAR records here
-            # PandA always handles tables in uint32 format
-            curr_val = np.uint32(curr_val)
-
-            if packed is None:
-                # Create 1-D array sufficiently long to exactly hold the entire table
-                packed = np.zeros((len(curr_val), row_words), dtype=np.uint32)
-            else:
-                assert len(packed) == len(curr_val), (
-                    f"Table record {record_info.record.name} has mismatched length "
-                    "compared to other records, cannot pack data"
-                )
-
-            offset = field_details.bit_low
-
-            # The word offset indicates which column this field is in
-            # (each column is one 32-bit word)
-            word_offset = offset // 32
-            # bit offset is location of field inside the word
-            bit_offset = offset & 0x1F
-
-            # Slice to get the column to apply the values to.
-            # bit shift the value to the relevant bits of the word
-            packed[:, word_offset] |= curr_val << bit_offset
-
-        assert isinstance(packed, np.ndarray)  # Squash mypy warning
-
-        # 2-D array -> 1-D array -> list[int] -> list[str]
-        return [str(x) for x in packed.flatten().tolist()]
 
 
 class TableModeEnum(Enum):
@@ -285,11 +144,7 @@ class TableUpdater:
         # updater are also in the same bit order.
         value = all_values_dict[table_name]
         assert isinstance(value, list)
-        field_data = TablePacking.unpack(
-            self.field_info.row_words,
-            self.table_fields_records,
-            value,
-        )
+        field_data = words_to_table(value, field_info)
 
         putorder_index = 0
 
@@ -352,7 +207,7 @@ class TableUpdater:
             # PythonSoftIOC issue #53 may alleviate this.
             initial_value = (
                 field_data[field_name][DEFAULT_INDEX]
-                if field_data[field_name].size > 0
+                if len(field_data[field_name]) > 0
                 else 0
             )
 
@@ -381,7 +236,7 @@ class TableUpdater:
                 scalar_record = builder.mbbIn(
                     scalar_record_name,
                     *field_details.labels,
-                    initial_value=initial_value,
+                    initial_value=field_details.labels.index(initial_value),
                     DESC=scalar_record_desc,
                 )
 
@@ -459,11 +314,13 @@ class TableUpdater:
         """Convert the values into the right form. For enums this means converting
         the numeric values PandA sends us into the string representation. For all other
         types the numeric representation is used."""
-        return (
-            [field_details.labels[x] for x in field_data[field_name]]
-            if field_details.labels
-            else field_data[field_name]
-        )
+
+        if field_details.labels and not all(
+            [isinstance(x, str) for x in field_data[field_name]]
+        ):
+            return [field_details.labels[x] for x in field_data[field_name]]
+
+        return field_data[field_name]
 
     def validate_waveform(self, record: RecordWrapper, new_val) -> bool:
         """Controls whether updates to the waveform records are processed, based on the
@@ -530,9 +387,7 @@ class TableUpdater:
             try:
                 # Send all EPICS data to PandA
                 logging.info(f"Sending table data for {self.table_name} to PandA")
-                packed_data = TablePacking.pack(
-                    self.field_info.row_words, self.table_fields_records
-                )
+                packed_data = table_to_words(self.all_values_dict, self.field_info)
 
                 panda_field_name = epics_to_panda_name(self.table_name)
                 await self.client.send(Put(panda_field_name, packed_data))
@@ -557,9 +412,7 @@ class TableUpdater:
                     return
 
                 assert isinstance(old_val, list)
-                field_data = TablePacking.unpack(
-                    self.field_info.row_words, self.table_fields_records, old_val
-                )
+                field_data = words_to_table(old_val, self.field_info)
                 for field_name, field_record in self.table_fields_records.items():
                     assert field_record.record_info
                     # Table records are never In type, so can always disable processing
@@ -579,9 +432,7 @@ class TableUpdater:
             panda_field_name = epics_to_panda_name(self.table_name)
             panda_vals = await self.client.send(GetMultiline(f"{panda_field_name}"))
 
-            field_data = TablePacking.unpack(
-                self.field_info.row_words, self.table_fields_records, panda_vals
-            )
+            field_data = words_to_table(panda_vals, self.field_info)
 
             for field_name, field_record in self.table_fields_records.items():
                 assert field_record.record_info
@@ -605,9 +456,7 @@ class TableUpdater:
         curr_mode = TableModeEnum(self.mode_record_info.record.get())
 
         if curr_mode == TableModeEnum.VIEW:
-            field_data = TablePacking.unpack(
-                self.field_info.row_words, self.table_fields_records, list(new_values)
-            )
+            field_data = words_to_table(new_values, self.field_info)
 
             for field_name, field_record in self.table_fields_records.items():
                 assert field_record.record_info

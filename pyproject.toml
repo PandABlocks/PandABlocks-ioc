@@ -18,7 +18,7 @@ dependencies = [
     "click",
     "h5py",
     "softioc>=4.3.0",
-    "pandablocks>=0.3.1",
+    "pandablocks@git+https://github.com/evalott100/PandABlocks-client@add-seq_table2cmd",
     "pvi[cli]>=0.4",
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
