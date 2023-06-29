@@ -222,6 +222,7 @@ async def test_create_softioc_table_update_send_to_panda(
     await caput(TEST_PREFIX + ":SEQ1:TABLE:MODE", "SUBMIT", wait=True, timeout=TIMEOUT)
 
     # Confirm the server received the expected string
+    print(dummy_server_system.expected_message_responses)
     assert "" not in dummy_server_system.expected_message_responses
 
     # Check the three numbers that should have updated from the REPEATS column change
@@ -422,9 +423,6 @@ async def test_table_updater_update_mode_submit_exception(
         called_args = record_info.record.set.call_args
 
         expected = called_args[0][0]
-        labels = table_updater.table_fields_records[field_name].field.labels
-        if labels:
-            expected = [labels[x] for x in expected]
 
         numpy.testing.assert_array_equal(data, expected)
 
@@ -484,10 +482,6 @@ async def test_table_updater_update_mode_discard(
         called_args = record_info.record.set.call_args
 
         expected = called_args[0][0]
-
-        labels = table_updater.table_fields_records[field_name].field.labels
-        if labels:
-            expected = [labels[x] for x in expected]
 
         numpy.testing.assert_array_equal(data, expected)
 

@@ -155,16 +155,12 @@ class TableUpdater:
             full_name = EpicsName(full_name)
             description = trim_description(field_details.description, full_name)
 
-            waveform_val = self._construct_waveform_val(
-                field_data, field_name, field_details
-            )
-
             field_record: RecordWrapper = builder.WaveformOut(
                 full_name,
                 DESC=description,
                 validate=self.validate_waveform,
                 on_update_name=self.update_waveform,
-                initial_value=waveform_val,
+                initial_value=field_data[field_name],
                 length=field_info.max_length,
             )
 
@@ -305,23 +301,6 @@ class TableUpdater:
             SignalRW(index_record_name, index_record_name, TextWrite()),
         )
 
-    def _construct_waveform_val(
-        self,
-        field_data: Dict[str, UnpackedArray],
-        field_name: str,
-        field_details: TableFieldDetails,
-    ):
-        """Convert the values into the right form. For enums this means converting
-        the numeric values PandA sends us into the string representation. For all other
-        types the numeric representation is used."""
-
-        if field_details.labels and not all(
-            [isinstance(x, str) for x in field_data[field_name]]
-        ):
-            return [field_details.labels[x] for x in field_data[field_name]]
-
-        return field_data[field_name]
-
     def validate_waveform(self, record: RecordWrapper, new_val) -> bool:
         """Controls whether updates to the waveform records are processed, based on the
         value of the MODE record.
@@ -387,7 +366,14 @@ class TableUpdater:
             try:
                 # Send all EPICS data to PandA
                 logging.info(f"Sending table data for {self.table_name} to PandA")
-                packed_data = table_to_words(self.all_values_dict, self.field_info)
+
+                table = {}
+                for x in self.table_fields_records:
+                    record_info = self.table_fields_records[x].record_info
+                    if record_info:
+                        table[x] = record_info.record.get()
+
+                packed_data = table_to_words(table, self.field_info)
 
                 panda_field_name = epics_to_panda_name(self.table_name)
                 await self.client.send(Put(panda_field_name, packed_data))
@@ -460,11 +446,11 @@ class TableUpdater:
 
             for field_name, field_record in self.table_fields_records.items():
                 assert field_record.record_info
-                waveform_val = self._construct_waveform_val(
-                    field_data, field_name, field_record.field
-                )
+
                 # Must skip processing as the validate method would reject the update
-                field_record.record_info.record.set(waveform_val, process=False)
+                field_record.record_info.record.set(
+                    field_data[field_name], process=False
+                )
                 self._update_scalar(field_record.record_info.record.name)
 
             # All items in field_data have the same length, so just use 0th.
