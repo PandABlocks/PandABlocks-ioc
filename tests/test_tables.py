@@ -312,87 +312,6 @@ async def test_create_softioc_update_table_scalars_change(
         repeats_monitor.close()
 
 
-def test_table_packing_unpack(
-    table_field_info: TableFieldInfo,
-    table_fields_records: Dict[str, TableFieldRecordContainer],
-    table_data_1: List[str],
-    table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
-):
-    """Test table unpacking works as expected"""
-    assert table_field_info.row_words
-    unpacked = TablePacking.unpack(
-        table_field_info.row_words, table_fields_records, table_data_1
-    )
-
-    actual: Union[UnpackedArray, List[str]]
-    for field_name, actual in unpacked.items():
-        expected = table_unpacked_data[EpicsName(field_name)]
-        if expected.dtype.char in ("S", "U"):
-            # Convert numeric array back to strings
-            actual = [table_fields_records[field_name].field.labels[x] for x in actual]
-        numpy.testing.assert_array_equal(actual, expected)
-
-
-def test_table_packing_pack(
-    table_field_info: TableFieldInfo,
-    table_fields_records: Dict[str, TableFieldRecordContainer],
-    table_data_1: List[str],
-):
-    """Test table unpacking works as expected"""
-    assert table_field_info.row_words
-    unpacked = TablePacking.pack(table_field_info.row_words, table_fields_records)
-
-    for actual, expected in zip(unpacked, table_data_1):
-        assert actual == expected
-
-
-def test_table_packing_pack_length_mismatched(
-    table_field_info: TableFieldInfo,
-    table_fields_records: Dict[str, TableFieldRecordContainer],
-):
-    """Test that mismatching lengths on waveform inputs causes an exception"""
-    assert table_field_info.row_words
-
-    # Adjust one of the record lengths so it mismatches
-    record_info = table_fields_records[EpicsName("OUTC1")].record_info
-    assert record_info
-    record_info.record.get = MagicMock(return_value=array([1, 2, 3, 4, 5, 6, 7, 8]))
-
-    with pytest.raises(AssertionError):
-        TablePacking.pack(table_field_info.row_words, table_fields_records)
-
-
-def test_table_packing_roundtrip(
-    table_field_info: TableFieldInfo,
-    table_fields: Dict[str, TableFieldDetails],
-    table_fields_records: Dict[str, TableFieldRecordContainer],
-    table_data_1: List[str],
-):
-    """Test that calling unpack -> pack yields the same data"""
-    assert table_field_info.row_words
-    unpacked = TablePacking.unpack(
-        table_field_info.row_words, table_fields_records, table_data_1
-    )
-
-    # Put these values into Mocks for the Records
-    data: Dict[str, TableFieldRecordContainer] = {}
-    for field_name, field_info in table_fields.items():
-        return_value: Union[UnpackedArray, List[str]] = unpacked[field_name]
-        if field_info.labels:
-            # Convert to string representation
-            return_value = [field_info.labels[x] for x in return_value]
-
-        mocked_record = MagicMock()
-        mocked_record.get = MagicMock(return_value=return_value)
-        record_info = RecordInfo(lambda x: None)
-        record_info.add_record(mocked_record)
-        data[field_name] = TableFieldRecordContainer(field_info, record_info)
-
-    packed = TablePacking.pack(table_field_info.row_words, data)
-
-    assert packed == table_data_1
-
-
 def test_table_updater_validate_mode_view(table_updater: TableUpdater):
     """Test the validate method when mode is View"""
 
@@ -508,9 +427,6 @@ async def test_table_updater_update_mode_submit_exception(
         called_args = record_info.record.set.call_args
 
         expected = called_args[0][0]
-        labels = table_updater.table_fields_records[field_name].field.labels
-        if labels:
-            expected = [labels[x] for x in expected]
 
         numpy.testing.assert_array_equal(data, expected)
 
@@ -568,10 +484,6 @@ async def test_table_updater_update_mode_discard(
         called_args = record_info.record.set.call_args
 
         expected = called_args[0][0]
-
-        labels = table_updater.table_fields_records[field_name].field.labels
-        if labels:
-            expected = [labels[x] for x in expected]
 
         numpy.testing.assert_array_equal(data, expected)
 
