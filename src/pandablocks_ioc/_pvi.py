@@ -183,8 +183,9 @@ class Pvi:
             # in the database, so have to make an extra record here just to hold the
             # PVI PV name
             pvi_record_name = block_name + ":PVI"
-            block_pvi = builder.stringIn(
-                pvi_record_name + "_PV", initial_value=RecordName(pvi_record_name)
+            block_pvi = builder.longStringIn(
+                pvi_record_name + "_PV",
+                initial_value=RecordName(pvi_record_name),
             )
             block_pvi.add_info(
                 "Q:group",

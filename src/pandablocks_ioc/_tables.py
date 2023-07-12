@@ -252,7 +252,6 @@ class TableUpdater:
         columns: RecordWrapper = builder.WaveformOut(
             table_name + ":LABELS",
             initial_value=np.array([k.encode() for k in field_info.fields]),
-            DESC=pva_table_name,
         )
         columns.add_info(
             "Q:group",
@@ -260,10 +259,19 @@ class TableUpdater:
                 pva_table_name: {
                     "+id": "epics:nt/NTTable:1.0",
                     "labels": {"+type": "plain", "+channel": "VAL"},
-                },
+                }
+            },
+        )
+        pv_rec = builder.longStringIn(
+            table_name + ":PV",
+            initial_value=pva_table_name,
+        )
+        pv_rec.add_info(
+            "Q:group",
+            {
                 RecordName(f"{block}:PVI"): {
                     f"pvi.{field.lower().replace(':', '_')}.rw": {
-                        "+channel": "DESC",
+                        "+channel": "VAL",
                         "+type": "plain",
                     }
                 },

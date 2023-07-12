@@ -16,7 +16,7 @@ dependencies = [
     "numpy",
     "click",
     "h5py",
-    "softioc>=4.3.0",
+    "softioc>=4.4.0",
     "pandablocks>=0.3.1",
     "pvi>=0.5",
 ] # Add project dependencies here, e.g. ["click", "numpy"]
