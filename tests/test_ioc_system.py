@@ -8,7 +8,7 @@ from typing import List
 import numpy
 import pytest
 from aioca import caget, camonitor, caput
-from conftest import BOBFILE_DIR, TEST_PREFIX, TIMEOUT, DummyServer
+from conftest import BOBFILE_DIR, TEST_PREFIX, TIMEOUT, MockedServer
 from numpy import ndarray
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.responses import (
@@ -26,13 +26,13 @@ from pandablocks_ioc.ioc import (
 )
 
 # Test file for all tests that require a full setup system, with an IOC running in one
-# process, a DummyServer in another, and the test in the main thread accessing data
+# process, a MockedServer in another, and the test in the main thread accessing data
 # using Channel Access
 
 
 @pytest.mark.asyncio
 async def test_introspect_panda(
-    dummy_server_introspect_panda,
+    mocked_server_introspect_panda,
     table_field_info: TableFieldInfo,
     table_data: List[str],
 ):
@@ -83,7 +83,7 @@ async def test_introspect_panda(
 
 @pytest.mark.asyncio
 async def test_create_softioc_system(
-    dummy_server_system,
+    mocked_server_system,
     subprocess_ioc,
     table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
 ):
@@ -109,7 +109,7 @@ async def test_create_softioc_system(
 
 @pytest.mark.asyncio
 async def test_create_softioc_update(
-    dummy_server_system: DummyServer,
+    mocked_server_system: MockedServer,
     subprocess_ioc,
 ):
     """Test that the update mechanism correctly changes record values when PandA
@@ -117,8 +117,8 @@ async def test_create_softioc_update(
 
     # Add more GetChanges data. Include some trailing empty changesets to allow test
     # code to run.
-    dummy_server_system.send += ["!PCAP1.TRIG_EDGE=Either\n."]
-    dummy_server_system.send += ["."] * 100
+    mocked_server_system.send += ["!PCAP1.TRIG_EDGE=Either\n."]
+    mocked_server_system.send += ["."] * 100
 
     try:
         # Set up a monitor to wait for the expected change
@@ -140,7 +140,7 @@ async def test_create_softioc_update(
 # TODO: Enable this test once PythonSoftIOC issue #53 is resolved
 # @pytest.mark.asyncio
 # async def test_create_softioc_update_in_error(
-#     dummy_server_system: DummyServer,
+#     mocked_server_system: MockedServer,
 #     subprocess_ioc,
 # ):
 #     """Test that the update mechanism correctly marks records as in error when PandA
@@ -148,7 +148,7 @@ async def test_create_softioc_update(
 
 #     # Add more GetChanges data. Include some trailing empty changesets to allow test
 #     # code to run.
-#     dummy_server_system.send += [
+#     mocked_server_system.send += [
 #         "!PCAP1.TRIG_EDGE (error)\n.",
 #         ".",
 #         ".",
@@ -180,12 +180,12 @@ async def test_create_softioc_update(
 
 @pytest.mark.asyncio
 async def test_create_softioc_record_update_send_to_panda(
-    dummy_server_system: DummyServer,
+    mocked_server_system: MockedServer,
     subprocess_ioc,
 ):
     """Test that updating a record causes the new value to be sent to PandA"""
     # Set the special response for the server
-    dummy_server_system.expected_message_responses.update(
+    mocked_server_system.expected_message_responses.update(
         {"PCAP1.TRIG_EDGE=Either": "OK"}
     )
 
@@ -193,19 +193,19 @@ async def test_create_softioc_record_update_send_to_panda(
 
     # Confirm the server received the expected string
     assert (
-        "PCAP1.TRIG_EDGE=Either" not in dummy_server_system.expected_message_responses
+        "PCAP1.TRIG_EDGE=Either" not in mocked_server_system.expected_message_responses
     )
 
 
 @pytest.mark.asyncio
 async def test_create_softioc_arm_disarm(
-    dummy_server_system: DummyServer,
+    mocked_server_system: MockedServer,
     subprocess_ioc,
 ):
     """Test that the Arm and Disarm commands are correctly sent to PandA"""
 
     # Set the special response for the server
-    dummy_server_system.expected_message_responses.update(
+    mocked_server_system.expected_message_responses.update(
         {"*PCAP.ARM=": "OK", "*PCAP.DISARM=": "OK"}
     )
 
@@ -214,8 +214,8 @@ async def test_create_softioc_arm_disarm(
     await caput(TEST_PREFIX + ":PCAP:ARM", 0, wait=True, timeout=TIMEOUT)
 
     # Confirm the server received the expected strings
-    assert "*PCAP.ARM=" not in dummy_server_system.expected_message_responses
-    assert "*PCAP.DISARM=" not in dummy_server_system.expected_message_responses
+    assert "*PCAP.ARM=" not in mocked_server_system.expected_message_responses
+    assert "*PCAP.DISARM=" not in mocked_server_system.expected_message_responses
 
 
 def test_ensure_block_number_present():
@@ -225,13 +225,13 @@ def test_ensure_block_number_present():
 
 @pytest.mark.asyncio
 async def test_create_softioc_time_panda_changes(
-    dummy_server_time: DummyServer,
+    mocked_server_time: MockedServer,
     subprocess_ioc,
 ):
     """Test that the UNITS and MIN values of a TIME field correctly reflect into EPICS
     records when the value changes on the PandA"""
 
-    dummy_server_time.drain_expected_messages()
+    mocked_server_time.drain_expected_messages()
 
     try:
         # Set up monitors for expected changes when the UNITS are changed,
@@ -257,11 +257,11 @@ async def test_create_softioc_time_panda_changes(
         assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 8e-06
 
         # These will be responses to repeated *CHANGES? requests made
-        dummy_server_time.send += ["!PULSE.DELAY=0.1\n!PULSE1.DELAY.UNITS=s\n."]
-        dummy_server_time.send += ["."] * 100
+        mocked_server_time.send += ["!PULSE.DELAY=0.1\n!PULSE1.DELAY.UNITS=s\n."]
+        mocked_server_time.send += ["."] * 100
 
         # Changing the UNITS should trigger a request for the MIN
-        dummy_server_time.expected_message_responses.update(
+        mocked_server_time.expected_message_responses.update(
             {"PULSE1.DELAY.MIN?": "OK =8e-09"}
         )
 
@@ -276,13 +276,13 @@ async def test_create_softioc_time_panda_changes(
 
 @pytest.mark.asyncio
 async def test_create_softioc_time_epics_changes(
-    dummy_server_time: DummyServer,
+    mocked_server_time: MockedServer,
     subprocess_ioc,
 ):
     """Test that the UNITS and MIN values of a TIME field correctly sent to the PandA
     when an EPICS record is updated"""
 
-    dummy_server_time.drain_expected_messages()
+    mocked_server_time.drain_expected_messages()
 
     try:
         # Set up monitors for expected changes when the UNITS are changed,
@@ -308,7 +308,7 @@ async def test_create_softioc_time_epics_changes(
         assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 8e-06
 
         # We should send one message to set the UNITS, and a second to query the new MIN
-        dummy_server_time.expected_message_responses.update(
+        mocked_server_time.expected_message_responses.update(
             [
                 ("PULSE1.DELAY.UNITS=min", "OK"),
                 ("PULSE1.DELAY.MIN?", "OK =1.333333333e-10"),
@@ -325,7 +325,7 @@ async def test_create_softioc_time_epics_changes(
         assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 1.333333333e-10
 
         # Confirm the second round of expected messages were found
-        assert not dummy_server_time.expected_message_responses
+        assert not mocked_server_time.expected_message_responses
     finally:
         m1.close()
         m2.close()
@@ -334,7 +334,7 @@ async def test_create_softioc_time_epics_changes(
 
 @pytest.mark.asyncio
 async def test_softioc_records_block(
-    dummy_server_system: DummyServer,
+    mocked_server_system: MockedServer,
     subprocess_ioc,
 ):
     """Test that the records created are blocking, and wait until they finish their
@@ -343,44 +343,46 @@ async def test_softioc_records_block(
     Note that a lot of other tests implicitly test this feature too - any test that
     uses caput with wait=True is effectively testing this."""
     # Set the special response for the server
-    dummy_server_system.expected_message_responses.update({"*PCAP.ARM=": "OK"})
+    mocked_server_system.expected_message_responses.update({"*PCAP.ARM=": "OK"})
 
     await caput(TEST_PREFIX + ":PCAP:ARM", 1, wait=True, timeout=TIMEOUT)
 
     # Confirm the server received the expected string
-    assert "*PCAP.ARM=" not in dummy_server_system.expected_message_responses
+    assert "*PCAP.ARM=" not in mocked_server_system.expected_message_responses
 
 
 @pytest.mark.asyncio
 async def test_pending_changes_blocks_record_set(
-    dummy_server_system: DummyServer, subprocess_ioc
+    mocked_server_system: MockedServer, subprocess_ioc
 ):
     """Test that when a value is Put to PandA and subsequently reported via *CHANGES?
     does not do another .set() on the record"""
 
     # Trigger a _RecordUpdater.update(), to do a Put command
 
-    dummy_server_system.expected_message_responses.update(
+    mocked_server_system.expected_message_responses.update(
         {"PCAP1.TRIG_EDGE=Either": "OK"}
     )
 
     await caput(TEST_PREFIX + ":PCAP1:TRIG_EDGE", "Either", wait=True, timeout=TIMEOUT)
 
     # Confirm the server received the expected string
-    assert not dummy_server_system.expected_message_responses
+    assert not mocked_server_system.expected_message_responses
 
-    dummy_server_system.send += ["!PCAP1.TRIG_EDGE=Either\n.", ".", "."]
+    mocked_server_system.send += ["!PCAP1.TRIG_EDGE=Either\n.", ".", "."]
 
     async def expected_messages_received():
         """Wait until the expected messages have all been received by the server"""
-        while len(dummy_server_system.send) > 2:
+        while len(mocked_server_system.send) > 2:
             await asyncio.sleep(0.1)
 
     await asyncio.wait_for(expected_messages_received(), timeout=TIMEOUT)
 
 
 @pytest.mark.asyncio
-async def test_bobfiles_created(dummy_server_system: DummyServer, subprocess_ioc: Path):
+async def test_bobfiles_created(
+    mocked_server_system: MockedServer, subprocess_ioc: Path
+):
     bobfile_temp_dir = subprocess_ioc
     assert bobfile_temp_dir.exists() and BOBFILE_DIR.exists()
     old_files = os.listdir(BOBFILE_DIR)

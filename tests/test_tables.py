@@ -6,7 +6,7 @@ import numpy
 import numpy.testing
 import pytest
 from aioca import caget, camonitor, caput
-from conftest import TEST_PREFIX, TIMEOUT, DummyServer
+from conftest import TEST_PREFIX, TIMEOUT, MockedServer
 from mock import AsyncMock, patch
 from mock.mock import MagicMock, PropertyMock, call
 from numpy import array, ndarray
@@ -109,7 +109,7 @@ def table_updater(
 
 @pytest.mark.asyncio
 async def test_create_softioc_update_table(
-    dummy_server_system: DummyServer,
+    mocked_server_system: MockedServer,
     subprocess_ioc,
     table_unpacked_data,
 ):
@@ -119,14 +119,14 @@ async def test_create_softioc_update_table(
     # Add more GetChanges data. This adds two new rows and changes row 2 (1-indexed)
     # to all zero values. Include some trailing empty changesets to ensure test code has
     # time to run.
-    dummy_server_system.send += [
+    mocked_server_system.send += [
         "!SEQ1.TABLE<\n.",
         # Deliberate concatenation here
         "!2457862149\n!4294967291\n!100\n!0\n!0\n!0\n!0\n!0\n!4293968720\n!0\n"
         "!9\n!9999\n!2035875928\n!444444\n!5\n!1\n!3464285461\n!4294967197\n!99999\n"
         "!2222\n.",
     ]
-    dummy_server_system.send += ["."] * 100
+    mocked_server_system.send += ["."] * 100
 
     try:
         # Set up a monitor to wait for the expected change
@@ -164,7 +164,7 @@ async def test_create_softioc_update_table(
 
 @pytest.mark.asyncio
 async def test_create_softioc_update_index_drvh(
-    dummy_server_system: DummyServer,
+    mocked_server_system: MockedServer,
     subprocess_ioc,
     table_unpacked_data,
 ):
@@ -174,14 +174,14 @@ async def test_create_softioc_update_index_drvh(
     # Add more GetChanges data. This adds two new rows and changes row 2 (1-indexed)
     # to all zero values. Include some trailing empty changesets to ensure test code has
     # time to run.
-    dummy_server_system.send += [
+    mocked_server_system.send += [
         "!SEQ1.TABLE<\n.",
         # Deliberate concatenation here
         "!2457862149\n!4294967291\n!100\n!0\n!0\n!0\n!0\n!0\n!4293968720\n!0\n"
         "!9\n!9999\n!2035875928\n!444444\n!5\n!1\n!3464285461\n!4294967197\n!99999\n"
         "!2222\n.",
     ]
-    dummy_server_system.send += ["."] * 100
+    mocked_server_system.send += ["."] * 100
 
     # All elements in the table_unpacked_data are the same length, so just take the
     # length of the first one
@@ -206,16 +206,16 @@ async def test_create_softioc_update_index_drvh(
 
 @pytest.mark.asyncio
 async def test_create_softioc_table_update_send_to_panda(
-    dummy_server_system: DummyServer,
+    mocked_server_system: MockedServer,
     subprocess_ioc,
 ):
     """Test that updating a table causes the new value to be sent to PandA"""
 
     # Set the special response for the server
-    dummy_server_system.expected_message_responses.update({"": "OK"})
+    mocked_server_system.expected_message_responses.update({"": "OK"})
 
     # Few more responses to GetChanges to suppress error messages
-    dummy_server_system.send += [".", ".", ".", "."]
+    mocked_server_system.send += [".", ".", ".", "."]
 
     await caput(TEST_PREFIX + ":SEQ1:TABLE:MODE", "EDIT")
 
@@ -224,17 +224,17 @@ async def test_create_softioc_table_update_send_to_panda(
     await caput(TEST_PREFIX + ":SEQ1:TABLE:MODE", "SUBMIT", wait=True, timeout=TIMEOUT)
 
     # Confirm the server received the expected string
-    assert "" not in dummy_server_system.expected_message_responses
+    assert "" not in mocked_server_system.expected_message_responses
 
     # Check the three numbers that should have updated from the REPEATS column change
-    assert "2457862145" in dummy_server_system.received
-    assert "269877249" in dummy_server_system.received
-    assert "4293918721" in dummy_server_system.received
+    assert "2457862145" in mocked_server_system.received
+    assert "269877249" in mocked_server_system.received
+    assert "4293918721" in mocked_server_system.received
 
 
 @pytest.mark.asyncio
 async def test_create_softioc_update_table_index(
-    dummy_server_system: DummyServer,
+    mocked_server_system: MockedServer,
     subprocess_ioc,
     table_unpacked_data,
 ):
@@ -276,7 +276,7 @@ async def test_create_softioc_update_table_index(
 
 @pytest.mark.asyncio
 async def test_create_softioc_update_table_scalars_change(
-    dummy_server_system: DummyServer,
+    mocked_server_system: MockedServer,
     subprocess_ioc,
     table_unpacked_data,
 ):

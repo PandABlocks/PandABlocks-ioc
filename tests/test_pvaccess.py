@@ -3,7 +3,7 @@ from typing import OrderedDict
 
 import numpy
 import pytest
-from conftest import TEST_PREFIX, DummyServer
+from conftest import TEST_PREFIX, MockedServer
 from numpy import ndarray
 from p4p import Value
 from p4p.client.thread import Context
@@ -13,7 +13,7 @@ from pandablocks_ioc._types import EpicsName
 
 @pytest.mark.asyncio
 async def test_table_column_info(
-    dummy_server_system: DummyServer,
+    mocked_server_system: MockedServer,
     subprocess_ioc,
     table_unpacked_data: OrderedDict[EpicsName, ndarray],
 ):

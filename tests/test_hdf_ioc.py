@@ -15,7 +15,7 @@ import pytest_asyncio
 from aioca import caget, camonitor, caput
 from conftest import (
     TIMEOUT,
-    DummyServer,
+    MockedServer,
     Rows,
     custom_logger,
     get_multiprocessing_context,
@@ -363,15 +363,15 @@ async def test_hdf5_ioc_parameter_validate_works(hdf5_subprocess_ioc_no_logging_
 @pytest.mark.asyncio
 async def test_hdf5_file_writing(
     hdf5_subprocess_ioc,
-    dummy_server_async: DummyServer,
+    mocked_server_async: MockedServer,
     raw_dump,
     tmp_path: Path,
     caplog,
 ):
     """Test that an HDF5 file is written when Capture is enabled"""
-    # For reasons unknown the threaded DummyServer prints warnings during its cleanup.
+    # For reasons unknown the threaded MockedServer prints warnings during its cleanup.
     # The asyncio one does not, so just use that.
-    dummy_server_async.data = raw_dump
+    mocked_server_async.data = raw_dump
 
     test_dir = str(tmp_path) + "\0"
     test_filename = "test.h5\0"

@@ -20,6 +20,7 @@ from epicsdbbuilder import ResetRecords
 from mock import MagicMock, patch
 from numpy import array, int32, ndarray, uint8, uint16, uint32
 from pandablocks.connections import Buffer
+from pandablocks.asyncio import AsyncioClient
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
 from softioc.device_core import RecordLookup
 
@@ -80,7 +81,7 @@ def caplog_workaround():
     return ctx
 
 
-class DummyServer:
+class MockedServer:
     # Flag for useful debug output when writing tests
     # for diagnosing mismatching sent data.
     debug = False
@@ -175,6 +176,20 @@ class DummyServer:
             time.sleep(sleep_period)
             if time.time() - start_time > timeout:
                 raise Exception("Timeout waiting for server expected messages to clear")
+
+
+@pytest_asyncio.fixture
+def mocked_server_in_thread():
+    loop = asyncio.new_event_loop()
+    server = MockedServer()
+    t = threading.Thread(target=loop.run_forever)
+    t.start()
+    f = asyncio.run_coroutine_threadsafe(server.open(), loop)
+    f.result(timeout=TIMEOUT)
+    yield server
+    asyncio.run_coroutine_threadsafe(server.close(), loop).result(timeout=TIMEOUT)
+    loop.call_soon_threadsafe(loop.stop())
+    t.join()
 
 
 def _clear_records():
@@ -411,8 +426,8 @@ def table_unpacked_data(
 
 
 @pytest_asyncio.fixture
-def dummy_server_introspect_panda(
-    dummy_server_in_thread: DummyServer, table_data: List[str]
+def mocked_server_introspect_panda(
+    mocked_server_in_thread: MockedServer, table_data: List[str]
 ):
     """A dummy server that responds to all the requests introspect_panda makes
     during its operation.
@@ -449,7 +464,7 @@ def dummy_server_introspect_panda(
         "!POSC>=POSITION\n!POSC<=POSITION\n."
     )
 
-    dummy_server_in_thread.send += [
+    mocked_server_in_thread.send += [
         "!PCAP 1\n!SEQ 1\n.",  # BLOCK definitions
         "OK =PCAP Desc",
         "OK =SEQ Desc",
@@ -486,28 +501,31 @@ def dummy_server_introspect_panda(
     ]
     # If you need to change the above responses,
     # it'll probably help to enable debugging on the server
-    # import os
+    import os
 
-    # os.remove(dummy_server_in_thread._debug_file)
-    # dummy_server_in_thread.debug = True
-    yield dummy_server_in_thread
+    mocked_server_in_thread.debug = True
+    if mocked_server_in_thread.debug and os.path.isfile(
+        mocked_server_in_thread._debug_file
+    ):
+        os.remove(mocked_server_in_thread._debug_file)
+    yield mocked_server_in_thread
 
 
 @pytest_asyncio.fixture
-def dummy_server_system(dummy_server_introspect_panda: DummyServer):
+def mocked_server_system(mocked_server_introspect_panda: MockedServer):
     """A server for a full system test"""
 
     # Add data for GetChanges to consume. Number of items should be bigger than
     # the sleep time given during IOC startup
-    dummy_server_introspect_panda.send += ["."] * 50
+    mocked_server_introspect_panda.send += ["."] * 50
 
-    yield dummy_server_introspect_panda
+    yield mocked_server_introspect_panda
 
 
 @pytest_asyncio.fixture
-def dummy_server_time(dummy_server_in_thread: DummyServer):
+def mocked_server_time(mocked_server_in_thread: MockedServer):
     """Dummy server just for the Time field"""
-    dummy_server_in_thread.expected_message_responses.update(
+    mocked_server_in_thread.expected_message_responses.update(
         [
             ("*BLOCKS?", "!PULSE 1\n."),
             ("*DESC.PULSE?", "OK =One-shot pulse delay and stretch"),
@@ -524,17 +542,17 @@ def dummy_server_time(dummy_server_in_thread: DummyServer):
 
     # Add data for GetChanges to consume. Number of items should be bigger than
     # the sleep time given during IOC startup
-    dummy_server_in_thread.send += ["."] * 50
+    mocked_server_in_thread.send += ["."] * 50
 
     # If you need to change the above responses,
     # it'll probably help to enable debugging on the server
-    # import os
+    import os
 
-    # if os.path.isfile(dummy_server_in_thread._debug_file):
-    #     os.remove(dummy_server_in_thread._debug_file)
-    # dummy_server_in_thread.debug = True
+    if os.path.isfile(mocked_server_in_thread._debug_file):
+        os.remove(mocked_server_in_thread._debug_file)
+    mocked_server_in_thread.debug = True
 
-    yield dummy_server_in_thread
+    yield mocked_server_in_thread
 
 
 @patch("pandablocks_ioc.ioc.AsyncioClient.close")
@@ -548,7 +566,7 @@ def ioc_wrapper(
     """Wrapper function to start the IOC and do some mocking"""
 
     async def inner_wrapper():
-        create_softioc("localhost", TEST_PREFIX, bobfile_dir)
+        create_softioc(AsyncioClient("localhost"), TEST_PREFIX, bobfile_dir)
         # If you see an error on the below line, it probably means an unexpected
         # exception occurred during IOC startup
         mocked_interactive_ioc.assert_called_once()
@@ -645,25 +663,11 @@ def get_multiprocessing_context():
 
 
 @pytest_asyncio.fixture
-async def dummy_server_async():
-    server = DummyServer()
+async def mocked_server_async():
+    server = MockedServer()
     await server.open()
     yield server
     await server.close()
-
-
-@pytest_asyncio.fixture
-def dummy_server_in_thread():
-    loop = asyncio.new_event_loop()
-    server = DummyServer()
-    t = threading.Thread(target=loop.run_forever)
-    t.start()
-    f = asyncio.run_coroutine_threadsafe(server.open(), loop)
-    f.result(timeout=TIMEOUT)
-    yield server
-    asyncio.run_coroutine_threadsafe(server.close(), loop).result(timeout=TIMEOUT)
-    loop.call_soon_threadsafe(loop.stop())
-    t.join()
 
 
 class Rows:
