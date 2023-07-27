@@ -13,9 +13,9 @@ import numpy
 import pytest
 import pytest_asyncio
 from aioca import caget, camonitor, caput
-from conftest import (
+from fixtures.mocked_panda import (
     TIMEOUT,
-    MockedServer,
+    TEST_PREFIX,
     Rows,
     custom_logger,
     get_multiprocessing_context,
@@ -31,6 +31,9 @@ from pandablocks.responses import (
     StartData,
 )
 from softioc import asyncio_dispatcher, builder, softioc
+from epics import caget as epics_caget
+from epics import caput as epics_caput
+
 
 from pandablocks_ioc._hdf_ioc import HDF5RecordController
 
@@ -302,10 +305,10 @@ def hdf5_subprocess_ioc(
 
 
 @pytest.mark.asyncio
-async def test_hdf5_ioc(hdf5_subprocess_ioc):
+async def test_hdf5_ioc(mocked_panda_standard_responses):
     """Run the HDF5 module as its own IOC and check the expected records are created,
     with some default values checked"""
-    HDF5_PREFIX = NAMESPACE_PREFIX + ":HDF5"
+    HDF5_PREFIX = TEST_PREFIX + ":HDF5"
     val = await caget(HDF5_PREFIX + ":FilePath")
 
     # Default value of longStringOut is an array of a single NULL byte
@@ -362,19 +365,14 @@ async def test_hdf5_ioc_parameter_validate_works(hdf5_subprocess_ioc_no_logging_
 
 @pytest.mark.asyncio
 async def test_hdf5_file_writing(
-    hdf5_subprocess_ioc,
-    mocked_server_async: MockedServer,
-    raw_dump,
+    mocked_panda_standard_responses,
     tmp_path: Path,
     caplog,
 ):
     """Test that an HDF5 file is written when Capture is enabled"""
-    # For reasons unknown the threaded MockedServer prints warnings during its cleanup.
-    # The asyncio one does not, so just use that.
-    mocked_server_async.data = raw_dump
-
     test_dir = str(tmp_path) + "\0"
     test_filename = "test.h5\0"
+    HDF5_PREFIX = TEST_PREFIX + ":HDF5"
 
     await caput(
         HDF5_PREFIX + ":FilePath",
@@ -395,6 +393,7 @@ async def test_hdf5_file_writing(
     assert val.tobytes().decode() == test_filename
 
     # Only a single FrameData in the example data
+    assert await caget(HDF5_PREFIX + ":NumCapture") == 0
     await caput(HDF5_PREFIX + ":NumCapture", 1, wait=True, timeout=TIMEOUT)
     assert await caget(HDF5_PREFIX + ":NumCapture") == 1
 
@@ -409,8 +408,13 @@ async def test_hdf5_file_writing(
     # Initially Capturing should be 0
     assert await capturing_queue.get() == 0
 
-    await caput(HDF5_PREFIX + ":Capture", 1, wait=True)
-    assert await caget(HDF5_PREFIX + ":Capture") == 1
+    await caput(HDF5_PREFIX + ":Capture", 1, wait=True, timeout=TIMEOUT)
+    epics_caput(HDF5_PREFIX + ":Capture", 1, wait=True)
+    print("PREFIX:    ", HDF5_PREFIX)
+    await asyncio.sleep(3)
+    x = epics_caget(HDF5_PREFIX + ":Capture")
+    y = await caget(HDF5_PREFIX + ":Capture")
+    assert y == 1
 
     # Shortly after Capture = 1, Capturing should be set to 1
     assert await capturing_queue.get() == 1

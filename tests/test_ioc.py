@@ -4,11 +4,13 @@ from pathlib import Path
 from typing import Dict
 
 import pytest
-from conftest import TEST_PREFIX
+from fixtures.mocked_panda import TEST_PREFIX, TIMEOUT
 from mock import AsyncMock, patch
 from mock.mock import MagicMock, call
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import GetLine, Put
+from aioca import caput
+import pytest_asyncio
 from pandablocks.responses import (
     BitMuxFieldInfo,
     BitOutFieldInfo,
@@ -638,16 +640,40 @@ def test_create_record_info_value_error(
     ), f"STAT not found twice in record file contents: {file_contents}"
 
 
+@pytest_asyncio.fixture
+def mocked_time_record_updater():
+    """An instance of _TimeRecordUpdater with MagicMocks and some default values"""
+    base_record = MagicMock()
+    base_record.name = TEST_PREFIX + ":BASE:RECORD"
+
+    # We don't have AsyncMock in Python3.7, so do it ourselves
+    client = MagicMock()
+    f = asyncio.Future()
+    f.set_result("8e-09")
+    client.send.return_value = f
+
+    mocked_record_info = MagicMock()
+    mocked_record_info.record = MagicMock()
+    mocked_record_info.record.name = EpicsName(TEST_PREFIX + ":TEST:STR")
+
+    return _TimeRecordUpdater(
+        mocked_record_info,
+        client,
+        {},
+        ["TEST1", "TEST2", "TEST3"],
+        base_record,
+        TEST_PREFIX,
+        True,
+    )
+
+
 @pytest.mark.asyncio
 @patch("pandablocks_ioc.ioc.db_put_field")
 @pytest.mark.parametrize("new_val", ["TEST2", 2])
 async def test_time_record_updater_update_egu(
     db_put_field: MagicMock, mocked_time_record_updater: _TimeRecordUpdater, new_val
 ):
-    """Test that _TimeRecordUpdater.update_egu works correctly with any valid input"""
-
     mocked_time_record_updater.update_egu(new_val)
-
     db_put_field.assert_called_once()
 
     # Check the expected arguments are passed to db_put_field.
