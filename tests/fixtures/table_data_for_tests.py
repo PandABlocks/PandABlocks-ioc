@@ -1,8 +1,8 @@
 from typing import Dict, List, OrderedDict
 
 import pytest
-from numpy import array, int32, ndarray, uint8, uint16, uint32, dtype
-from pandablocks.responses import TableFieldDetails, TableFieldInfo, FieldCapture
+from numpy import array, dtype, int32, ndarray, uint8, uint16, uint32
+from pandablocks.responses import FieldCapture, TableFieldDetails, TableFieldInfo
 
 from pandablocks_ioc._types import EpicsName
 

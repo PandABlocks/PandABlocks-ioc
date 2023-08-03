@@ -14,8 +14,8 @@ import pytest
 import pytest_asyncio
 from aioca import caget, camonitor, caput
 from fixtures.mocked_panda import (
-    TIMEOUT,
     TEST_PREFIX,
+    TIMEOUT,
     Rows,
     custom_logger,
     get_multiprocessing_context,
@@ -31,7 +31,6 @@ from pandablocks.responses import (
     StartData,
 )
 from softioc import asyncio_dispatcher, builder, softioc
-
 
 from pandablocks_ioc._hdf_ioc import HDF5RecordController
 

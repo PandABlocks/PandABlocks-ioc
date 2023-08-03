@@ -9,8 +9,8 @@ from logging import handlers
 from multiprocessing import get_context
 from multiprocessing.connection import Connection
 from pathlib import Path
-import numpy
-from typing import Any, Generator, Optional, Tuple, TypeVar, Iterator
+from typing import Any, Generator, Iterator, Optional, Tuple, TypeVar
+from uuid import uuid4
 
 import pytest
 import pytest_asyncio
@@ -22,19 +22,15 @@ from pandablocks.commands import (
     Command,
     GetBlockInfo,
     GetChanges,
+    GetFieldInfo,
     GetLine,
     Put,
-    GetFieldInfo,
 )
 from pandablocks.responses import (
     BitMuxFieldInfo,
     BlockInfo,
     Changes,
     EnumFieldInfo,
-    FieldCapture,
-    FrameData,
-    ReadyData,
-    StartData,
     TimeFieldInfo,
 )
 from softioc.device_core import RecordLookup
@@ -42,7 +38,6 @@ from softioc.device_core import RecordLookup
 from pandablocks_ioc import create_softioc
 from pandablocks_ioc._types import EpicsName
 from pandablocks_ioc.ioc import _TimeRecordUpdater
-from uuid import uuid4
 
 T = TypeVar("T")
 
@@ -51,7 +46,7 @@ T = TypeVar("T")
 # Use the unique TEST_PREFIX to ensure this isn't a problem for future tests
 TEST_PREFIX = "TEST-PREFIX-" + str(uuid4())[:4].upper()
 BOBFILE_DIR = Path(__file__).parent.parent / "test-bobfiles"
-TIMEOUT = 1000
+TIMEOUT = 10
 
 """
 @pytest.fixture

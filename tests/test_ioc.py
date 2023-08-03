@@ -4,13 +4,12 @@ from pathlib import Path
 from typing import Dict
 
 import pytest
-from fixtures.mocked_panda import TEST_PREFIX, TIMEOUT
+import pytest_asyncio
+from fixtures.mocked_panda import TEST_PREFIX
 from mock import AsyncMock, patch
 from mock.mock import MagicMock, call
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import GetLine, Put
-from aioca import caput
-import pytest_asyncio
 from pandablocks.responses import (
     BitMuxFieldInfo,
     BitOutFieldInfo,
@@ -683,7 +682,7 @@ async def test_time_record_updater_update_egu(
     expected_args = [TEST_PREFIX + ":BASE:RECORD.EGU", fields.DBF_STRING, 1]
     for arg in expected_args:
         assert arg in put_field_args
-    assert type(put_field_args[2]) == int
+    assert isinstance(put_field_args[2], int)
 
 
 @pytest.mark.asyncio
@@ -708,7 +707,7 @@ async def test_time_record_updater_update_drvl(
     expected_args = [TEST_PREFIX + ":BASE:RECORD.DRVL", fields.DBF_DOUBLE, 1]
     for arg in expected_args:
         assert arg in put_field_args
-    assert type(put_field_args[2]) == int
+    assert isinstance(put_field_args[2], int)
 
 
 def test_uint_sets_record_attributes(ioc_record_factory: IocRecordFactory):

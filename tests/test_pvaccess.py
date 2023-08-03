@@ -1,5 +1,5 @@
 import collections
-from typing import cast, OrderedDict
+from typing import OrderedDict, cast
 
 import numpy
 import pytest

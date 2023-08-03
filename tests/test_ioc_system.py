@@ -2,19 +2,15 @@ import asyncio
 import filecmp
 import os
 import typing
-from pathlib import Path
-from typing import List
 
 import numpy
 import pytest
 from aioca import caget, camonitor, caput
 from fixtures.mocked_panda import BOBFILE_DIR, TEST_PREFIX, TIMEOUT
 from numpy import ndarray
-from pandablocks.asyncio import AsyncioClient
+
 from pandablocks_ioc._types import EpicsName
-from pandablocks_ioc.ioc import (
-    _ensure_block_number_present,
-)
+from pandablocks_ioc.ioc import _ensure_block_number_present
 
 # Test file for all tests that require a full setup system, with an IOC running in one
 # process, a MockedServer in another, and the test in the main thread accessing data

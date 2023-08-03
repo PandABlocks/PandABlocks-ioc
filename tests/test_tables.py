@@ -608,7 +608,7 @@ def test_table_updater_update_table(
     expected_args = ["SEQ1:TABLE:INDEX.DRVH", fields.DBF_LONG, 1]
     for arg in expected_args:
         assert arg in put_field_args
-    assert type(put_field_args[2]) == int
+    assert isinstance(put_field_args[2], int)
 
 
 def test_table_updater_update_table_not_view(
