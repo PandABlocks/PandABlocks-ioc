@@ -192,7 +192,7 @@ async def test_bobfiles_created(mocked_panda_standard_responses):
     old_files = os.listdir(BOBFILE_DIR)
     for file in old_files:
         assert filecmp.cmp(
-            f"{bobfile_temp_dir}/{file}", f"{BOBFILE_DIR}/{file}", shallow=False
+            f"{bobfile_temp_dir}/{file}", f"{BOBFILE_DIR}/{file}"
         ), f"File {bobfile_temp_dir/file} does not match {BOBFILE_DIR/file}"
 
     # And check that the same number of files are created

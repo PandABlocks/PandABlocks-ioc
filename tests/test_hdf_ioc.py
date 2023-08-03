@@ -31,8 +31,6 @@ from pandablocks.responses import (
     StartData,
 )
 from softioc import asyncio_dispatcher, builder, softioc
-from epics import caget as epics_caget
-from epics import caput as epics_caput
 
 
 from pandablocks_ioc._hdf_ioc import HDF5RecordController
@@ -409,12 +407,7 @@ async def test_hdf5_file_writing(
     assert await capturing_queue.get() == 0
 
     await caput(HDF5_PREFIX + ":Capture", 1, wait=True, timeout=TIMEOUT)
-    epics_caput(HDF5_PREFIX + ":Capture", 1, wait=True)
-    print("PREFIX:    ", HDF5_PREFIX)
-    await asyncio.sleep(3)
-    x = epics_caget(HDF5_PREFIX + ":Capture")
-    y = await caget(HDF5_PREFIX + ":Capture")
-    assert y == 1
+    assert await caget(HDF5_PREFIX + ":Capture") == 1
 
     # Shortly after Capture = 1, Capturing should be set to 1
     assert await capturing_queue.get() == 1
