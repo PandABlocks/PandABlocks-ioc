@@ -8,6 +8,7 @@ import pytest
 from aioca import caget, camonitor, caput
 from fixtures.mocked_panda import BOBFILE_DIR, TEST_PREFIX, TIMEOUT
 from numpy import ndarray
+from pathlib import Path
 
 from pandablocks_ioc._types import EpicsName
 from pandablocks_ioc.ioc import _ensure_block_number_present
@@ -185,11 +186,16 @@ async def test_bobfiles_created(mocked_panda_standard_responses):
     # TODO: SAVE NEW BOBFILES NOW THEY'VE BEEN CREATED
     bobfile_temp_dir, *_ = mocked_panda_standard_responses
     assert bobfile_temp_dir.exists() and BOBFILE_DIR.exists()
+    print("OLD", BOBFILE_DIR)
+    print("GENERATED", bobfile_temp_dir)
     old_files = os.listdir(BOBFILE_DIR)
     for file in old_files:
-        assert filecmp.cmp(
-            f"{bobfile_temp_dir}/{file}", f"{BOBFILE_DIR}/{file}"
-        ), f"File {bobfile_temp_dir/file} does not match {BOBFILE_DIR/file}"
+        assert (
+            Path(bobfile_temp_dir / file)
+            .read_text()
+            .replace(TEST_PREFIX, "TEST-PREFIX")
+            == (BOBFILE_DIR / file).read_text()
+        )
 
     # And check that the same number of files are created
     new_files = os.listdir(bobfile_temp_dir)

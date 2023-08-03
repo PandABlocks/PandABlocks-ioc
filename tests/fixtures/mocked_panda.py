@@ -179,9 +179,6 @@ def command_to_key(dataclass_object: Command):
             if isinstance(value, list):
                 parsed_dataclass_object[key] = tuple(value)
 
-        if dataclass_object.__class__ == Put:
-            print("NEW PUT", dataclass_object)
-
         return (
             dataclass_object.__class__,
             *(

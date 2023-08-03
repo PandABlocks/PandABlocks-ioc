@@ -41,9 +41,33 @@
     <horizontal_alignment>1</horizontal_alignment>
   </widget>
   <widget type="group" version="2.0.0">
-    <name>INPUTS</name>
+    <name>PARAMETERS</name>
     <x>5</x>
     <y>55</y>
+    <width>416</width>
+    <height>56</height>
+    <transparent>true</transparent>
+  <widget type="label" version="2.0.0">
+    <name>Label</name>
+    <text>PCAP1: TRIG_ EDGE</text>
+    <x>0</x>
+    <y>0</y>
+    <width>250</width>
+    <height>20</height>
+  </widget>
+  <widget type="combo" version="2.0.0">
+    <name>ComboBox</name>
+    <pv_name>TEST-PREFIX:PCAP1:TRIG_EDGE</pv_name>
+    <x>255</x>
+    <y>0</y>
+    <width>125</width>
+    <height>20</height>
+  </widget>
+  </widget>
+  <widget type="group" version="2.0.0">
+    <name>INPUTS</name>
+    <x>5</x>
+    <y>116</y>
     <width>416</width>
     <height>81</height>
     <transparent>true</transparent>
@@ -80,30 +104,6 @@
     <width>125</width>
     <height>20</height>
     <horizontal_alignment>1</horizontal_alignment>
-  </widget>
-  </widget>
-  <widget type="group" version="2.0.0">
-    <name>PARAMETERS</name>
-    <x>5</x>
-    <y>141</y>
-    <width>416</width>
-    <height>56</height>
-    <transparent>true</transparent>
-  <widget type="label" version="2.0.0">
-    <name>Label</name>
-    <text>PCAP1: TRIG_ EDGE</text>
-    <x>0</x>
-    <y>0</y>
-    <width>250</width>
-    <height>20</height>
-  </widget>
-  <widget type="combo" version="2.0.0">
-    <name>ComboBox</name>
-    <pv_name>TEST-PREFIX:PCAP1:TRIG_EDGE</pv_name>
-    <x>255</x>
-    <y>0</y>
-    <width>125</width>
-    <height>20</height>
   </widget>
   </widget>
   <grid_step_x>4</grid_step_x>
