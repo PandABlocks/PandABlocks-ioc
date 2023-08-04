@@ -220,6 +220,27 @@ class Rows:
         return same
 
 
+class AsyncIteratorWrapper:
+    def __init__(self, path: Path, size: int):
+        self.f = open(path, "rb")
+        self.size = size
+        self.data = self.f.read(size)
+
+    async def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        if self.data:
+            old_data = self.data
+            self.data = self.f.read(self.size)
+            yield old_data
+        else:
+            raise StopAsyncIteration
+
+    def __del__(self):
+        self.f.close()
+
+
 class MockedAsyncioClient:
     def __init__(self, response_handler: ResponseHandler) -> None:
         self.response_handler = response_handler
@@ -239,13 +260,10 @@ class MockedAsyncioClient:
     async def close(self):
         pass
 
-    async def data(self, *_, **__):
-        try:
-            f = open(Path(__file__).parent.parent / "raw_dump.txt", "rb")
-            x = chunked_read(f, 200000)
-        finally:
-            f.close()
-        yield x
+    async def data(*_, **__):
+        yield AsyncIteratorWrapper(
+            Path(__file__).parent.parent / "raw_dump.txt", 200000
+        )
 
 
 def get_multiprocessing_context():
@@ -410,17 +428,8 @@ def respond_with_no_changes(number_of_iterations: Optional[int] = None) -> repea
 
 
 @pytest.fixture
-def mocked_panda_standard_responses(
-    tmp_path: Path,
-    table_data_1,
-    table_data_2,
-    enable_codecov_multiprocess,
-    caplog,
-    caplog_workaround,
-    table_field_info,
-    table_fields,
-):
-    responses = {
+def standard_responses(table_field_info, table_data_1, table_data_2):
+    return {
         command_to_key(GetFieldInfo(block="PCAP", extended_metadata=True)): repeat(
             {
                 "TRIG_EDGE": EnumFieldInfo(
@@ -512,7 +521,18 @@ def mocked_panda_standard_responses(
         ),
     }
 
-    response_handler = ResponseHandler(responses=responses)
+
+@pytest.fixture
+def mocked_panda_standard_responses(
+    standard_responses,
+    tmp_path: Path,
+    enable_codecov_multiprocess,
+    caplog,
+    caplog_workaround,
+    table_field_info,
+    table_fields,
+):
+    response_handler = ResponseHandler(responses=standard_responses)
 
     yield from create_subprocess_ioc_and_responses(
         response_handler,

@@ -8,13 +8,16 @@ from io import BufferedReader
 from pathlib import Path
 from typing import AsyncGenerator, Generator, Iterator
 from uuid import uuid4
+import h5py
 
 import numpy
 import pytest
 import pytest_asyncio
-from aioca import caget, caput
+from aioca import caget, caput, camonitor
 from fixtures.mocked_panda import (
+    MockedAsyncioClient,
     TEST_PREFIX,
+    TIMEOUT,
     Rows,
     custom_logger,
     get_multiprocessing_context,
@@ -231,7 +234,7 @@ def fast_dump_expected():
 
 
 @pytest_asyncio.fixture
-async def hdf5_controller(clear_records: None) -> AsyncGenerator:
+async def hdf5_controller(clear_records: None, standard_responses) -> AsyncGenerator:
     """Construct an HDF5 controller, ensuring we delete all records before
     and after the test runs, as well as ensuring the sockets opened in the HDF5
     controller are closed"""
@@ -242,21 +245,12 @@ async def hdf5_controller(clear_records: None) -> AsyncGenerator:
     await asyncio.sleep(0)
 
 
-async def data(*_, **__):
-    try:
-        f = open(Path(__file__).parent / "raw_dump.txt", "rb")
-        yield chunked_read(f, 200000)
-    finally:
-        f.close()
-
-
-def subprocess_func(namespace_prefix: str) -> None:
+def subprocess_func(namespace_prefix: str, standard_responses) -> None:
     """Function to start the HDF5 IOC"""
 
     async def wrapper():
         builder.SetDeviceName(namespace_prefix)
-        client = AsyncioClient("localhost")
-        client.data = data
+        client = MockedAsyncioClient(standard_responses)
         HDF5RecordController(client, namespace_prefix)
         dispatcher = asyncio_dispatcher.AsyncioDispatcher()
         builder.LoadDatabase()
@@ -271,12 +265,12 @@ def subprocess_func(namespace_prefix: str) -> None:
 
 @pytest_asyncio.fixture
 def hdf5_subprocess_ioc_no_logging_check(
-    enable_codecov_multiprocess, caplog, caplog_workaround
+    enable_codecov_multiprocess, caplog, caplog_workaround, standard_responses
 ) -> Generator:
     """Create an instance of HDF5 class in its own subprocess, then start the IOC.
     Note you probably want to use `hdf5_subprocess_ioc` instead."""
     ctx = get_multiprocessing_context()
-    p = ctx.Process(target=subprocess_func, args=(NAMESPACE_PREFIX,))
+    p = ctx.Process(target=subprocess_func, args=(NAMESPACE_PREFIX, standard_responses))
     p.start()
     time.sleep(3)  # Give IOC some time to start up
     yield
@@ -288,14 +282,16 @@ def hdf5_subprocess_ioc_no_logging_check(
 
 @pytest_asyncio.fixture
 def hdf5_subprocess_ioc(
-    enable_codecov_multiprocess, caplog, caplog_workaround
+    enable_codecov_multiprocess, caplog, caplog_workaround, standard_responses
 ) -> Generator:
     """Create an instance of HDF5 class in its own subprocess, then start the IOC.
     When finished check logging logged no messages of WARNING or higher level."""
     with caplog.at_level(logging.WARNING):
         with caplog_workaround():
             ctx = get_multiprocessing_context()
-            p = ctx.Process(target=subprocess_func, args=(NAMESPACE_PREFIX,))
+            p = ctx.Process(
+                target=subprocess_func, args=(NAMESPACE_PREFIX, standard_responses)
+            )
             p.start()
             time.sleep(3)  # Give IOC some time to start up
             yield
@@ -314,7 +310,7 @@ def hdf5_subprocess_ioc(
 async def test_hdf5_ioc(mocked_panda_standard_responses):
     """Run the HDF5 module as its own IOC and check the expected records are created,
     with some default values checked"""
-    HDF5_PREFIX = TEST_PREFIX + ":HDF5"
+    # HDF5_PREFIX = TEST_PREFIX + ":HDF5"
     val = await caget(HDF5_PREFIX + ":FilePath")
 
     # Default value of longStringOut is an array of a single NULL byte
@@ -352,7 +348,6 @@ async def test_hdf5_ioc_parameter_validate_works(hdf5_subprocess_ioc_no_logging_
     does not stop updates, then stops when capture record is changed"""
 
     # EPICS bug means caputs always appear to succeed, so do a caget to prove it worked
-
     await caput(HDF5_PREFIX + ":FilePath", _string_to_buffer("/new/path"), wait=True)
     val = await caget(HDF5_PREFIX + ":FilePath")
     assert val.tobytes().decode() == "/new/path"
@@ -369,16 +364,13 @@ async def test_hdf5_ioc_parameter_validate_works(hdf5_subprocess_ioc_no_logging_
     assert val.tobytes().decode() == "/new/path"  # put should have been stopped
 
 
-"""
-TODO talk about why this isn't working
 @pytest.mark.asyncio
 async def test_hdf5_file_writing(
     hdf5_subprocess_ioc,
-    mocked_panda_standard_responses,
     tmp_path: Path,
     caplog,
 ):
-    \"""Test that an HDF5 file is written when Capture is enabled\"""
+    """Test that an HDF5 file is written when Capture is enabled"""
     test_dir = str(tmp_path) + "\0"
     test_filename = "test.h5\0"
     # HDF5_PREFIX = TEST_PREFIX + ":HDF5"
@@ -422,7 +414,7 @@ async def test_hdf5_file_writing(
     assert await capturing_queue.get() == 1
 
     # The HDF5 data will be processed, and when it's done Capturing is set to 0
-    assert await asyncio.wait_for(capturing_queue.get(), timeout=10) == 0
+    assert await asyncio.wait_for(capturing_queue.get(), timeout=TIMEOUT) == 0
 
     m.close()
 
@@ -444,7 +436,6 @@ async def test_hdf5_file_writing(
     ]
 
     assert len(hdf_file["/COUNTER1.OUT.Max"]) == 10000
-"""
 
 
 def test_hdf_parameter_validate_not_capturing(hdf5_controller: HDF5RecordController):
