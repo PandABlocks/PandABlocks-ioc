@@ -122,10 +122,10 @@ async def test_create_softioc_update_table(
 
     try:
         # Set up a monitor to wait for the expected change
-        capturing_queue: asyncio.Queue = asyncio.Queue()
+        capturing_queue = asyncio.Queue()
         monitor = camonitor(TEST_PREFIX + ":SEQ1:TABLE:TIME1", capturing_queue.put)
 
-        curr_val: ndarray = await asyncio.wait_for(capturing_queue.get(), TIMEOUT)
+        curr_val = await asyncio.wait_for(capturing_queue.get(), TIMEOUT)
         # First response is the current value
         numpy.testing.assert_array_equal(curr_val, table_unpacked_data["TIME1"])
 
@@ -208,11 +208,11 @@ async def test_create_softioc_update_table_index(
     try:
         index_val = 0
         # Set up monitors to wait for the expected changes
-        repeats_queue: asyncio.Queue = asyncio.Queue()
+        repeats_queue = asyncio.Queue()
         repeats_monitor = camonitor(
             TEST_PREFIX + ":SEQ1:TABLE:REPEATS:SCALAR", repeats_queue.put
         )
-        trigger_queue: asyncio.Queue = asyncio.Queue()
+        trigger_queue = asyncio.Queue()
         # TRIGGER is an mbbin so must specify datatype to get its strings, otherwise
         # cothread will return the integer representation
         trigger_monitor = camonitor(
@@ -249,7 +249,7 @@ async def test_create_softioc_update_table_scalars_change(
     try:
         index_val = 0
         # Set up monitors to wait for the expected changes
-        repeats_queue: asyncio.Queue = asyncio.Queue()
+        repeats_queue = asyncio.Queue()
         repeats_monitor = camonitor(
             TEST_PREFIX + ":SEQ1:TABLE:REPEATS:SCALAR", repeats_queue.put
         )

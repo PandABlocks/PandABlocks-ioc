@@ -1,14 +1,13 @@
 import asyncio
-import filecmp
 import os
 import typing
+from pathlib import Path
 
 import numpy
 import pytest
 from aioca import caget, camonitor, caput
 from fixtures.mocked_panda import BOBFILE_DIR, TEST_PREFIX, TIMEOUT
 from numpy import ndarray
-from pathlib import Path
 
 from pandablocks_ioc._types import EpicsName
 from pandablocks_ioc.ioc import _ensure_block_number_present
@@ -52,7 +51,7 @@ async def test_create_softioc_update(
     # Add more GetChanges data. Include some trailing empty changesets to allow test
     try:
         # Set up a monitor to wait for the expected change
-        capturing_queue: asyncio.Queue = asyncio.Queue()
+        capturing_queue = asyncio.Queue()
         monitor = camonitor(TEST_PREFIX + ":PCAP1:TRIG_EDGE", capturing_queue.put)
 
         curr_val = await asyncio.wait_for(capturing_queue.get(), TIMEOUT)
@@ -122,20 +121,20 @@ async def test_create_softioc_time_epics_changes(
     try:
         # Set up monitors for expected changes when the UNITS are changed,
         # and check the initial values are correct
-        egu_queue: asyncio.Queue = asyncio.Queue()
+        egu_queue = asyncio.Queue()
         m1 = camonitor(
             TEST_PREFIX + ":PULSE1:DELAY.EGU",
             egu_queue.put,
         )
         assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "ms"
 
-        units_queue: asyncio.Queue = asyncio.Queue()
+        units_queue = asyncio.Queue()
         m2 = camonitor(
             TEST_PREFIX + ":PULSE1:DELAY:UNITS", units_queue.put, datatype=str
         )
         assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "ms"
 
-        drvl_queue: asyncio.Queue = asyncio.Queue()
+        drvl_queue = asyncio.Queue()
         m3 = camonitor(
             TEST_PREFIX + ":PULSE1:DELAY.DRVL",
             drvl_queue.put,
@@ -170,7 +169,7 @@ async def test_softioc_records_block(mocked_panda_standard_responses):
 
     try:
         # Set the special response for the server
-        arm_queue: asyncio.Queue = asyncio.Queue()
+        arm_queue = asyncio.Queue()
         m1 = camonitor(TEST_PREFIX + ":PCAP:ARM", arm_queue.put, datatype=str)
         assert await asyncio.wait_for(arm_queue.get(), TIMEOUT) == "0"
 

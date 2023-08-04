@@ -7,15 +7,14 @@ from asyncio import CancelledError
 from io import BufferedReader
 from pathlib import Path
 from typing import AsyncGenerator, Generator, Iterator
+from uuid import uuid4
 
-import h5py
 import numpy
 import pytest
 import pytest_asyncio
-from aioca import caget, camonitor, caput
+from aioca import caget, caput
 from fixtures.mocked_panda import (
     TEST_PREFIX,
-    TIMEOUT,
     Rows,
     custom_logger,
     get_multiprocessing_context,
@@ -31,7 +30,6 @@ from pandablocks.responses import (
     StartData,
 )
 from softioc import asyncio_dispatcher, builder, softioc
-from uuid import uuid4
 
 from pandablocks_ioc._hdf_ioc import HDF5RecordController
 
