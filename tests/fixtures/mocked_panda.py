@@ -26,6 +26,7 @@ from pandablocks.commands import (
     GetLine,
     Put,
 )
+from pandablocks.connections import DataConnection
 from pandablocks.responses import (
     BitMuxFieldInfo,
     BlockInfo,
@@ -47,72 +48,6 @@ T = TypeVar("T")
 TEST_PREFIX = "TEST-PREFIX-" + str(uuid4())[:4].upper()
 BOBFILE_DIR = Path(__file__).parent.parent / "test-bobfiles"
 TIMEOUT = 10
-
-"""
-@pytest.fixture
-def default_responses_decoded(table_data) -> dict:
-    \"""A dummy server that responds to all the requests introspect_panda makes
-    during its operation.
-    Note that the order of responses was determined by trial and error.\"""
-    get_changes_scalar_data = (
-        # Note the deliberate concatenation across lines - this must be a single
-        # entry in the list
-        "!PCAP.TRIG_EDGE=Falling\n!PCAP.GATE=CLOCK1.OUT\n!PCAP.GATE.DELAY=1\n"
-        "!*METADATA.LABEL_PCAP1=PcapMetadataLabel\n"
-        "!SEQ1.TABLE<\n."
-    )
-
-    # Transform the plain list of values into one that PandA would send
-    return dict(
-        [
-            ("*BLOCKS?", "!PCAP 1\n!SEQ 1\n."),
-            ("*DESC.PCAP?", "OK =PCAP Desc"),
-            ("*DESC.SEQ?", "OK =SEQ Desc"),
-            ("PCAP.*?", "!TRIG_EDGE 3 param enum\n!GATE 1 bit_mux\n."),
-            ("SEQ.*?", "!TABLE 7 table\n."),
-            ("*CHANGES?", get_changes_scalar_data),
-            ("*DESC.PCAP.TRIG_EDGE?", "!Rising\n!Falling\n!Either\n."),
-            ("*ENUMS.PCAP.TRIG_EDGE?", "OK =Gate Desc"),
-            ("*DESC.PCAP.GATE?", "OK =Trig Edge Desc"),
-            ("PCAP1.GATE.MAX_DELAY?", "OK =100"),
-            ("*ENUMS.PCAP.GATE?", "!TTLIN1.VAL\n!INENC1.A\n!CLOCK1.OUT\n."),
-            ("*DESC.SEQ.TABLE?", "OK =Sequencer table of lines"),
-            ("SEQ1.TABLE.MAX_LENGTH?", "OK =16384"),
-            ("SEQ1.TABLE.FIELDS?", table_fields_data),
-            ("SEQ1.TABLE?", get_changes_multiline_data),
-            ("*ENUMS.SEQ1.TABLE[].TRIGGER?", trigger_field_labels),
-            ("*DESC.SEQ1.TABLE[].REPEATS?", "OK =Number of times the line will repeat"),
-            (
-                "*DESC.SEQ1.TABLE[].TRIGGER?",
-                "OK =The trigger condition to start the phases",
-            ),
-            (
-                "*DESC.SEQ1.TABLE[].POSITION?",
-                "OK =The position that can be used in trigger condition",
-            ),
-            (
-                "*DESC.SEQ1.TABLE[].TIME1?",
-                "OK =The time the optional phase 1 should take",
-            ),
-            ("*DESC.SEQ1.TABLE[].OUTA1?", "OK =Output A value during phase 1"),
-            ("*DESC.SEQ1.TABLE[].OUTB1?", "OK =Output B value during phase 1"),
-            ("*DESC.SEQ1.TABLE[].OUTC1?", "OK =Output C value during phase 1"),
-            ("*DESC.SEQ1.TABLE[].OUTD1?", "OK =Output D value during phase 1"),
-            ("*DESC.SEQ1.TABLE[].OUTE1?", "OK =Output E value during phase 1"),
-            ("*DESC.SEQ1.TABLE[].OUTF1?", "OK =Output F value during phase 1"),
-            (
-                "*DESC.SEQ1.TABLE[].TIME2?",
-                "OK =The time the optional phase 2 should take",
-            ),
-            ("*DESC.SEQ1.TABLE[].OUTA2?", "OK =Output A value during phase 2"),
-            ("*DESC.SEQ1.TABLE[].OUTB2?", "OK =Output B value during phase 2"),
-            ("*DESC.SEQ1.TABLE[].OUTC2?", "OK =Output C value during phase 2"),
-            ("*DESC.SEQ1.TABLE[].OUTD2?", "OK =Output D value during phase 2"),
-            ("*DESC.SEQ1.TABLE[].OUTE2?", "OK =Output E value during phase 2"),
-            ("*DESC.SEQ1.TABLE[].OUTF2?", "OK =Output F value during phase 2"),
-        ]
-    )
-"""
 
 
 @pytest_asyncio.fixture
@@ -220,27 +155,6 @@ class Rows:
         return same
 
 
-class AsyncIteratorWrapper:
-    def __init__(self, path: Path, size: int):
-        self.f = open(path, "rb")
-        self.size = size
-        self.data = self.f.read(size)
-
-    async def __aiter__(self):
-        return self
-
-    async def __anext__(self):
-        if self.data:
-            old_data = self.data
-            self.data = self.f.read(self.size)
-            yield old_data
-        else:
-            raise StopAsyncIteration
-
-    def __del__(self):
-        self.f.close()
-
-
 class MockedAsyncioClient:
     def __init__(self, response_handler: ResponseHandler) -> None:
         self.response_handler = response_handler
@@ -260,10 +174,24 @@ class MockedAsyncioClient:
     async def close(self):
         pass
 
-    async def data(*_, **__):
-        yield AsyncIteratorWrapper(
-            Path(__file__).parent.parent / "raw_dump.txt", 200000
-        )
+    async def data(
+        self,
+        scaled: bool = True,
+        flush_period: Optional[float] = None,
+        frame_timeout: Optional[float] = None,
+    ):
+        flush_every_frame = flush_period is None
+        conn = DataConnection()
+        conn.connect(scaled)
+        try:
+            f = open(Path(__file__).parent.parent / "raw_dump.txt", "rb")
+            for raw in chunked_read(f, 200000):
+                for data in conn.receive_bytes(
+                    raw, flush_every_frame=flush_every_frame
+                ):
+                    yield data
+        finally:
+            f.close()
 
 
 def get_multiprocessing_context():

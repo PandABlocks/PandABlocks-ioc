@@ -4,20 +4,18 @@ import asyncio
 import logging
 import time
 from asyncio import CancelledError
-from io import BufferedReader
 from pathlib import Path
-from typing import AsyncGenerator, Generator, Iterator
+from typing import AsyncGenerator, Generator
 from uuid import uuid4
-import h5py
 
+import h5py
 import numpy
 import pytest
 import pytest_asyncio
-from aioca import caget, caput, camonitor
+from aioca import caget, camonitor, caput
 from fixtures.mocked_panda import (
-    MockedAsyncioClient,
-    TEST_PREFIX,
     TIMEOUT,
+    MockedAsyncioClient,
     Rows,
     custom_logger,
     get_multiprocessing_context,
@@ -38,34 +36,6 @@ from pandablocks_ioc._hdf_ioc import HDF5RecordController
 
 NAMESPACE_PREFIX = "HDF-RECORD-PREFIX-" + str(uuid4())[:4].upper()
 HDF5_PREFIX = NAMESPACE_PREFIX + ":HDF5"
-
-
-def chunked_read(f: BufferedReader, size: int) -> Iterator[bytes]:
-    data = f.read(size)
-    while data:
-        yield data
-        data = f.read(size)
-
-
-@pytest_asyncio.fixture
-def slow_dump():
-    with open(Path(__file__).parent / "slow_dump.txt", "rb") as f:
-        # Simulate small chunked read, sized so we hit the middle of a "BIN " marker
-        yield chunked_read(f, 44)
-
-
-@pytest_asyncio.fixture
-def fast_dump():
-    with open(Path(__file__).parent / "fast_dump.txt", "rb") as f:
-        # Simulate larger chunked read
-        yield chunked_read(f, 500)
-
-
-@pytest_asyncio.fixture
-def raw_dump():
-    with open(Path(__file__).parent / "raw_dump.txt", "rb") as f:
-        # Simulate largest chunked read
-        yield chunked_read(f, 200000)
 
 
 DUMP_FIELDS = [
@@ -307,10 +277,9 @@ def hdf5_subprocess_ioc(
 
 
 @pytest.mark.asyncio
-async def test_hdf5_ioc(mocked_panda_standard_responses):
+async def test_hdf5_ioc(hdf5_subprocess_ioc):
     """Run the HDF5 module as its own IOC and check the expected records are created,
     with some default values checked"""
-    # HDF5_PREFIX = TEST_PREFIX + ":HDF5"
     val = await caget(HDF5_PREFIX + ":FilePath")
 
     # Default value of longStringOut is an array of a single NULL byte
