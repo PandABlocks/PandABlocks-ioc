@@ -131,7 +131,6 @@ def create_softioc(client: AsyncioClient, record_prefix: str, screens_dir: str) 
             _create_softioc(client, record_prefix, dispatcher), dispatcher.loop
         ).result()
 
-        softioc.dbl()
         # Must leave this blocking line here, in the main thread, not in the
         # dispatcher's loop or it'll block every async process in this module
         softioc.interactive_ioc(globals())

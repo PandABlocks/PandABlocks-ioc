@@ -15,7 +15,6 @@ from uuid import uuid4
 import pytest
 import pytest_asyncio
 from aioca import purge_channel_caches
-from epicsdbbuilder import ResetRecords
 from mock import MagicMock, patch
 from pandablocks.commands import (
     ChangeGroup,
@@ -34,6 +33,7 @@ from pandablocks.responses import (
     EnumFieldInfo,
     TimeFieldInfo,
 )
+from softioc.builder import ClearRecords
 from softioc.device_core import RecordLookup
 
 from pandablocks_ioc import create_softioc
@@ -80,7 +80,7 @@ def mocked_time_record_updater():
 @pytest.fixture
 def clear_records():
     # Remove any records created at epicsdbbuilder layer
-    ResetRecords()
+    ClearRecords()
     # And at pythonSoftIoc level
     # TODO: Remove this hack and use use whatever comes out of
     # https://github.com/dls-controls/pythonSoftIOC/issues/56
@@ -477,24 +477,3 @@ def chunked_read(f: BufferedReader, size: int) -> Iterator[bytes]:
     while data:
         yield data
         data = f.read(size)
-
-
-@pytest_asyncio.fixture
-def raw_dump():
-    with open(Path(__file__).parent.parent / "raw_dump.txt", "rb") as f:
-        # Simulate largest chunked read
-        yield chunked_read(f, 200000)
-
-
-@pytest_asyncio.fixture
-def slow_dump():
-    with open(Path(__file__).parent / "slow_dump.txt", "rb") as f:
-        # Simulate small chunked read, sized so we hit the middle of a "BIN " marker
-        yield chunked_read(f, 44)
-
-
-@pytest_asyncio.fixture
-def fast_dump():
-    with open(Path(__file__).parent / "fast_dump.txt", "rb") as f:
-        # Simulate larger chunked read
-        yield chunked_read(f, 500)

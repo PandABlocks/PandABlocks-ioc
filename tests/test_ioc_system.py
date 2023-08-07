@@ -146,7 +146,7 @@ async def test_create_softioc_time_epics_changes(
 
         # Change the UNITS to "min"
         assert await caput(
-            TEST_PREFIX + ":PULSE1:DELAY:UNITS", 0, wait=True, timeout=TIMEOUT
+            TEST_PREFIX + ":PULSE1:DELAY:UNITS", "min", wait=True, timeout=TIMEOUT
         )
 
         assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "min"
