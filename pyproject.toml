@@ -91,7 +91,7 @@ addopts = """
 # Next is something that needs to be fixed in PandABlocks-client asyncio.py's write_and_drain function
 # which triggers a deprecation warning on Python 3.9+. See https://github.com/PandABlocks/PandABlocks-client/issues/47.
 # a more recent version with a different C API. See https://github.com/mdavidsaver/p4p/issues/102.
-# Remaining ignores are all related to the test DummyServer, both async and in_thread variants, 
+# Remaining ignores are all related to the test DummyServer, both async and in_thread variants,
 # which appear to have issues cleanly shutting down and raise exceptions in their destructors.
 # The issue seems like all we need is to add await asyncio.sleep(0) to allow asyncio to
 # clean up its connections, but that doesn't seem to behave as expected inside pytest.
@@ -125,8 +125,8 @@ skipsdist=True
 # Don't create a virtualenv for the command, requires tox-direct plugin
 direct = True
 passenv = *
-allowlist_externals = 
-    pytest 
+allowlist_externals =
+    pytest
     pre-commit
     mypy
     sphinx-build
