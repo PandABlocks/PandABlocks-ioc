@@ -18,6 +18,7 @@ from aioca import purge_channel_caches
 from mock import MagicMock, patch
 from pandablocks.commands import (
     Arm,
+    Disarm,
     ChangeGroup,
     Command,
     GetBlockInfo,
@@ -403,6 +404,7 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
         ),
         command_to_key(Put(field="PCAP1.TRIG_EDGE", value="Falling")): repeat("OK"),
         command_to_key(Arm()): repeat("OK"),
+        command_to_key(Disarm()): repeat("OK"),
         command_to_key(
             Put(
                 field="SEQ1.TABLE",
@@ -461,7 +463,9 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
             },
         ),
         # DRVL changing from 8e-06 ms to minutes
-        command_to_key(GetLine(field="PULSE1.DELAY.MIN")): repeat("1.333333333e-10"),
+        command_to_key(GetLine(field="PULSE1.DELAY.MIN")): chain(
+            ["8e-09"], repeat("1.333333333e-10")
+        ),
         command_to_key(GetFieldInfo(block="SEQ", extended_metadata=True)): repeat(
             {"TABLE": table_field_info}
         ),

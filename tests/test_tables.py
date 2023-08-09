@@ -204,6 +204,7 @@ async def test_create_softioc_table_update_send_to_panda(
 
     await caput(TEST_PREFIX + ":SEQ1:TABLE:MODE", "SUBMIT", wait=True, timeout=TIMEOUT)
 
+    await asyncio.sleep(1)
     command_queue.put(None)
     commands_recieved_by_panda = list(iter(command_queue.get, None))
     assert (

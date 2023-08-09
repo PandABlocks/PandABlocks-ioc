@@ -15,7 +15,7 @@ from fixtures.mocked_panda import (
     command_to_key,
 )
 from numpy import ndarray
-from pandablocks.commands import Arm, Put
+from pandablocks.commands import Arm, Disarm, Put
 from pandablocks.responses import (
     BitMuxFieldInfo,
     BlockInfo,
@@ -185,12 +185,10 @@ def test_ensure_block_number_present():
     assert _ensure_block_number_present("JKL1.MNOP") == "JKL1.MNOP"
 
 
-"""
 @pytest.mark.asyncio
 async def test_create_softioc_time_panda_changes(mocked_panda_standard_responses):
-    \"""Test that the UNITS and MIN values of a TIME field correctly reflect into EPICS
-    records when the value changes on the PandA""\"
-    # TODO Maybe this is unneccesary?
+    """Test that the UNITS and MIN values of a TIME field correctly reflect into EPICS
+    records when the value changes on the PandA"""
 
     try:
         # Set up monitors for expected changes when the UNITS are changed,
@@ -221,7 +219,6 @@ async def test_create_softioc_time_panda_changes(mocked_panda_standard_responses
         m1.close()
         m2.close()
         m3.close()
-"""
 
 
 @pytest.mark.asyncio
@@ -255,6 +252,7 @@ async def test_create_softioc_time_epics_changes(
 
         assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "s"
         assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "s"
+        assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 8e-09
 
         # Change the UNITS to "min"
         assert await caput(
@@ -323,6 +321,7 @@ async def test_create_softioc_record_update_send_to_panda(
 
     await asyncio.sleep(1)
     await caput(TEST_PREFIX + ":PCAP1:TRIG_EDGE", "Falling", wait=True, timeout=TIMEOUT)
+    await asyncio.sleep(1)
     command_queue.put(None)
     commands_recieved_by_panda = list(iter(command_queue.get, None))
     assert (
@@ -346,6 +345,9 @@ async def test_create_softioc_arm_disarm(
 
     await asyncio.sleep(1)
     await caput(TEST_PREFIX + ":PCAP:ARM", 1, wait=True, timeout=TIMEOUT)
+    await caput(TEST_PREFIX + ":PCAP:ARM", 0, wait=True, timeout=TIMEOUT)
+    await asyncio.sleep(1)
     command_queue.put(None)
     commands_recieved_by_panda = list(iter(command_queue.get, None))
     assert command_to_key(Arm()) in commands_recieved_by_panda
+    assert command_to_key(Disarm()) in commands_recieved_by_panda
