@@ -1,5 +1,5 @@
 import collections
-from typing import OrderedDict, cast
+from typing import OrderedDict
 
 import numpy
 import pytest
@@ -27,7 +27,6 @@ async def test_table_column_info(
         table_value.todict(wrapper=collections.OrderedDict)["value"].items(),
         table_unpacked_data.items(),
     ):
-        cast(str, actual_name)
         assert actual_name.upper() == expected_name, (
             f"Order of columns incorrect expected: {expected_name} "
             f"Actual: {actual_name.upper()}"

@@ -6,7 +6,7 @@ from dataclasses import asdict, is_dataclass
 from io import BufferedReader
 from itertools import chain, repeat
 from logging import handlers
-from multiprocessing import get_context
+from multiprocessing import Queue, get_context
 from multiprocessing.connection import Connection
 from pathlib import Path
 from typing import Any, Generator, Iterator, Optional, Tuple, TypeVar
@@ -17,6 +17,7 @@ import pytest_asyncio
 from aioca import purge_channel_caches
 from mock import MagicMock, patch
 from pandablocks.commands import (
+    Arm,
     ChangeGroup,
     Command,
     GetBlockInfo,
@@ -130,7 +131,7 @@ def command_to_key(dataclass_object: Command):
 
 
 class ResponseHandler:
-    def __init__(self, responses: Optional[dict] = None):
+    def __init__(self, responses):
         if responses:
             self.responses = responses
 
@@ -142,8 +143,7 @@ class ResponseHandler:
                 f"the mocked responses defined for are: {[self.responses.keys()]}"
             )
 
-        x = next(self.responses[key])
-        return x
+        return next(self.responses[key])
 
 
 class Rows:
@@ -156,8 +156,11 @@ class Rows:
 
 
 class MockedAsyncioClient:
-    def __init__(self, response_handler: ResponseHandler) -> None:
+    def __init__(
+        self, response_handler: ResponseHandler, command_queue: Optional[Queue] = None
+    ) -> None:
         self.response_handler = response_handler
+        self.command_queue = command_queue
 
     async def connect(self):
         """Connect does nothing"""
@@ -165,6 +168,8 @@ class MockedAsyncioClient:
 
     async def send(self, command: Command[T], *args: float) -> T:
         """Returns the response, args may include timeout"""
+        if self.command_queue:
+            self.command_queue.put(command_to_key(command))
         response = self.response_handler(command)
         return response
 
@@ -239,6 +244,7 @@ def ioc_wrapper(
     response_handler: ResponseHandler,
     bobfile_dir: Path,
     child_conn: Connection,
+    command_queue: Queue,
     table_field_info,
     table_fields,
     test_prefix: str,
@@ -247,7 +253,11 @@ def ioc_wrapper(
     """Wrapper function to start the IOC and do some mocking"""
 
     async def inner_wrapper():
-        create_softioc(MockedAsyncioClient(response_handler), test_prefix, bobfile_dir)
+        create_softioc(
+            MockedAsyncioClient(response_handler, command_queue=command_queue),
+            test_prefix,
+            bobfile_dir,
+        )
 
         # mocked_interactive_ioc.assert_called_once()
 
@@ -298,13 +308,14 @@ def create_subprocess_ioc_and_responses(
     caplog_workaround,
     table_field_info,
     table_fields,
-) -> Generator[Tuple[Path, Connection, ResponseHandler], None, None]:
+) -> Generator[Tuple[Path, Connection, ResponseHandler, Queue], None, None]:
     """Run the IOC in its own subprocess. When finished check logging logged no
     messages of WARNING or higher level."""
 
     with caplog.at_level(logging.WARNING):
         with caplog_workaround():
             ctx = get_multiprocessing_context()
+            command_queue: Queue = ctx.Queue(1000)
             parent_conn, child_conn = ctx.Pipe()
             p = ctx.Process(
                 target=ioc_wrapper,
@@ -312,6 +323,7 @@ def create_subprocess_ioc_and_responses(
                     response_handler,
                     tmp_path,
                     child_conn,
+                    command_queue,
                     table_fields,
                     table_field_info,
                     TEST_PREFIX,
@@ -320,10 +332,14 @@ def create_subprocess_ioc_and_responses(
             try:
                 p.start()
                 select_and_recv(parent_conn)  # Wait for IOC to start up
-                yield tmp_path, child_conn, response_handler
+                yield tmp_path, child_conn, response_handler, command_queue
             finally:
+                command_queue.close()
+                child_conn.close()
+                parent_conn.close()
                 p.terminate()
                 p.join(10)
+
                 # Should never take anywhere near 10 seconds to terminate, it's just
                 # there to ensure the test doesn't hang indefinitely during cleanup
 
@@ -333,7 +349,7 @@ def create_subprocess_ioc_and_responses(
     ), f"At least one warning/error/exception logged during test: {caplog.records}"
 
 
-def Changes_iterator_wrapper(values=None, multiline_values=None):
+def changes_iterator_wrapper(values=None, multiline_values=None):
     multiline_values = multiline_values or {}
     return [
         Changes(
@@ -342,21 +358,31 @@ def Changes_iterator_wrapper(values=None, multiline_values=None):
     ]
 
 
-def respond_with_no_changes(number_of_iterations: Optional[int] = None) -> repeat:
+def respond_with_no_changes(number_of_iterations: int = 0) -> repeat:
     changes = Changes(
         values={},
         no_value=[],
         in_error=[],
         multiline_values={},
     )
-    if number_of_iterations:
-        return repeat(changes, number_of_iterations)
 
+    if number_of_iterations:
+        # Unfortunately number_of_iterations being `0` or `None` doesn't cause
+        # `repeat(changes)`
+        return repeat(changes, number_of_iterations)
     return repeat(changes)
 
 
 @pytest.fixture
 def standard_responses(table_field_info, table_data_1, table_data_2):
+    """
+    Used by MockedAsyncioClient to generate panda responses to the ioc's commands.
+    Keys are the commands recieved from the ioc (wrapped in a function to make them
+    immutable). Values are generators for the responses the dummy panda gives: the
+    client.send() calls next on them.
+
+    GetChanges is polled at 10Hz if a different command isn't made.
+    """
     return {
         command_to_key(GetFieldInfo(block="PCAP", extended_metadata=True)): repeat(
             {
@@ -375,6 +401,35 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
                 ),
             }
         ),
+        command_to_key(Put(field="PCAP1.TRIG_EDGE", value="Falling")): repeat("OK"),
+        command_to_key(Arm()): repeat("OK"),
+        command_to_key(
+            Put(
+                field="SEQ1.TABLE",
+                value=[
+                    "2457862145",
+                    "4294967291",
+                    "100",
+                    "0",
+                    "1",
+                    "0",
+                    "0",
+                    "0",
+                    "4293918721",
+                    "0",
+                    "9",
+                    "9999",
+                    "2035875841",
+                    "444444",
+                    "5",
+                    "1",
+                    "3464232961",
+                    "4294967197",
+                    "99999",
+                    "2222",
+                ],
+            )
+        ): repeat(None),
         command_to_key(
             Put(
                 field="SEQ1.TABLE",
@@ -421,7 +476,7 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
         # different tests
         command_to_key(GetChanges(group=ChangeGroup.ALL, get_multiline=True)): chain(
             # Initial value of every field
-            Changes_iterator_wrapper(
+            changes_iterator_wrapper(
                 values={
                     "PCAP.TRIG_EDGE": "Falling",
                     "PCAP.GATE": "CLOCK1.OUT",
@@ -437,7 +492,7 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
             # 0.5 seconds of no changes in case the ioc setup completes
             # before the test starts
             respond_with_no_changes(number_of_iterations=10),
-            Changes_iterator_wrapper(
+            changes_iterator_wrapper(
                 values={
                     "PCAP.TRIG_EDGE": "Either",
                     "PULSE1.DELAY.UNITS": "s",
@@ -459,8 +514,8 @@ def mocked_panda_standard_responses(
     caplog_workaround,
     table_field_info,
     table_fields,
-):
-    response_handler = ResponseHandler(responses=standard_responses)
+) -> Generator[Tuple[Path, Connection, ResponseHandler, Queue], None, None]:
+    response_handler = ResponseHandler(standard_responses)
 
     yield from create_subprocess_ioc_and_responses(
         response_handler,

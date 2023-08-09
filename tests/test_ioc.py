@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Dict
 
 import pytest
-import pytest_asyncio
 from fixtures.mocked_panda import TEST_PREFIX
 from mock import AsyncMock, patch
 from mock.mock import MagicMock, call
@@ -637,33 +636,6 @@ def test_create_record_info_value_error(
     assert (
         num_stat == 2
     ), f"STAT not found twice in record file contents: {file_contents}"
-
-
-@pytest_asyncio.fixture
-def mocked_time_record_updater():
-    """An instance of _TimeRecordUpdater with MagicMocks and some default values"""
-    base_record = MagicMock()
-    base_record.name = TEST_PREFIX + ":BASE:RECORD"
-
-    # We don't have AsyncMock in Python3.7, so do it ourselves
-    client = MagicMock()
-    f = asyncio.Future()
-    f.set_result("8e-09")
-    client.send.return_value = f
-
-    mocked_record_info = MagicMock()
-    mocked_record_info.record = MagicMock()
-    mocked_record_info.record.name = EpicsName(TEST_PREFIX + ":TEST:STR")
-
-    return _TimeRecordUpdater(
-        mocked_record_info,
-        client,
-        {},
-        ["TEST1", "TEST2", "TEST3"],
-        base_record,
-        TEST_PREFIX,
-        True,
-    )
 
 
 @pytest.mark.asyncio

@@ -215,7 +215,7 @@ class HDF5RecordController:
                         break
                 elif not isinstance(data, EndData):
                     raise RuntimeError(
-                        f"data was recieved that was of type {type(data)}, not"
+                        f"Data was recieved that was of type {type(data)}, not"
                         "StartData, EndData, ReadyData or FrameData"
                     )
                 # Ignore EndData - handle terminating capture with the Capture

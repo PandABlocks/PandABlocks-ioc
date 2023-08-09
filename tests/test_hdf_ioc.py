@@ -241,13 +241,15 @@ def hdf5_subprocess_ioc_no_logging_check(
     Note you probably want to use `hdf5_subprocess_ioc` instead."""
     ctx = get_multiprocessing_context()
     p = ctx.Process(target=subprocess_func, args=(NAMESPACE_PREFIX, standard_responses))
-    p.start()
-    time.sleep(3)  # Give IOC some time to start up
-    yield
-    p.terminate()
-    p.join(10)
-    # Should never take anywhere near 10 seconds to terminate, it's just there
-    # to ensure the test doesn't hang indefinitely during cleanup
+    try:
+        p.start()
+        time.sleep(3)  # Give IOC some time to start up
+        yield
+    finally:
+        p.terminate()
+        p.join(10)
+        # Should never take anywhere near 10 seconds to terminate, it's just there
+        # to ensure the test doesn't hang indefinitely during cleanup
 
 
 @pytest_asyncio.fixture

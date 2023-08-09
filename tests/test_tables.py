@@ -6,7 +6,7 @@ import numpy
 import numpy.testing
 import pytest
 from aioca import caget, camonitor, caput
-from fixtures.mocked_panda import TEST_PREFIX, TIMEOUT
+from fixtures.mocked_panda import TEST_PREFIX, TIMEOUT, command_to_key
 from mock import AsyncMock, patch
 from mock.mock import MagicMock, PropertyMock, call
 from numpy import array, ndarray
@@ -31,11 +31,6 @@ EPICS_FORMAT_TABLE_NAME = "SEQ1:TABLE"
 @pytest.fixture
 def table_data_1_dict(table_data_1: List[str]) -> Dict[EpicsName, RecordValue]:
     return {EpicsName(EPICS_FORMAT_TABLE_NAME): table_data_1}
-
-
-@pytest.fixture
-def table_data_2_dict(table_data_2: List[str]) -> Dict[EpicsName, RecordValue]:
-    return {EpicsName(EPICS_FORMAT_TABLE_NAME): table_data_2}
 
 
 @pytest.fixture
@@ -192,11 +187,55 @@ async def test_create_softioc_table_update_send_to_panda(
     mocked_panda_standard_responses,
 ):
     """Test that updating a table causes the new value to be sent to PandA"""
-    await caput(TEST_PREFIX + ":SEQ1:TABLE:MODE", "EDIT")
 
-    await caput(TEST_PREFIX + ":SEQ1:TABLE:REPEATS", [1, 1, 1])
+    (
+        tmp_path,
+        child_conn,
+        response_handler,
+        command_queue,
+    ) = mocked_panda_standard_responses
+
+    await asyncio.sleep(1)
+    await caput(TEST_PREFIX + ":SEQ1:TABLE:MODE", "EDIT", wait=True, timeout=TIMEOUT)
+
+    await caput(
+        TEST_PREFIX + ":SEQ1:TABLE:REPEATS", [1, 1, 1, 1, 1], wait=True, timeout=TIMEOUT
+    )
 
     await caput(TEST_PREFIX + ":SEQ1:TABLE:MODE", "SUBMIT", wait=True, timeout=TIMEOUT)
+
+    command_queue.put(None)
+    commands_recieved_by_panda = list(iter(command_queue.get, None))
+    assert (
+        command_to_key(
+            Put(
+                field="SEQ1.TABLE",
+                value=[
+                    "2457862145",
+                    "4294967291",
+                    "100",
+                    "0",
+                    "1",
+                    "0",
+                    "0",
+                    "0",
+                    "4293918721",
+                    "0",
+                    "9",
+                    "9999",
+                    "2035875841",
+                    "444444",
+                    "5",
+                    "1",
+                    "3464232961",
+                    "4294967197",
+                    "99999",
+                    "2222",
+                ],
+            )
+        )
+        in commands_recieved_by_panda
+    )
 
 
 @pytest.mark.asyncio
