@@ -18,9 +18,9 @@ from aioca import purge_channel_caches
 from mock import MagicMock, patch
 from pandablocks.commands import (
     Arm,
-    Disarm,
     ChangeGroup,
     Command,
+    Disarm,
     GetBlockInfo,
     GetChanges,
     GetFieldInfo,
