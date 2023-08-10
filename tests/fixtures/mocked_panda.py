@@ -60,23 +60,27 @@ def mocked_time_record_updater():
 
     # We don't have AsyncMock in Python3.7, so do it ourselves
     client = MagicMock()
-    f = asyncio.Future()
-    f.set_result("8e-09")
-    client.send.return_value = f
+    loop = asyncio.BaseEventLoop()
+    try:
+        f = asyncio.Future(loop=loop)
+        f.set_result("8e-09")
+        client.send.return_value = f
 
-    mocked_record_info = MagicMock()
-    mocked_record_info.record = MagicMock()
-    mocked_record_info.record.name = EpicsName(TEST_PREFIX + ":TEST:STR")
+        mocked_record_info = MagicMock()
+        mocked_record_info.record = MagicMock()
+        mocked_record_info.record.name = EpicsName(TEST_PREFIX + ":TEST:STR")
 
-    return _TimeRecordUpdater(
-        mocked_record_info,
-        client,
-        {},
-        ["TEST1", "TEST2", "TEST3"],
-        base_record,
-        TEST_PREFIX,
-        True,
-    )
+        yield _TimeRecordUpdater(
+            mocked_record_info,
+            client,
+            {},
+            ["TEST1", "TEST2", "TEST3"],
+            base_record,
+            TEST_PREFIX,
+            True,
+        )
+    finally:
+        loop.close()
 
 
 @pytest.fixture

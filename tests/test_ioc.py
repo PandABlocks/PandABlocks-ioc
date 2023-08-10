@@ -642,7 +642,9 @@ def test_create_record_info_value_error(
 @patch("pandablocks_ioc.ioc.db_put_field")
 @pytest.mark.parametrize("new_val", ["TEST2", 2])
 async def test_time_record_updater_update_egu(
-    db_put_field: MagicMock, mocked_time_record_updater: _TimeRecordUpdater, new_val
+    db_put_field: MagicMock,
+    mocked_time_record_updater: _TimeRecordUpdater,
+    new_val,
 ):
     mocked_time_record_updater.update_egu(new_val)
     db_put_field.assert_called_once()

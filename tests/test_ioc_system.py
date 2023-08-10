@@ -193,20 +193,20 @@ async def test_create_softioc_time_panda_changes(mocked_panda_standard_responses
     try:
         # Set up monitors for expected changes when the UNITS are changed,
         # and check the initial values are correct
-        egu_queue: asyncio.Queue = asyncio.Queue()
+        egu_queue = asyncio.Queue()
         m1 = camonitor(
             TEST_PREFIX + ":PULSE1:DELAY.EGU",
             egu_queue.put,
         )
         assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "ms"
 
-        units_queue: asyncio.Queue = asyncio.Queue()
+        units_queue = asyncio.Queue()
         m2 = camonitor(
             TEST_PREFIX + ":PULSE1:DELAY:UNITS", units_queue.put, datatype=str
         )
         assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "ms"
 
-        drvl_queue: asyncio.Queue = asyncio.Queue()
+        drvl_queue = asyncio.Queue()
         m3 = camonitor(
             TEST_PREFIX + ":PULSE1:DELAY.DRVL",
             drvl_queue.put,
