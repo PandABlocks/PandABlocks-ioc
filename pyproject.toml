@@ -14,6 +14,7 @@ classifiers = [
 ]
 description = "One line description of your module"
 dependencies = [
+    "setuptools>=64",
     "numpy",
     "click",
     "h5py",

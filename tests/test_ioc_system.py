@@ -319,9 +319,9 @@ async def test_create_softioc_record_update_send_to_panda(
         command_queue,
     ) = mocked_panda_standard_responses
 
-    await asyncio.sleep(1)
+    await asyncio.sleep(1.5)
     await caput(TEST_PREFIX + ":PCAP1:TRIG_EDGE", "Falling", wait=True, timeout=TIMEOUT)
-    await asyncio.sleep(1)
+    await asyncio.sleep(1.5)
     command_queue.put(None)
     commands_recieved_by_panda = list(iter(command_queue.get, None))
     assert (
