@@ -28,7 +28,8 @@ async def test_table_column_info(
         table_value.todict(wrapper=collections.OrderedDict)["value"].items(),
         table_unpacked_data.items(),
     ):
+        # PVA has lower case names: "REPEATS" -> "repeats"
         assert (
-            actual_name == expected_name
+            actual_name == expected_name.lower()
         ), f"Order of columns incorrect expected: {expected_name} Actual: {actual_name}"
         numpy.testing.assert_array_equal(actual_value, expected_value)
