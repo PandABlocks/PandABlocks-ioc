@@ -118,7 +118,7 @@ async def test_create_softioc_update_table(
     try:
         # Set up a monitor to wait for the expected change
         capturing_queue = asyncio.Queue()
-        monitor = camonitor(TEST_PREFIX + ":SEQ1:TABLE:TIME1", capturing_queue.put)
+        monitor = camonitor(TEST_PREFIX + ":SEQ:TABLE:TIME1", capturing_queue.put)
 
         curr_val = await asyncio.wait_for(capturing_queue.get(), TIMEOUT)
         # First response is the current value
@@ -132,17 +132,17 @@ async def test_create_softioc_update_table(
         )
 
         # And check some other columns too
-        curr_val = await caget(TEST_PREFIX + ":SEQ1:TABLE:TRIGGER")
+        curr_val = await caget(TEST_PREFIX + ":SEQ:TABLE:TRIGGER")
         assert numpy.array_equal(
             curr_val,
             # Numeric values: [0, 0, 0, 9, 12]
             ["Immediate", "Immediate", "Immediate", "POSB>=POSITION", "POSC<=POSITION"],
         )
 
-        curr_val = await caget(TEST_PREFIX + ":SEQ1:TABLE:POSITION")
+        curr_val = await caget(TEST_PREFIX + ":SEQ:TABLE:POSITION")
         assert numpy.array_equal(curr_val, [-5, 0, 0, 444444, -99])
 
-        curr_val = await caget(TEST_PREFIX + ":SEQ1:TABLE:OUTD2")
+        curr_val = await caget(TEST_PREFIX + ":SEQ:TABLE:OUTD2")
         assert numpy.array_equal(curr_val, [0, 0, 1, 1, 0])
 
     finally:
@@ -168,7 +168,7 @@ async def test_create_softioc_update_index_drvh(
     try:
         # Set up a monitor to wait for the expected change
         drvh_queue = asyncio.Queue()
-        monitor = camonitor(TEST_PREFIX + ":SEQ1:TABLE:INDEX.DRVH", drvh_queue.put)
+        monitor = camonitor(TEST_PREFIX + ":SEQ:TABLE:INDEX.DRVH", drvh_queue.put)
 
         curr_val = await asyncio.wait_for(drvh_queue.get(), TIMEOUT)
         # First response is the current value (0-indexed hence -1 )
@@ -208,17 +208,17 @@ async def test_create_softioc_table_update_send_to_panda(
     await caput(TEST_PREFIX + ":SEQ1:TABLE:MODE", "EDIT", wait=True, timeout=TIMEOUT)
 
     await caput(
-        TEST_PREFIX + ":SEQ1:TABLE:REPEATS", [1, 1, 1, 1, 1], wait=True, timeout=TIMEOUT
+        TEST_PREFIX + ":SEQ:TABLE:REPEATS", [1, 1, 1, 1, 1], wait=True, timeout=TIMEOUT
     )
 
-    await caput(TEST_PREFIX + ":SEQ1:TABLE:MODE", "SUBMIT", wait=True, timeout=TIMEOUT)
+    await caput(TEST_PREFIX + ":SEQ:TABLE:MODE", "SUBMIT", wait=True, timeout=TIMEOUT)
 
     command_queue.put(None)
     commands_recieved_by_panda = list(iter(command_queue.get, None))
     assert (
         command_to_key(
             Put(
-                field="SEQ1.TABLE",
+                field="SEQ.TABLE",
                 value=[
                     "2457862145",
                     "4294967291",
@@ -258,13 +258,13 @@ async def test_create_softioc_update_table_index(
         # Set up monitors to wait for the expected changes
         repeats_queue = asyncio.Queue()
         repeats_monitor = camonitor(
-            TEST_PREFIX + ":SEQ1:TABLE:REPEATS:SCALAR", repeats_queue.put
+            TEST_PREFIX + ":SEQ:TABLE:REPEATS:SCALAR", repeats_queue.put
         )
         trigger_queue = asyncio.Queue()
         # TRIGGER is an mbbin so must specify datatype to get its strings, otherwise
         # cothread will return the integer representation
         trigger_monitor = camonitor(
-            TEST_PREFIX + ":SEQ1:TABLE:TRIGGER:SCALAR", trigger_queue.put, datatype=str
+            TEST_PREFIX + ":SEQ:TABLE:TRIGGER:SCALAR", trigger_queue.put, datatype=str
         )
 
         # Confirm initial values are correct
@@ -275,7 +275,7 @@ async def test_create_softioc_update_table_index(
 
         # Now set a new INDEX
         index_val = 1
-        await caput(TEST_PREFIX + ":SEQ1:TABLE:INDEX", index_val)
+        await caput(TEST_PREFIX + ":SEQ:TABLE:INDEX", index_val)
 
         # Wait for the new values to appear
         curr_val = await asyncio.wait_for(repeats_queue.get(), TIMEOUT)
@@ -299,7 +299,7 @@ async def test_create_softioc_update_table_scalars_change(
         # Set up monitors to wait for the expected changes
         repeats_queue = asyncio.Queue()
         repeats_monitor = camonitor(
-            TEST_PREFIX + ":SEQ1:TABLE:REPEATS:SCALAR", repeats_queue.put
+            TEST_PREFIX + ":SEQ:TABLE:REPEATS:SCALAR", repeats_queue.put
         )
 
         # Confirm initial values are correct
@@ -307,9 +307,9 @@ async def test_create_softioc_update_table_scalars_change(
         assert curr_val == table_unpacked_data["REPEATS"][index_val]
 
         # Now set a new value
-        await caput(TEST_PREFIX + ":SEQ1:TABLE:MODE", "EDIT")
+        await caput(TEST_PREFIX + ":SEQ:TABLE:MODE", "EDIT")
         new_repeats_vals = [9, 99, 999]
-        await caput(TEST_PREFIX + ":SEQ1:TABLE:REPEATS", new_repeats_vals)
+        await caput(TEST_PREFIX + ":SEQ:TABLE:REPEATS", new_repeats_vals)
 
         # Wait for the new values to appear
         curr_val = await asyncio.wait_for(repeats_queue.get(), TIMEOUT)

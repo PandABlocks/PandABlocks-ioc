@@ -420,12 +420,12 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
                 ),
             }
         ),
-        command_to_key(Put(field="PCAP1.TRIG_EDGE", value="Falling")): repeat("OK"),
+        command_to_key(Put(field="PCAP.TRIG_EDGE", value="Falling")): repeat("OK"),
         command_to_key(Arm()): repeat("OK"),
         command_to_key(Disarm()): repeat("OK"),
         command_to_key(
             Put(
-                field="SEQ1.TABLE",
+                field="SEQ.TABLE",
                 value=[
                     "2457862145",
                     "4294967291",
@@ -452,7 +452,7 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
         ): repeat(None),
         command_to_key(
             Put(
-                field="SEQ1.TABLE",
+                field="SEQ.TABLE",
                 value=[
                     "2457862145",
                     "4294967291",
@@ -481,7 +481,7 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
             },
         ),
         # DRVL changing from 8e-06 ms to minutes
-        command_to_key(GetLine(field="PULSE1.DELAY.MIN")): chain(
+        command_to_key(GetLine(field="PULSE.DELAY.MIN")): chain(
             ["8e-09"], repeat("1.333333333e-10")
         ),
         command_to_key(GetFieldInfo(block="SEQ", extended_metadata=True)): repeat(
@@ -504,12 +504,12 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
                     "PCAP.GATE": "CLOCK1.OUT",
                     "PCAP.GATE.DELAY": "1",
                     "PCAP.ARM": "0",
-                    "*METADATA.LABEL_PCAP1": "PcapMetadataLabel",
+                    "*METADATA.LABEL_PCAP": "PcapMetadataLabel",
                     "PULSE.DELAY": "100",
-                    "PULSE1.DELAY.UNITS": "ms",
-                    "PULSE1.DELAY.MIN": "8e-06",
+                    "PULSE.DELAY.UNITS": "ms",
+                    "PULSE.DELAY.MIN": "8e-06",
                 },
-                multiline_values={"SEQ1.TABLE": table_data_1},
+                multiline_values={"SEQ.TABLE": table_data_1},
             ),
             # 0.5 seconds of no changes in case the ioc setup completes
             # before the test starts
@@ -517,9 +517,9 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
             changes_iterator_wrapper(
                 values={
                     "PCAP.TRIG_EDGE": "Either",
-                    "PULSE1.DELAY.UNITS": "s",
+                    "PULSE.DELAY.UNITS": "s",
                 },
-                multiline_values={"SEQ1.TABLE": table_data_2},
+                multiline_values={"SEQ.TABLE": table_data_2},
             ),
             # Keep the panda active with no changes until pytest tears it down
             respond_with_no_changes(),

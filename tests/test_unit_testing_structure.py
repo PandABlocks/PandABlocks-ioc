@@ -12,5 +12,5 @@ async def test_fake_panda_and_ioc(mocked_panda_standard_responses):
     tmp_path, child_conn, responses, command_queue = mocked_panda_standard_responses
 
     # PVs are broadcast
-    gate_delay = await caget(f"{TEST_PREFIX}:PCAP1:GATE:DELAY")
+    gate_delay = await caget(f"{TEST_PREFIX}:PCAP:GATE:DELAY")
     assert gate_delay == 1

@@ -789,7 +789,7 @@ async def test_update_on_error_marks_record(caplog):
     record_info = RecordInfo(None, is_in_record=True)
     record_info.record = MagicMock()
 
-    all_records = {EpicsName("ABC1:DEF"): record_info}
+    all_records = {EpicsName("ABC:DEF"): record_info}
     poll_period = 0.1
     all_values_dict = {}
 
@@ -802,7 +802,7 @@ async def test_update_on_error_marks_record(caplog):
 
     record_info.record.set_alarm.assert_called_with(3, 17)
     assert "PandA reports field in error" in caplog.text
-    assert "Setting record ABC1:DEF to invalid value error state." in caplog.text
+    assert "Setting record ABC:DEF to invalid value error state." in caplog.text
 
 
 @pytest.mark.asyncio
@@ -824,7 +824,7 @@ async def test_update_toggles_bit_field():
     record_info.record.get.return_value = 0
     record_info._field_info = FieldInfo("bit_out", None, None)
 
-    all_records = {EpicsName("ABC1:DEF"): record_info}
+    all_records = {EpicsName("ABC:DEF"): record_info}
     poll_period = 0.1
     all_values_dict = {}
 

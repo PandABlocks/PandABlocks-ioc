@@ -63,11 +63,11 @@ async def test_introspect_panda(
             ),
         },
         values={
-            EpicsName("PCAP1:TRIG_EDGE"): "Falling",
-            EpicsName("PCAP1:GATE"): "CLOCK1.OUT",
-            EpicsName("PCAP1:GATE:DELAY"): "1",
-            EpicsName("PCAP1:LABEL"): "PcapMetadataLabel",
-            EpicsName("PCAP1:ARM"): "0",
+            EpicsName("PCAP:TRIG_EDGE"): "Falling",
+            EpicsName("PCAP:GATE"): "CLOCK1.OUT",
+            EpicsName("PCAP:GATE:DELAY"): "1",
+            EpicsName("PCAP:LABEL"): "PcapMetadataLabel",
+            EpicsName("PCAP:ARM"): "0",
         },
     )
 
@@ -76,19 +76,19 @@ async def test_introspect_panda(
         fields={
             "TABLE": table_field_info,
         },
-        values={EpicsName("SEQ1:TABLE"): table_data_1},
+        values={EpicsName("SEQ:TABLE"): table_data_1},
     )
 
     assert all_values_dict == {
-        "PCAP1:TRIG_EDGE": "Falling",
-        "PCAP1:GATE": "CLOCK1.OUT",
-        "PCAP1:GATE:DELAY": "1",
-        "PCAP1:LABEL": "PcapMetadataLabel",
-        "PULSE1:DELAY": "100",
-        "PCAP1:ARM": "0",
-        "PULSE1:DELAY:MIN": "8e-06",
-        "PULSE1:DELAY:UNITS": "ms",
-        "SEQ1:TABLE": table_data_1,
+        "PCAP:TRIG_EDGE": "Falling",
+        "PCAP:GATE": "CLOCK1.OUT",
+        "PCAP:GATE:DELAY": "1",
+        "PCAP:LABEL": "PcapMetadataLabel",
+        "PULSE:DELAY": "100",
+        "PCAP:ARM": "0",
+        "PULSE:DELAY:MIN": "8e-06",
+        "PULSE:DELAY:UNITS": "ms",
+        "SEQ:TABLE": table_data_1,
     }
 
 
@@ -102,14 +102,14 @@ async def test_create_softioc_system(
     values."""
     # Check table fields
     for field_name, expected_array in table_unpacked_data.items():
-        actual_array = await caget(TEST_PREFIX + ":SEQ1:TABLE:" + field_name)
+        actual_array = await caget(TEST_PREFIX + ":SEQ:TABLE:" + field_name)
         assert numpy.array_equal(actual_array, expected_array)
 
-    assert await caget(TEST_PREFIX + ":PCAP1:TRIG_EDGE") == 1  # == Falling
-    assert await caget(TEST_PREFIX + ":PCAP1:GATE") == "CLOCK1.OUT"
-    assert await caget(TEST_PREFIX + ":PCAP1:GATE:DELAY") == 1
+    assert await caget(TEST_PREFIX + ":PCAP:TRIG_EDGE") == 1  # == Falling
+    assert await caget(TEST_PREFIX + ":PCAP:GATE") == "CLOCK1.OUT"
+    assert await caget(TEST_PREFIX + ":PCAP:GATE:DELAY") == 1
 
-    pcap1_label = await caget(TEST_PREFIX + ":PCAP1:LABEL")
+    pcap1_label = await caget(TEST_PREFIX + ":PCAP:LABEL")
     assert numpy.array_equal(
         pcap1_label,
         numpy.array(list("PcapMetadataLabel".encode() + b"\0"), dtype=numpy.uint8),
@@ -126,7 +126,7 @@ async def test_create_softioc_update(
     try:
         # Set up a monitor to wait for the expected change
         capturing_queue = asyncio.Queue()
-        monitor = camonitor(TEST_PREFIX + ":PCAP1:TRIG_EDGE", capturing_queue.put)
+        monitor = camonitor(TEST_PREFIX + ":PCAP:TRIG_EDGE", capturing_queue.put)
 
         curr_val = await asyncio.wait_for(capturing_queue.get(), TIMEOUT)
         # First response is the current value
@@ -196,20 +196,20 @@ async def test_create_softioc_time_panda_changes(mocked_panda_standard_responses
         # and check the initial values are correct
         egu_queue = asyncio.Queue()
         m1 = camonitor(
-            TEST_PREFIX + ":PULSE1:DELAY.EGU",
+            TEST_PREFIX + ":PULSE:DELAY.EGU",
             egu_queue.put,
         )
         assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "ms"
 
         units_queue = asyncio.Queue()
         m2 = camonitor(
-            TEST_PREFIX + ":PULSE1:DELAY:UNITS", units_queue.put, datatype=str
+            TEST_PREFIX + ":PULSE:DELAY:UNITS", units_queue.put, datatype=str
         )
         assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "ms"
 
         drvl_queue = asyncio.Queue()
         m3 = camonitor(
-            TEST_PREFIX + ":PULSE1:DELAY.DRVL",
+            TEST_PREFIX + ":PULSE:DELAY.DRVL",
             drvl_queue.put,
         )
         # The units value changes from ms to s in the test Client, which causes
@@ -236,20 +236,20 @@ async def test_create_softioc_time_epics_changes(
         # and check the initial values are correct
         egu_queue = asyncio.Queue()
         m1 = camonitor(
-            TEST_PREFIX + ":PULSE1:DELAY.EGU",
+            TEST_PREFIX + ":PULSE:DELAY.EGU",
             egu_queue.put,
         )
         assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "ms"
 
         units_queue = asyncio.Queue()
         m2 = camonitor(
-            TEST_PREFIX + ":PULSE1:DELAY:UNITS", units_queue.put, datatype=str
+            TEST_PREFIX + ":PULSE:DELAY:UNITS", units_queue.put, datatype=str
         )
         assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "ms"
 
         drvl_queue = asyncio.Queue()
         m3 = camonitor(
-            TEST_PREFIX + ":PULSE1:DELAY.DRVL",
+            TEST_PREFIX + ":PULSE:DELAY.DRVL",
             drvl_queue.put,
         )
         assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 8e-06
@@ -260,7 +260,7 @@ async def test_create_softioc_time_epics_changes(
 
         # Change the UNITS to "min"
         assert await caput(
-            TEST_PREFIX + ":PULSE1:DELAY:UNITS", "min", wait=True, timeout=TIMEOUT
+            TEST_PREFIX + ":PULSE:DELAY:UNITS", "min", wait=True, timeout=TIMEOUT
         )
 
         assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "min"
@@ -347,7 +347,7 @@ async def test_create_softioc_record_update_send_to_panda(
     # Check the panda recieved the translated command
     commands_recieved_by_panda = multiprocessing_queue_to_list(command_queue)
     assert (
-        command_to_key(Put(field="PCAP1.TRIG_EDGE", value="Falling"))
+        command_to_key(Put(field="PCAP.TRIG_EDGE", value="Falling"))
         in commands_recieved_by_panda
     )
 
