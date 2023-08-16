@@ -538,6 +538,7 @@ def mocked_panda_standard_responses(
     table_fields,
 ) -> Generator[Tuple[Path, Connection, ResponseHandler, Queue], None, None]:
     response_handler = ResponseHandler(standard_responses)
+    print(tmp_path)
 
     yield from create_subprocess_ioc_and_responses(
         response_handler,
