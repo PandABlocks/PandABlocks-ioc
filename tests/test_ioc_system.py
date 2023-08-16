@@ -330,7 +330,7 @@ async def test_create_softioc_record_update_send_to_panda(
     ) = mocked_panda_standard_responses
     try:
         trig_queue = asyncio.Queue()
-        m1 = camonitor(TEST_PREFIX + ":PCAP1:TRIG_EDGE", trig_queue.put, datatype=str)
+        m1 = camonitor(TEST_PREFIX + ":PCAP:TRIG_EDGE", trig_queue.put, datatype=str)
 
         # Wait for all the dummy changes to finish
         assert await asyncio.wait_for(trig_queue.get(), TIMEOUT) == "Falling"
@@ -338,7 +338,7 @@ async def test_create_softioc_record_update_send_to_panda(
 
         # Verify the pv has been put to
         await caput(
-            TEST_PREFIX + ":PCAP1:TRIG_EDGE", "Falling", wait=True, timeout=TIMEOUT
+            TEST_PREFIX + ":PCAP:TRIG_EDGE", "Falling", wait=True, timeout=TIMEOUT
         )
         assert await asyncio.wait_for(trig_queue.get(), TIMEOUT) == "Falling"
     finally:
