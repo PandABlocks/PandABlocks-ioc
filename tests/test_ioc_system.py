@@ -296,6 +296,7 @@ async def test_softioc_records_block(mocked_panda_standard_responses):
 @pytest.mark.asyncio
 async def test_bobfiles_created(mocked_panda_standard_responses):
     bobfile_temp_dir, *_ = mocked_panda_standard_responses
+    await asyncio.sleep(1)  # Wait for the files to be created
     assert bobfile_temp_dir.exists() and BOBFILE_DIR.exists()
     old_files = os.listdir(BOBFILE_DIR)
     for file in old_files:
@@ -345,9 +346,6 @@ async def test_create_softioc_record_update_send_to_panda(
 
     # Check the panda recieved the translated command
     commands_recieved_by_panda = multiprocessing_queue_to_list(command_queue)
-    from pprint import pprint
-
-    pprint(commands_recieved_by_panda)
     assert (
         command_to_key(Put(field="PCAP1.TRIG_EDGE", value="Falling"))
         in commands_recieved_by_panda

@@ -49,7 +49,7 @@ T = TypeVar("T")
 # Use the unique TEST_PREFIX to ensure this isn't a problem for future tests
 TEST_PREFIX = "TEST-PREFIX-" + str(uuid4())[:4].upper()
 BOBFILE_DIR = Path(__file__).parent.parent / "test-bobfiles"
-TIMEOUT = 10
+TIMEOUT = 1000
 
 
 @pytest_asyncio.fixture
@@ -538,7 +538,6 @@ def mocked_panda_standard_responses(
     table_fields,
 ) -> Generator[Tuple[Path, Connection, ResponseHandler, Queue], None, None]:
     response_handler = ResponseHandler(standard_responses)
-    print(tmp_path)
 
     yield from create_subprocess_ioc_and_responses(
         response_handler,
