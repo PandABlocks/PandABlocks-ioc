@@ -1,6 +1,7 @@
 import logging
 
 import click
+from pandablocks.asyncio import AsyncioClient
 
 from pandablocks_ioc.ioc import create_softioc
 
@@ -37,7 +38,9 @@ def softioc(host: str, prefix: str, screens_dir: str):
     Connect to the given HOST and create an IOC with the given PREFIX.
     Create .bob files for screens in the SCREENS_DIR. Directory must exist.
     """
-    create_softioc(host=host, record_prefix=prefix, screens_dir=screens_dir)
+    create_softioc(
+        client=AsyncioClient(host), record_prefix=prefix, screens_dir=screens_dir
+    )
 
 
 # test with: python -m pandablocks_ioc

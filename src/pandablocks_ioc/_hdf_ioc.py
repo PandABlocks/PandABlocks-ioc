@@ -212,8 +212,12 @@ class HDF5RecordController:
                         pipeline[0].queue.put_nowait(
                             EndData(captured_frames, EndReason.OK)
                         )
-
                         break
+                elif not isinstance(data, EndData):
+                    raise RuntimeError(
+                        f"Data was recieved that was of type {type(data)}, not"
+                        "StartData, EndData, ReadyData or FrameData"
+                    )
                 # Ignore EndData - handle terminating capture with the Capture
                 # record or when we capture the requested number of frames
 
