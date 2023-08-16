@@ -194,8 +194,17 @@ async def test_create_softioc_table_update_send_to_panda(
         response_handler,
         command_queue,
     ) = mocked_panda_standard_responses
+    try:
+        trig_queue = asyncio.Queue()
+        m1 = camonitor(TEST_PREFIX + ":PCAP1:TRIG_EDGE", trig_queue.put, datatype=str)
 
-    await asyncio.sleep(1)
+        # Wait for all the dummy changes to finish
+        assert await asyncio.wait_for(trig_queue.get(), TIMEOUT) == "Falling"
+        assert await asyncio.wait_for(trig_queue.get(), TIMEOUT) == "Either"
+
+    finally:
+        m1.close()
+
     await caput(TEST_PREFIX + ":SEQ1:TABLE:MODE", "EDIT", wait=True, timeout=TIMEOUT)
 
     await caput(
@@ -204,7 +213,6 @@ async def test_create_softioc_table_update_send_to_panda(
 
     await caput(TEST_PREFIX + ":SEQ1:TABLE:MODE", "SUBMIT", wait=True, timeout=TIMEOUT)
 
-    await asyncio.sleep(1)
     command_queue.put(None)
     commands_recieved_by_panda = list(iter(command_queue.get, None))
     assert (

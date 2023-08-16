@@ -1,5 +1,6 @@
 import asyncio
 import os
+from multiprocessing import Queue
 from pathlib import Path
 from typing import List, OrderedDict
 
@@ -211,6 +212,9 @@ async def test_create_softioc_time_panda_changes(mocked_panda_standard_responses
             TEST_PREFIX + ":PULSE1:DELAY.DRVL",
             drvl_queue.put,
         )
+        # The units value changes from ms to s in the test Client, which causes
+        # the DRVL value to change from 8e-06 to 8e-09, consistent to ms to s.
+
         assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 8e-06
         assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "s"
         assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "s"
@@ -307,6 +311,11 @@ async def test_bobfiles_created(mocked_panda_standard_responses):
     assert len(old_files) == len(new_files)
 
 
+def multiprocessing_queue_to_list(queue: Queue):
+    queue.put(None)
+    return list(iter(queue.get, None))
+
+
 @pytest.mark.asyncio
 async def test_create_softioc_record_update_send_to_panda(
     mocked_panda_standard_responses,
@@ -318,12 +327,27 @@ async def test_create_softioc_record_update_send_to_panda(
         response_handler,
         command_queue,
     ) = mocked_panda_standard_responses
+    try:
+        trig_queue = asyncio.Queue()
+        m1 = camonitor(TEST_PREFIX + ":PCAP1:TRIG_EDGE", trig_queue.put, datatype=str)
 
-    await asyncio.sleep(1.5)
-    await caput(TEST_PREFIX + ":PCAP1:TRIG_EDGE", "Falling", wait=True, timeout=TIMEOUT)
-    await asyncio.sleep(1.5)
-    command_queue.put(None)
-    commands_recieved_by_panda = list(iter(command_queue.get, None))
+        # Wait for all the dummy changes to finish
+        assert await asyncio.wait_for(trig_queue.get(), TIMEOUT) == "Falling"
+        assert await asyncio.wait_for(trig_queue.get(), TIMEOUT) == "Either"
+
+        # Verify the pv has been put to
+        await caput(
+            TEST_PREFIX + ":PCAP1:TRIG_EDGE", "Falling", wait=True, timeout=TIMEOUT
+        )
+        assert await asyncio.wait_for(trig_queue.get(), TIMEOUT) == "Falling"
+    finally:
+        m1.close()
+
+    # Check the panda recieved the translated command
+    commands_recieved_by_panda = multiprocessing_queue_to_list(command_queue)
+    from pprint import pprint
+
+    pprint(commands_recieved_by_panda)
     assert (
         command_to_key(Put(field="PCAP1.TRIG_EDGE", value="Falling"))
         in commands_recieved_by_panda
@@ -343,11 +367,21 @@ async def test_create_softioc_arm_disarm(
         command_queue,
     ) = mocked_panda_standard_responses
 
-    await asyncio.sleep(1)
-    await caput(TEST_PREFIX + ":PCAP:ARM", 1, wait=True, timeout=TIMEOUT)
-    await caput(TEST_PREFIX + ":PCAP:ARM", 0, wait=True, timeout=TIMEOUT)
-    await asyncio.sleep(1)
-    command_queue.put(None)
-    commands_recieved_by_panda = list(iter(command_queue.get, None))
+    try:
+        arm_queue = asyncio.Queue()
+        m1 = camonitor(TEST_PREFIX + ":PCAP:ARM", arm_queue.put, datatype=str)
+        assert await asyncio.wait_for(arm_queue.get(), TIMEOUT) == "0"
+
+        # Put PVs and check the ioc sets the values
+        await caput(TEST_PREFIX + ":PCAP:ARM", "1", wait=True, timeout=TIMEOUT)
+        assert await asyncio.wait_for(arm_queue.get(), TIMEOUT) == "1"
+        await caput(TEST_PREFIX + ":PCAP:ARM", "0", wait=True, timeout=TIMEOUT)
+        assert await asyncio.wait_for(arm_queue.get(), TIMEOUT) == "0"
+
+    finally:
+        m1.close()
+
+    # Check the panda recieved the translated commands
+    commands_recieved_by_panda = multiprocessing_queue_to_list(command_queue)
     assert command_to_key(Arm()) in commands_recieved_by_panda
     assert command_to_key(Disarm()) in commands_recieved_by_panda

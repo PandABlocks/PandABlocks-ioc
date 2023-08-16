@@ -2,8 +2,8 @@
 
 import asyncio
 import logging
-import time
 from asyncio import CancelledError
+from multiprocessing.connection import Connection
 from pathlib import Path
 from typing import AsyncGenerator, Generator
 from uuid import uuid4
@@ -19,6 +19,7 @@ from fixtures.mocked_panda import (
     Rows,
     custom_logger,
     get_multiprocessing_context,
+    select_and_recv,
 )
 from mock.mock import AsyncMock, MagicMock, patch
 from pandablocks.asyncio import AsyncioClient
@@ -215,7 +216,9 @@ async def hdf5_controller(clear_records: None, standard_responses) -> AsyncGener
     await asyncio.sleep(0)
 
 
-def subprocess_func(namespace_prefix: str, standard_responses) -> None:
+def subprocess_func(
+    namespace_prefix: str, standard_responses, child_conn: Connection
+) -> None:
     """Function to start the HDF5 IOC"""
 
     async def wrapper():
@@ -225,6 +228,7 @@ def subprocess_func(namespace_prefix: str, standard_responses) -> None:
         dispatcher = asyncio_dispatcher.AsyncioDispatcher()
         builder.LoadDatabase()
         softioc.iocInit(dispatcher)
+        child_conn.send("R")
 
         # Leave this coroutine running until it's torn down by pytest
         await asyncio.Event().wait()
@@ -240,12 +244,17 @@ def hdf5_subprocess_ioc_no_logging_check(
     """Create an instance of HDF5 class in its own subprocess, then start the IOC.
     Note you probably want to use `hdf5_subprocess_ioc` instead."""
     ctx = get_multiprocessing_context()
-    p = ctx.Process(target=subprocess_func, args=(NAMESPACE_PREFIX, standard_responses))
+    parent_conn, child_conn = ctx.Pipe()
+    p = ctx.Process(
+        target=subprocess_func, args=(NAMESPACE_PREFIX, standard_responses, child_conn)
+    )
     try:
         p.start()
-        time.sleep(3)  # Give IOC some time to start up
+        select_and_recv(parent_conn)  # Wait for IOC to start up
         yield
     finally:
+        child_conn.close()
+        parent_conn.close()
         p.terminate()
         p.join(10)
         # Should never take anywhere near 10 seconds to terminate, it's just there
@@ -261,16 +270,23 @@ def hdf5_subprocess_ioc(
     with caplog.at_level(logging.WARNING):
         with caplog_workaround():
             ctx = get_multiprocessing_context()
+            parent_conn, child_conn = ctx.Pipe()
             p = ctx.Process(
-                target=subprocess_func, args=(NAMESPACE_PREFIX, standard_responses)
+                target=subprocess_func,
+                args=(NAMESPACE_PREFIX, standard_responses, child_conn),
             )
-            p.start()
-            time.sleep(3)  # Give IOC some time to start up
-            yield
-            p.terminate()
-            p.join(10)
-            # Should never take anywhere near 10 seconds to terminate, it's just there
-            # to ensure the test doesn't hang indefinitely during cleanup
+            try:
+                p.start()
+                select_and_recv(parent_conn)  # Wait for IOC to start up
+                yield
+            finally:
+                child_conn.close()
+                parent_conn.close()
+                p.terminate()
+                p.join(10)
+                # Should never take anywhere near 10 seconds to terminate,
+                # it's just there to ensure the test doesn't hang indefinitely
+                # during cleanup
 
     # We expect all tests to pass without warnings (or worse) logged.
     assert (

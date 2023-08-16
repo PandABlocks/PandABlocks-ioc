@@ -162,10 +162,15 @@ class Rows:
 
 class MockedAsyncioClient:
     def __init__(
-        self, response_handler: ResponseHandler, command_queue: Optional[Queue] = None
+        self,
+        response_handler: ResponseHandler,
+        child_conn: Optional[Connection] = None,
+        command_queue: Optional[Queue] = None,
     ) -> None:
         self.response_handler = response_handler
         self.command_queue = command_queue
+        self.child_conn = child_conn
+        self.introspect_panda_ran_already = False
 
     async def connect(self):
         """Connect does nothing"""
@@ -175,6 +180,17 @@ class MockedAsyncioClient:
         """Returns the response, args may include timeout"""
         if self.command_queue:
             self.command_queue.put(command_to_key(command))
+
+        if (
+            not self.introspect_panda_ran_already
+            and self.child_conn
+            and isinstance(command, GetChanges)
+        ):
+            self.introspect_panda_ran_already = True
+
+            # Now the panda has set up, tell the test to start
+            self.child_conn.send("R")
+
         response = self.response_handler(command)
         return response
 
@@ -259,14 +275,12 @@ def ioc_wrapper(
 
     async def inner_wrapper():
         create_softioc(
-            MockedAsyncioClient(response_handler, command_queue=command_queue),
+            MockedAsyncioClient(
+                response_handler, child_conn=child_conn, command_queue=command_queue
+            ),
             test_prefix,
             bobfile_dir,
         )
-
-        # mocked_interactive_ioc.assert_called_once()
-
-        child_conn.send("R")  # "Ready"
 
         # Leave this process running until its torn down by pytest
         await asyncio.Event().wait()
@@ -320,7 +334,7 @@ def create_subprocess_ioc_and_responses(
     with caplog.at_level(logging.WARNING):
         with caplog_workaround():
             ctx = get_multiprocessing_context()
-            command_queue: Queue = ctx.Queue(1000)
+            command_queue: Queue = ctx.Queue()
             parent_conn, child_conn = ctx.Pipe()
             p = ctx.Process(
                 target=ioc_wrapper,
@@ -524,6 +538,7 @@ def mocked_panda_standard_responses(
     table_fields,
 ) -> Generator[Tuple[Path, Connection, ResponseHandler, Queue], None, None]:
     response_handler = ResponseHandler(standard_responses)
+    print(tmp_path)
 
     yield from create_subprocess_ioc_and_responses(
         response_handler,
