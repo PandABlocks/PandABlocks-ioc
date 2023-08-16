@@ -142,28 +142,6 @@ def create_softioc(client: AsyncioClient, record_prefix: str, screens_dir: str) 
             asyncio.run_coroutine_threadsafe(client.close(), dispatcher.loop).result()
 
 
-def _ensure_block_number_present(block_and_field_name: str) -> str:
-    """Ensure that the block instance number is always present on the end of the block
-    name. If it is not present, add "1" to it.
-
-    This works as PandA alias's the <1> suffix if there is only a single instance of a
-    block
-
-    Args:
-        block_and_field_name: A string containing the block and the field name,
-        e.g. "SYSTEM.TEMP_ZYNQ", or "INENC2.CLK". Must be in PandA format.
-
-    Returns:
-        str: The block and field name which will have an instance number.
-        e.g. "SYSTEM1.TEMP_ZYNQ", or "INENC2.CLK".
-    """
-    block_name_number, field_name = block_and_field_name.split(".", maxsplit=1)
-    if not block_name_number[-1].isdigit():
-        block_name_number += "1"
-
-    return f"{block_name_number}.{field_name}"
-
-
 async def introspect_panda(
     client: AsyncioClient,
 ) -> Tuple[Dict[str, _BlockAndFieldInfo], Dict[EpicsName, RecordValue]]:
@@ -231,8 +209,6 @@ def _create_dicts_from_changes(
         in the `values` dictionary"""
 
         block_name_number, field_name = block_and_field_name.split(".", maxsplit=1)
-
-        # block_and_field_name = _ensure_block_number_present(block_and_field_name)
 
         # Parse *METADATA.LABEL_<block><num> into "<block>" key and
         # "<block><num>:LABEL" value
@@ -991,7 +967,6 @@ class IocRecordFactory:
             if label == "":
                 # Some rows are empty. Do not create records.
                 continue
-            # label = _ensure_block_number_present(label)
             link = self._record_prefix + ":" + label.replace(".", ":") + " CP"
             enumerated_bits_prefix = f"BITS:{offset + i}"
             builder.records.bi(
@@ -1754,12 +1729,13 @@ async def create_records(
                 raise Exception(f"Duplicate record name {new_record} detected.")
 
         for block_num in range(block_info.number):
-            for field, field_info in panda_info.fields.items():
-                if block_info.number == 1:
-                    suffixed_block = block
-                else:
-                    suffixed_block = block + str(block_num + 1)
+            # Add a suffix if there are multiple of a block e.g:
+            # "SEQ:TABLE" -> "SEQ3:TABLE"
+            suffixed_block = block
+            if block_info.number > 1:
+                suffixed_block += str(block_num + 1)
 
+            for field, field_info in panda_info.fields.items():
                 # ":" separator for EPICS Record names, unlike PandA's "."
                 record_name = EpicsName(suffixed_block + ":" + field)
 
@@ -1850,7 +1826,6 @@ async def update(
             all_values_dict.update(new_all_values_dict)
 
             for field in changes.in_error:
-                # field = _ensure_block_number_present(field)
                 field = PandAName(field)
                 field = panda_to_epics_name(field)
 
@@ -1871,7 +1846,6 @@ async def update(
                     )
 
             for field, value in changes.values.items():
-                # field = _ensure_block_number_present(field)
                 field = PandAName(field)
                 field = panda_to_epics_name(field)
 

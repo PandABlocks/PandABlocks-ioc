@@ -393,6 +393,89 @@ def respond_with_no_changes(number_of_iterations: int = 0) -> repeat:
 
 
 @pytest.fixture
+def multiple_seq_responses(table_field_info, table_data_1, table_data_2):
+    """
+    Used by MockedAsyncioClient to generate panda responses to the ioc's commands.
+    Keys are the commands recieved from the ioc (wrapped in a function to make them
+    immutable). Values are generators for the responses the dummy panda gives: the
+    client.send() calls next on them.
+
+    GetChanges is polled at 10Hz if a different command isn't made.
+    """
+    return {
+        command_to_key(
+            Put(
+                field="SEQ1.TABLE",
+                value=[
+                    "2457862145",
+                    "4294967291",
+                    "100",
+                    "0",
+                    "1",
+                    "0",
+                    "0",
+                    "0",
+                    "4293918721",
+                    "0",
+                    "9",
+                    "9999",
+                    "2035875841",
+                    "444444",
+                    "5",
+                    "1",
+                    "3464232961",
+                    "4294967197",
+                    "99999",
+                    "2222",
+                ],
+            )
+        ): repeat(None),
+        command_to_key(
+            Put(
+                field="SEQ2.TABLE",
+                value=[
+                    "2457862145",
+                    "4294967291",
+                    "100",
+                    "0",
+                    "269877249",
+                    "678",
+                    "0",
+                    "55",
+                    "4293918721",
+                    "0",
+                    "9",
+                    "9999",
+                ],
+            )
+        ): repeat(None),
+        # DRVL changing from 8e-06 ms to minutes
+        command_to_key(GetFieldInfo(block="SEQ", extended_metadata=True)): repeat(
+            {"TABLE": table_field_info}
+        ),
+        command_to_key(GetBlockInfo(skip_description=False)): repeat(
+            {
+                "SEQ": BlockInfo(number=2, description="SEQ Desc"),
+            }
+        ),
+        # Changes are given at 10Hz, the changes provided are used for many
+        # different tests
+        command_to_key(GetChanges(group=ChangeGroup.ALL, get_multiline=True)): chain(
+            # Initial value of every field
+            changes_iterator_wrapper(
+                values={},
+                multiline_values={
+                    "SEQ1.TABLE": table_data_1,
+                    "SEQ2.TABLE": table_data_2,
+                },
+            ),
+            # Keep the panda active with no changes until pytest tears it down
+            respond_with_no_changes(),
+        ),
+    }
+
+
+@pytest.fixture
 def standard_responses(table_field_info, table_data_1, table_data_2):
     """
     Used by MockedAsyncioClient to generate panda responses to the ioc's commands.
@@ -525,6 +608,28 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
             respond_with_no_changes(),
         ),
     }
+
+
+@pytest.fixture
+def mocked_panda_multiple_seq_responses(
+    multiple_seq_responses,
+    tmp_path: Path,
+    enable_codecov_multiprocess,
+    caplog,
+    caplog_workaround,
+    table_field_info,
+    table_fields,
+) -> Generator[Tuple[Path, Connection, ResponseHandler, Queue], None, None]:
+    response_handler = ResponseHandler(multiple_seq_responses)
+
+    yield from create_subprocess_ioc_and_responses(
+        response_handler,
+        tmp_path,
+        caplog,
+        caplog_workaround,
+        table_field_info,
+        table_fields,
+    )
 
 
 @pytest.fixture

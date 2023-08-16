@@ -6,7 +6,7 @@ from typing import List, OrderedDict
 
 import numpy
 import pytest
-from aioca import caget, camonitor, caput
+from aioca import CANothing, caget, camonitor, caput
 from fixtures.mocked_panda import (
     BOBFILE_DIR,
     TEST_PREFIX,
@@ -25,11 +25,7 @@ from pandablocks.responses import (
 )
 
 from pandablocks_ioc._types import EpicsName
-from pandablocks_ioc.ioc import (
-    _BlockAndFieldInfo,
-    _ensure_block_number_present,
-    introspect_panda,
-)
+from pandablocks_ioc.ioc import _BlockAndFieldInfo, introspect_panda
 
 # Test file for all tests that require a full setup system, with an IOC running in one
 # process, a MockedServer in another, and the test in the main thread accessing data
@@ -179,11 +175,6 @@ async def test_create_softioc_update(
 #     finally:
 #         monitor.close()
 #         purge_channel_caches()
-
-
-def test_ensure_block_number_present():
-    assert _ensure_block_number_present("ABC.DEF.GHI") == "ABC1.DEF.GHI"
-    assert _ensure_block_number_present("JKL1.MNOP") == "JKL1.MNOP"
 
 
 @pytest.mark.asyncio
@@ -383,3 +374,25 @@ async def test_create_softioc_arm_disarm(
     commands_recieved_by_panda = multiprocessing_queue_to_list(command_queue)
     assert command_to_key(Arm()) in commands_recieved_by_panda
     assert command_to_key(Disarm()) in commands_recieved_by_panda
+
+
+@pytest.mark.asyncio
+async def test_multiple_seq_pvs_are_numbered(
+    mocked_panda_multiple_seq_responses,
+):
+    """Test that the Arm and Disarm commands are correctly sent to PandA"""
+
+    (
+        tmp_path,
+        child_conn,
+        response_handler,
+        command_queue,
+    ) = mocked_panda_multiple_seq_responses
+    seq_1_outd1 = await caget(TEST_PREFIX + ":SEQ1:TABLE:OUTD2")
+    seq_2_outd2 = await caget(TEST_PREFIX + ":SEQ2:TABLE:OUTD2")
+
+    assert numpy.array_equal(seq_1_outd1, [0, 0, 1])
+    assert numpy.array_equal(seq_2_outd2, [0, 0, 1, 1, 0])
+
+    with pytest.raises(CANothing):
+        await caget(TEST_PREFIX + ":SEQ:TABLE:OUTD2", timeout=1)
