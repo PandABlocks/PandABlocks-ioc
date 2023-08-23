@@ -473,6 +473,77 @@ def multiple_seq_responses(table_field_info, table_data_1, table_data_2):
 
 
 @pytest.fixture
+def faulty_multiple_pcap_responses():
+    """
+    Used to test if the ioc will fail with an error if the user abuses
+    the new numbering system.
+    """
+    return {
+        command_to_key(GetFieldInfo(block="PCAP1", extended_metadata=True)): repeat(
+            {
+                "TRIG_EDGE": EnumFieldInfo(
+                    type="param",
+                    subtype="enum",
+                    description="Trig Edge Desc",
+                    labels=["Rising", "Falling", "Either"],
+                ),
+                "GATE": BitMuxFieldInfo(
+                    type="bit_mux",
+                    subtype=None,
+                    description="Gate Desc",
+                    max_delay=100,
+                    labels=["TTLIN1.VAL", "INENC1.A", "CLOCK1.OUT"],
+                ),
+            }
+        ),
+        command_to_key(GetFieldInfo(block="PCAP2", extended_metadata=True)): repeat(
+            {
+                "TRIG_EDGE": EnumFieldInfo(
+                    type="param",
+                    subtype="enum",
+                    description="Trig Edge Desc",
+                    labels=["Rising", "Falling", "Either"],
+                ),
+                "GATE": BitMuxFieldInfo(
+                    type="bit_mux",
+                    subtype=None,
+                    description="Gate Desc",
+                    max_delay=100,
+                    labels=["TTLIN1.VAL", "INENC1.A", "CLOCK1.OUT"],
+                ),
+            }
+        ),
+        command_to_key(GetBlockInfo(skip_description=False)): repeat(
+            {
+                "PCAP1": BlockInfo(number=1, description="PCAP Desc"),
+                "PCAP": BlockInfo(number=2, description="PCAP Desc"),
+            }
+        ),
+        # Changes are given at 10Hz, the changes provided are used for many
+        # different tests
+        command_to_key(GetChanges(group=ChangeGroup.ALL, get_multiline=True)): chain(
+            # Initial value of every field
+            changes_iterator_wrapper(
+                values={
+                    "PCAP1.TRIG_EDGE": "Falling",
+                    "PCAP1.GATE": "CLOCK1.OUT",
+                    "PCAP1.GATE.DELAY": "1",
+                    "PCAP1.ARM": "0",
+                    "*METADATA.LABEL_PCAP1": "PcapMetadataLabel",
+                    "PCAP2.TRIG_EDGE": "Falling",
+                    "PCAP2.GATE": "CLOCK1.OUT",
+                    "PCAP2.GATE.DELAY": "1",
+                    "PCAP2.ARM": "0",
+                    "*METADATA.LABEL_PCAP2": "PcapMetadataLabel",
+                },
+            ),
+            # Keep the panda active with no changes until pytest tears it down
+            respond_with_no_changes(),
+        ),
+    }
+
+
+@pytest.fixture
 def standard_responses(table_field_info, table_data_1, table_data_2):
     """
     Used by MockedAsyncioClient to generate panda responses to the ioc's commands.

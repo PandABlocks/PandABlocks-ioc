@@ -2,6 +2,7 @@
 import asyncio
 import inspect
 import logging
+import re
 from dataclasses import dataclass
 from string import digits
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -160,6 +161,11 @@ async def introspect_panda(
     """
 
     block_dict = await client.send(GetBlockInfo())
+
+    for block in block_dict.keys():
+        block_no_number = re.sub("[0-9]", "", block)
+        if block_no_number != block:
+            raise ValueError(f"Block containing number in name found: {block}")
 
     # Concurrently request info for all fields of all blocks
     # Note order of requests is important as it is unpacked by index below

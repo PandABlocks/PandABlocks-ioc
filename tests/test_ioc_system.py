@@ -133,6 +133,16 @@ async def test_create_softioc_update(
         monitor.close()
 
 
+async def test_including_number_in_block_names_throws_error(
+    faulty_multiple_pcap_responses,
+):
+    response_handler = ResponseHandler(faulty_multiple_pcap_responses)
+    mocked_client = MockedAsyncioClient(response_handler)
+
+    with pytest.raises(ValueError):
+        await introspect_panda(mocked_client)
+
+
 # TODO: Enable this test once PythonSoftIOC issue #53 is resolved
 #
 # async def test_create_softioc_update_in_error(
