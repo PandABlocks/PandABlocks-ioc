@@ -32,7 +32,6 @@ from pandablocks_ioc.ioc import _BlockAndFieldInfo, introspect_panda
 # using Channel Access
 
 
-@pytest.mark.asyncio
 async def test_introspect_panda(
     standard_responses,
     table_field_info: TableFieldInfo,
@@ -88,7 +87,6 @@ async def test_introspect_panda(
     }
 
 
-@pytest.mark.asyncio
 async def test_create_softioc_system(
     mocked_panda_standard_responses,
     table_unpacked_data: OrderedDict[EpicsName, ndarray],
@@ -112,7 +110,6 @@ async def test_create_softioc_system(
     )
 
 
-@pytest.mark.asyncio
 async def test_create_softioc_update(
     mocked_panda_standard_responses,
 ):
@@ -137,7 +134,7 @@ async def test_create_softioc_update(
 
 
 # TODO: Enable this test once PythonSoftIOC issue #53 is resolved
-# @pytest.mark.asyncio
+#
 # async def test_create_softioc_update_in_error(
 #     mocked_server_system,
 #     subprocess_ioc,
@@ -177,7 +174,6 @@ async def test_create_softioc_update(
 #         purge_channel_caches()
 
 
-@pytest.mark.asyncio
 async def test_create_softioc_time_panda_changes(mocked_panda_standard_responses):
     """Test that the UNITS and MIN values of a TIME field correctly reflect into EPICS
     records when the value changes on the PandA"""
@@ -216,7 +212,6 @@ async def test_create_softioc_time_panda_changes(mocked_panda_standard_responses
         m3.close()
 
 
-@pytest.mark.asyncio
 async def test_create_softioc_time_epics_changes(
     mocked_panda_standard_responses,
 ):
@@ -264,7 +259,6 @@ async def test_create_softioc_time_epics_changes(
         m3.close()
 
 
-@pytest.mark.asyncio
 async def test_softioc_records_block(mocked_panda_standard_responses):
     """Test that the records created are blocking, and wait until they finish their
     on_update processing.
@@ -284,7 +278,6 @@ async def test_softioc_records_block(mocked_panda_standard_responses):
         m1.close()
 
 
-@pytest.mark.asyncio
 async def test_bobfiles_created(mocked_panda_standard_responses):
     bobfile_temp_dir, *_ = mocked_panda_standard_responses
     await asyncio.sleep(1)  # Wait for the files to be created
@@ -308,7 +301,6 @@ def multiprocessing_queue_to_list(queue: Queue):
     return list(iter(queue.get, None))
 
 
-@pytest.mark.asyncio
 async def test_create_softioc_record_update_send_to_panda(
     mocked_panda_standard_responses,
 ):
@@ -343,7 +335,6 @@ async def test_create_softioc_record_update_send_to_panda(
     )
 
 
-@pytest.mark.asyncio
 async def test_create_softioc_arm_disarm(
     mocked_panda_standard_responses,
 ):
@@ -376,11 +367,12 @@ async def test_create_softioc_arm_disarm(
     assert command_to_key(Disarm()) in commands_recieved_by_panda
 
 
-@pytest.mark.asyncio
 async def test_multiple_seq_pvs_are_numbered(
     mocked_panda_multiple_seq_responses,
 ):
-    """Test that the Arm and Disarm commands are correctly sent to PandA"""
+    """Tests that the mocked_panda_multiple_seq_responses with a number=2 in the
+    seq block gives you a SEQ1 and a SEQ2 PV once the ioc starts up, with
+    independent values. We also double check a SEQ PV isn't broadcasted."""
 
     (
         tmp_path,

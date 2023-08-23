@@ -10,7 +10,6 @@ from uuid import uuid4
 
 import h5py
 import numpy
-import pytest
 import pytest_asyncio
 from aioca import caget, camonitor, caput
 from fixtures.mocked_panda import (
@@ -18,6 +17,7 @@ from fixtures.mocked_panda import (
     MockedAsyncioClient,
     Rows,
     custom_logger,
+    enable_codecov_multiprocess,
     get_multiprocessing_context,
     select_and_recv,
 )
@@ -220,6 +220,7 @@ def subprocess_func(
     namespace_prefix: str, standard_responses, child_conn: Connection
 ) -> None:
     """Function to start the HDF5 IOC"""
+    enable_codecov_multiprocess()
 
     async def wrapper():
         builder.SetDeviceName(namespace_prefix)
@@ -239,7 +240,7 @@ def subprocess_func(
 
 @pytest_asyncio.fixture
 def hdf5_subprocess_ioc_no_logging_check(
-    enable_codecov_multiprocess, caplog, caplog_workaround, standard_responses
+    caplog, caplog_workaround, standard_responses
 ) -> Generator:
     """Create an instance of HDF5 class in its own subprocess, then start the IOC.
     Note you probably want to use `hdf5_subprocess_ioc` instead."""
@@ -262,9 +263,7 @@ def hdf5_subprocess_ioc_no_logging_check(
 
 
 @pytest_asyncio.fixture
-def hdf5_subprocess_ioc(
-    enable_codecov_multiprocess, caplog, caplog_workaround, standard_responses
-) -> Generator:
+def hdf5_subprocess_ioc(caplog, caplog_workaround, standard_responses) -> Generator:
     """Create an instance of HDF5 class in its own subprocess, then start the IOC.
     When finished check logging logged no messages of WARNING or higher level."""
     with caplog.at_level(logging.WARNING):
@@ -294,7 +293,6 @@ def hdf5_subprocess_ioc(
     ), f"At least one warning/error/exception logged during test: {caplog.records}"
 
 
-@pytest.mark.asyncio
 async def test_hdf5_ioc(hdf5_subprocess_ioc):
     """Run the HDF5 module as its own IOC and check the expected records are created,
     with some default values checked"""
@@ -329,7 +327,6 @@ def _string_to_buffer(string: str):
     return numpy.frombuffer(string.encode(), dtype=numpy.uint8)
 
 
-@pytest.mark.asyncio
 async def test_hdf5_ioc_parameter_validate_works(hdf5_subprocess_ioc_no_logging_check):
     """Run the HDF5 module as its own IOC and check the _parameter_validate method
     does not stop updates, then stops when capture record is changed"""
@@ -351,7 +348,6 @@ async def test_hdf5_ioc_parameter_validate_works(hdf5_subprocess_ioc_no_logging_
     assert val.tobytes().decode() == "/new/path"  # put should have been stopped
 
 
-@pytest.mark.asyncio
 async def test_hdf5_file_writing(
     hdf5_subprocess_ioc,
     tmp_path: Path,
@@ -449,7 +445,6 @@ def test_hdf_parameter_validate_capturing(hdf5_controller: HDF5RecordController)
     assert hdf5_controller._parameter_validate(MagicMock(), None) is False
 
 
-@pytest.mark.asyncio
 @patch("pandablocks_ioc._hdf_ioc.stop_pipeline")
 @patch("pandablocks_ioc._hdf_ioc.create_default_pipeline")
 async def test_handle_data(
@@ -488,7 +483,6 @@ async def test_handle_data(
     mock_stop_pipeline.assert_called_once()
 
 
-@pytest.mark.asyncio
 @patch("pandablocks_ioc._hdf_ioc.stop_pipeline")
 @patch("pandablocks_ioc._hdf_ioc.create_default_pipeline")
 async def test_handle_data_two_start_data(
@@ -530,7 +524,6 @@ async def test_handle_data_two_start_data(
     mock_stop_pipeline.assert_called_once()
 
 
-@pytest.mark.asyncio
 @patch("pandablocks_ioc._hdf_ioc.stop_pipeline")
 @patch("pandablocks_ioc._hdf_ioc.create_default_pipeline")
 async def test_handle_data_mismatching_start_data(
@@ -602,7 +595,6 @@ async def test_handle_data_mismatching_start_data(
     mock_stop_pipeline.assert_called_once()
 
 
-@pytest.mark.asyncio
 @patch("pandablocks_ioc._hdf_ioc.stop_pipeline")
 @patch("pandablocks_ioc._hdf_ioc.create_default_pipeline")
 async def test_handle_data_cancelled_error(
@@ -658,7 +650,6 @@ async def test_handle_data_cancelled_error(
     mock_stop_pipeline.assert_called_once()
 
 
-@pytest.mark.asyncio
 @patch("pandablocks_ioc._hdf_ioc.stop_pipeline")
 @patch("pandablocks_ioc._hdf_ioc.create_default_pipeline")
 async def test_handle_data_unexpected_exception(
@@ -719,7 +710,6 @@ async def test_handle_data_unexpected_exception(
     mock_stop_pipeline.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_capture_on_update(
     hdf5_controller: HDF5RecordController,
 ):
@@ -732,7 +722,6 @@ async def test_capture_on_update(
     hdf5_controller._handle_hdf5_data.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_capture_on_update_cancel_task(
     hdf5_controller: HDF5RecordController,
 ):
@@ -747,7 +736,6 @@ async def test_capture_on_update_cancel_task(
     task_mock.cancel.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_capture_on_update_cancel_unexpected_task(
     hdf5_controller: HDF5RecordController,
 ):

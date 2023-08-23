@@ -37,7 +37,7 @@ dev = [
     "pre-commit",
     "p4p",
     "pydata-sphinx-theme>=0.12",
-    "pytest-asyncio",
+    "pytest-asyncio>=0.20",
     "pytest-cov",
     "sphinx-autobuild",
     "sphinx-copybutton",
@@ -108,7 +108,10 @@ testpaths = "docs src tests"
 asyncio_mode = "auto"
 
 [tool.coverage.run]
+concurrency = ["thread", "multiprocessing"]
 data_file = "/tmp/pandablocks_ioc.coverage"
+branch = true
+omit = ["tests/*"]
 
 [tool.coverage.paths]
 # Tests are run from installed location, map back to the src directory

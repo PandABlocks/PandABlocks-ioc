@@ -69,7 +69,6 @@ def ioc_record_factory(clear_records: None):
 TEST_RECORD = EpicsName("TEST:RECORD")
 
 
-@pytest.mark.asyncio
 async def test_record_updater(record_updater: _RecordUpdater):
     """Test that the record updater succesfully Put's data to the client"""
 
@@ -78,7 +77,6 @@ async def test_record_updater(record_updater: _RecordUpdater):
     mock.assert_called_once_with(Put("ABC.DEF", "1.0"))
 
 
-@pytest.mark.asyncio
 async def test_record_updater_labels(record_updater: _RecordUpdater):
     """Test that the record updater succesfully Put's data to the client
     when the data is a label index"""
@@ -90,7 +88,6 @@ async def test_record_updater_labels(record_updater: _RecordUpdater):
     mock.assert_called_once_with(Put("ABC.DEF", "Label3"))
 
 
-@pytest.mark.asyncio
 async def test_record_updater_value_none(record_updater: _RecordUpdater):
     """Test that the record updater succesfully Put's data to the client
     when the data is 'None' e.g. for action-write fields"""
@@ -100,7 +97,6 @@ async def test_record_updater_value_none(record_updater: _RecordUpdater):
     mock.assert_called_once_with(Put("ABC.DEF", None))
 
 
-@pytest.mark.asyncio
 async def test_record_updater_restore_previous_value(record_updater: _RecordUpdater):
     """Test that the record updater rolls back records to previous value on
     Put failure"""
@@ -638,7 +634,6 @@ def test_create_record_info_value_error(
     ), f"STAT not found twice in record file contents: {file_contents}"
 
 
-@pytest.mark.asyncio
 @patch("pandablocks_ioc.ioc.db_put_field")
 @pytest.mark.parametrize("new_val", ["TEST2", 2])
 async def test_time_record_updater_update_egu(
@@ -659,7 +654,6 @@ async def test_time_record_updater_update_egu(
     assert isinstance(put_field_args[2], int)
 
 
-@pytest.mark.asyncio
 @patch("pandablocks_ioc.ioc.db_put_field")
 async def test_time_record_updater_update_drvl(
     db_put_field: MagicMock, mocked_time_record_updater: _TimeRecordUpdater
@@ -773,7 +767,6 @@ def test_unknown_type_subtype(
     assert f"Unrecognised type {(type, subtype)} while processing record" in caplog.text
 
 
-@pytest.mark.asyncio
 async def test_update_on_error_marks_record(caplog):
     """Test that errors reported from *CHANGES? are correctly marked in EPICS records"""
     caplog.set_level(logging.INFO)
@@ -805,7 +798,6 @@ async def test_update_on_error_marks_record(caplog):
     assert "Setting record ABC:DEF to invalid value error state." in caplog.text
 
 
-@pytest.mark.asyncio
 async def test_update_toggles_bit_field():
     """Test that a bit field whose value changed too fast for a *CHANGES poll
     to detect still toggles the value of the EPICS record"""

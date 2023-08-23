@@ -107,7 +107,6 @@ def table_updater(
     return updater
 
 
-@pytest.mark.asyncio
 async def test_create_softioc_update_table(
     mocked_panda_standard_responses,
     table_unpacked_data,
@@ -149,7 +148,6 @@ async def test_create_softioc_update_table(
         monitor.close()
 
 
-@pytest.mark.asyncio
 async def test_create_softioc_update_index_drvh(
     mocked_panda_standard_responses,
     table_unpacked_data,
@@ -182,7 +180,6 @@ async def test_create_softioc_update_index_drvh(
         monitor.close()
 
 
-@pytest.mark.asyncio
 async def test_create_softioc_table_update_send_to_panda(
     mocked_panda_standard_responses,
 ):
@@ -247,7 +244,6 @@ async def test_create_softioc_table_update_send_to_panda(
     )
 
 
-@pytest.mark.asyncio
 async def test_create_softioc_update_table_index(
     mocked_panda_standard_responses,
     table_unpacked_data,
@@ -288,7 +284,6 @@ async def test_create_softioc_update_table_index(
         trigger_monitor.close()
 
 
-@pytest.mark.asyncio
 async def test_create_softioc_update_table_scalars_change(
     mocked_panda_standard_responses,
     table_unpacked_data,
@@ -460,7 +455,6 @@ def test_table_updater_validate_mode_unknown(table_updater: TableUpdater):
     )
 
 
-@pytest.mark.asyncio
 async def test_table_updater_update_mode_view(table_updater: TableUpdater):
     """Test that update_mode with new value of VIEW takes no action"""
     await table_updater.update_mode(TableModeEnum.VIEW.value)
@@ -473,7 +467,6 @@ async def test_table_updater_update_mode_view(table_updater: TableUpdater):
     ), "record set method was unexpectedly called"
 
 
-@pytest.mark.asyncio
 async def test_table_updater_update_mode_submit(
     table_updater: TableUpdater, table_data_1: List[str]
 ):
@@ -490,7 +483,6 @@ async def test_table_updater_update_mode_submit(
     )
 
 
-@pytest.mark.asyncio
 async def test_table_updater_update_mode_submit_exception(
     table_updater: TableUpdater,
     table_data_1: List[str],
@@ -529,7 +521,6 @@ async def test_table_updater_update_mode_submit_exception(
     )
 
 
-@pytest.mark.asyncio
 async def test_table_updater_update_mode_submit_exception_data_error(
     table_updater: TableUpdater, table_data_1: List[str]
 ):
@@ -554,7 +545,6 @@ async def test_table_updater_update_mode_submit_exception_data_error(
     )
 
 
-@pytest.mark.asyncio
 async def test_table_updater_update_mode_discard(
     table_updater: TableUpdater,
     table_data_1: List[str],
@@ -592,7 +582,6 @@ async def test_table_updater_update_mode_discard(
     )
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "enum_val", [TableModeEnum.EDIT.value, TableModeEnum.VIEW.value]
 )
@@ -684,7 +673,6 @@ def test_table_updater_update_table_not_view(
         record_info.record.set.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_table_updater_update_index(
     table_updater: TableUpdater,
     table_fields: Dict[str, TableFieldDetails],

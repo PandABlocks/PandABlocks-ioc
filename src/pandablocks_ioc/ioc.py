@@ -1731,6 +1731,7 @@ async def create_records(
         for block_num in range(block_info.number):
             # Add a suffix if there are multiple of a block e.g:
             # "SEQ:TABLE" -> "SEQ3:TABLE"
+            # Block numbers are indexed from 1
             suffixed_block = block
             if block_info.number > 1:
                 suffixed_block += str(block_num + 1)

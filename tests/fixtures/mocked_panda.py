@@ -232,7 +232,6 @@ def get_multiprocessing_context():
     return get_context(start_method)
 
 
-@pytest.fixture
 def enable_codecov_multiprocess():
     """Code to enable pytest-cov to work properly with multiprocessing"""
     try:
@@ -241,8 +240,6 @@ def enable_codecov_multiprocess():
         pass
     else:
         cleanup_on_sigterm()
-
-    return
 
 
 def select_and_recv(conn: Connection):
@@ -271,7 +268,7 @@ def ioc_wrapper(
     test_prefix: str,
     mocked_interactive_ioc: MagicMock,
 ):
-    """Wrapper function to start the IOC and do some mocking"""
+    enable_codecov_multiprocess()
 
     async def inner_wrapper():
         create_softioc(
@@ -614,7 +611,6 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
 def mocked_panda_multiple_seq_responses(
     multiple_seq_responses,
     tmp_path: Path,
-    enable_codecov_multiprocess,
     caplog,
     caplog_workaround,
     table_field_info,
@@ -636,7 +632,6 @@ def mocked_panda_multiple_seq_responses(
 def mocked_panda_standard_responses(
     standard_responses,
     tmp_path: Path,
-    enable_codecov_multiprocess,
     caplog,
     caplog_workaround,
     table_field_info,
