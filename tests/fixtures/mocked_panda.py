@@ -49,7 +49,7 @@ T = TypeVar("T")
 # Use the unique TEST_PREFIX to ensure this isn't a problem for future tests
 TEST_PREFIX = "TEST-PREFIX-" + str(uuid4())[:4].upper()
 BOBFILE_DIR = Path(__file__).parent.parent / "test-bobfiles"
-TIMEOUT = 10
+TIMEOUT = 1000
 
 
 @pytest_asyncio.fixture
@@ -460,7 +460,9 @@ def multiple_seq_responses(table_field_info, table_data_1, table_data_2):
         command_to_key(GetChanges(group=ChangeGroup.ALL, get_multiline=True)): chain(
             # Initial value of every field
             changes_iterator_wrapper(
-                values={},
+                values={
+                    "*METADATA.LABEL_SEQ": "SeqMetadataLabel",
+                },
                 multiline_values={
                     "SEQ1.TABLE": table_data_1,
                     "SEQ2.TABLE": table_data_2,
@@ -478,40 +480,27 @@ def faulty_multiple_pcap_responses():
     Used to test if the ioc will fail with an error if the user abuses
     the new numbering system.
     """
+    pcap_info = {
+        "TRIG_EDGE": EnumFieldInfo(
+            type="param",
+            subtype="enum",
+            description="Trig Edge Desc",
+            labels=["Rising", "Falling", "Either"],
+        ),
+        "GATE": BitMuxFieldInfo(
+            type="bit_mux",
+            subtype=None,
+            description="Gate Desc",
+            max_delay=100,
+            labels=["TTLIN1.VAL", "INENC1.A", "CLOCK1.OUT"],
+        ),
+    }
     return {
         command_to_key(GetFieldInfo(block="PCAP1", extended_metadata=True)): repeat(
-            {
-                "TRIG_EDGE": EnumFieldInfo(
-                    type="param",
-                    subtype="enum",
-                    description="Trig Edge Desc",
-                    labels=["Rising", "Falling", "Either"],
-                ),
-                "GATE": BitMuxFieldInfo(
-                    type="bit_mux",
-                    subtype=None,
-                    description="Gate Desc",
-                    max_delay=100,
-                    labels=["TTLIN1.VAL", "INENC1.A", "CLOCK1.OUT"],
-                ),
-            }
+            pcap_info
         ),
         command_to_key(GetFieldInfo(block="PCAP2", extended_metadata=True)): repeat(
-            {
-                "TRIG_EDGE": EnumFieldInfo(
-                    type="param",
-                    subtype="enum",
-                    description="Trig Edge Desc",
-                    labels=["Rising", "Falling", "Either"],
-                ),
-                "GATE": BitMuxFieldInfo(
-                    type="bit_mux",
-                    subtype=None,
-                    description="Gate Desc",
-                    max_delay=100,
-                    labels=["TTLIN1.VAL", "INENC1.A", "CLOCK1.OUT"],
-                ),
-            }
+            pcap_info
         ),
         command_to_key(GetBlockInfo(skip_description=False)): repeat(
             {

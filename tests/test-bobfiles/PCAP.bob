@@ -2,7 +2,7 @@
   <name>Display</name>
   <x>0</x>
   <y>0</y>
-  <width>408</width>
+  <width>361</width>
   <height>202</height>
   <grid_step_x>4</grid_step_x>
   <grid_step_y>4</grid_step_y>
@@ -12,7 +12,7 @@
     <text>PCAP - TEST-PREFIX:</text>
     <x use_class="true">0</x>
     <y use_class="true">0</y>
-    <width>408</width>
+    <width>361</width>
     <height>25</height>
     <font use_class="true">
       <font name="Header 1" family="Liberation Sans" style="BOLD" size="22.0">
@@ -33,17 +33,13 @@
     <width>250</width>
     <height>20</height>
   </widget>
-  <widget type="textupdate" version="2.0.0">
-    <name>TextUpdate</name>
+  <widget type="textentry" version="3.0.0">
+    <name>TextEntry</name>
     <pv_name>TEST-PREFIX:PCAP:LABEL</pv_name>
     <x>278</x>
     <y>30</y>
-    <width>125</width>
+    <width>60</width>
     <height>20</height>
-    <font>
-      <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
-      </font>
-    </font>
     <horizontal_alignment>1</horizontal_alignment>
   </widget>
   <widget type="group" version="2.0.0">

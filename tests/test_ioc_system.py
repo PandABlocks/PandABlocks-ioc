@@ -6,7 +6,7 @@ from typing import List, OrderedDict
 
 import numpy
 import pytest
-from aioca import CANothing, caget, camonitor, caput
+from aioca import DBR_CHAR_STR, CANothing, caget, camonitor, caput
 from fixtures.mocked_panda import (
     BOBFILE_DIR,
     TEST_PREFIX,
@@ -390,6 +390,7 @@ async def test_multiple_seq_pvs_are_numbered(
         response_handler,
         command_queue,
     ) = mocked_panda_multiple_seq_responses
+
     seq_1_outd1 = await caget(TEST_PREFIX + ":SEQ1:TABLE:OUTD2")
     seq_2_outd2 = await caget(TEST_PREFIX + ":SEQ2:TABLE:OUTD2")
 
@@ -398,3 +399,33 @@ async def test_multiple_seq_pvs_are_numbered(
 
     with pytest.raises(CANothing):
         await caget(TEST_PREFIX + ":SEQ:TABLE:OUTD2", timeout=1)
+
+
+async def test_metadata_parses_into_multiple_pvs(
+    mocked_panda_multiple_seq_responses,
+):
+    # If number=n where n!=1 for the block info of a block
+    # then the metadata described for the block needs to be
+    # put to each individual PV
+
+    seq_1_label_metadata = await caget(
+        TEST_PREFIX + ":SEQ1:LABEL", datatype=DBR_CHAR_STR
+    )
+    seq_2_label_metadata = await caget(
+        TEST_PREFIX + ":SEQ2:LABEL", datatype=DBR_CHAR_STR
+    )
+
+    assert seq_1_label_metadata == "SeqMetadataLabel"
+    assert seq_2_label_metadata == "SeqMetadataLabel"
+
+    # Make sure "*METADATA.LABEL_SEQ": "PcapMetadataLabel", doesn't
+    # get parsed into :SEQ:LABEL
+    with pytest.raises(CANothing):
+        await caget(TEST_PREFIX + ":SEQ:LABEL", timeout=1)
+
+
+async def test_metadata_parses_into_single_pv(mocked_panda_standard_responses):
+    pcap_label_metadata = await caget(
+        TEST_PREFIX + ":PCAP:LABEL", datatype=DBR_CHAR_STR
+    )
+    assert pcap_label_metadata == "PcapMetadataLabel"

@@ -2,7 +2,6 @@
 import asyncio
 import inspect
 import logging
-import re
 from dataclasses import dataclass
 from string import digits
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -163,9 +162,8 @@ async def introspect_panda(
     block_dict = await client.send(GetBlockInfo())
 
     for block in block_dict.keys():
-        block_no_number = re.sub("[0-9]", "", block)
-        if block_no_number != block:
-            raise ValueError(f"Block containing number in name found: {block}")
+        if block[-1].isdigit():
+            raise ValueError(f"Block name '{block}' contains a trailing number")
 
     # Concurrently request info for all fields of all blocks
     # Note order of requests is important as it is unpacked by index below
@@ -1637,6 +1635,11 @@ class IocRecordFactory:
         ("write", "time"): _make_subtype_time_write,
     }
 
+    async def _update_string_record(self, new_val: str) -> None:
+        """Process an update to the String record , to update the string value"""
+        logging.debug(f"Entering String record on_update method, value {new_val}")
+        pass
+
     async def _arm_on_update(self, new_val: int) -> None:
         """Process an update to the Arm record, to arm/disarm the PandA"""
         logging.debug(f"Entering HDF5:Arm record on_update method, value {new_val}")
@@ -1664,10 +1667,13 @@ class IocRecordFactory:
             if (value == "" or value is None) and block_info.description:
                 value = block_info.description
 
+            # the record uses the default _RecordUpdater.update to update the value
+            # on the panda
+            block_info.number
             record_dict[key] = self._create_record_info(
                 key,
                 None,
-                builder.longStringIn,
+                builder.longStringOut,
                 str,
                 PviGroup.NONE,
                 initial_value=value,
@@ -1720,12 +1726,26 @@ async def create_records(
         block_info = panda_info.block_info
         values = panda_info.values
 
+        # Add multiple metadata labels if the block_info number is
+        block_vals = {}
+        for key, value in values.items():
+            if key.endswith(":LABEL") and isinstance(value, str):
+                if block_info.number == 1:
+                    keys = [key]
+                else:
+                    split_key = key.split(":")
+                    split_key[0]
+                    keys = [
+                        EpicsName(
+                            ":".join([split_key[0] + str(number)] + split_key[1:])
+                        )
+                        for number in range(1, block_info.number + 1)
+                    ]
+
+                for key in keys:
+                    block_vals[key] = value
+
         # Create block-level records
-        block_vals = {
-            key: value
-            for key, value in values.items()
-            if key.endswith(":LABEL") and isinstance(value, str)
-        }
         block_records = record_factory.create_block_records(
             block, block_info, block_vals
         )
