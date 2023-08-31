@@ -239,16 +239,16 @@ class HDF5RecordController:
 
                 elif isinstance(data, FrameData):
                     captured_frames += data.data.shape[0]
-                    
+
                     num_frames_to_capture: int = self._num_capture_record.get()
                     if (
-                        num_frames_to_capture > 0 
+                        num_frames_to_capture > 0
                         and captured_frames > num_frames_to_capture
                     ):
                         # Discard extra collected data points if necessary
-                        data.data = data.data[:num_frames_to_capture - captured_frames]
+                        data.data = data.data[: num_frames_to_capture - captured_frames]
                         captured_frames = num_frames_to_capture
-                    
+
                     pipeline[0].queue.put_nowait(data)
 
                     if (
