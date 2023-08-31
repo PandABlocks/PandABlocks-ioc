@@ -49,7 +49,7 @@ T = TypeVar("T")
 # Use the unique TEST_PREFIX to ensure this isn't a problem for future tests
 TEST_PREFIX = "TEST-PREFIX-" + str(uuid4())[:4].upper()
 BOBFILE_DIR = Path(__file__).parent.parent / "test-bobfiles"
-TIMEOUT = 1000
+TIMEOUT = 10
 
 
 @pytest_asyncio.fixture
@@ -142,6 +142,7 @@ class ResponseHandler:
 
     def __call__(self, command: Command[T]) -> Any:
         key = command_to_key(command)
+
         if key not in self.responses:
             raise RuntimeError(
                 f"Error in mocked panda, command {command} was passed in, "
@@ -455,6 +456,73 @@ def multiple_seq_responses(table_field_info, table_data_1, table_data_2):
                 "SEQ": BlockInfo(number=2, description="SEQ Desc"),
             }
         ),
+        command_to_key(
+            Put(field="*METADATA.LABEL_SEQ1", value="SomeOtherSequenceMetadataLabel")
+        ): repeat("OK"),
+        command_to_key(Put(field="SEQ2.LABEL")): repeat(None),
+        # Changes are given at 10Hz, the changes provided are used for many
+        # different tests
+        command_to_key(GetChanges(group=ChangeGroup.ALL, get_multiline=True)): chain(
+            # Initial value of every field
+            changes_iterator_wrapper(
+                values={
+                    "*METADATA.LABEL_SEQ1": "SeqMetadataLabel",
+                    "*METADATA.LABEL_SEQ2": "SeqMetadataLabel",
+                },
+                multiline_values={
+                    "SEQ1.TABLE": table_data_1,
+                    "SEQ2.TABLE": table_data_2,
+                },
+            ),
+            # Keep the panda active with no changes until pytest tears it down
+            respond_with_no_changes(),
+        ),
+    }
+
+
+@pytest.fixture
+def no_numbered_suffix_to_metadata_responses(table_field_info, table_data_1):
+    """
+    Used to test if pandablocks will fail if the *METADATA.LABEL_X
+    doesn't have a suffixed number.
+    """
+    return {
+        command_to_key(
+            Put(
+                field="SEQ.TABLE",
+                value=[
+                    "2457862145",
+                    "4294967291",
+                    "100",
+                    "0",
+                    "1",
+                    "0",
+                    "0",
+                    "0",
+                    "4293918721",
+                    "0",
+                    "9",
+                    "9999",
+                    "2035875841",
+                    "444444",
+                    "5",
+                    "1",
+                    "3464232961",
+                    "4294967197",
+                    "99999",
+                    "2222",
+                ],
+            )
+        ): repeat(None),
+        # DRVL changing from 8e-06 ms to minutes
+        command_to_key(GetFieldInfo(block="SEQ", extended_metadata=True)): repeat(
+            {"TABLE": table_field_info}
+        ),
+        command_to_key(GetBlockInfo(skip_description=False)): repeat(
+            {
+                "SEQ": BlockInfo(number=1, description="SEQ Desc"),
+            }
+        ),
         # Changes are given at 10Hz, the changes provided are used for many
         # different tests
         command_to_key(GetChanges(group=ChangeGroup.ALL, get_multiline=True)): chain(
@@ -464,8 +532,7 @@ def multiple_seq_responses(table_field_info, table_data_1, table_data_2):
                     "*METADATA.LABEL_SEQ": "SeqMetadataLabel",
                 },
                 multiline_values={
-                    "SEQ1.TABLE": table_data_1,
-                    "SEQ2.TABLE": table_data_2,
+                    "SEQ.TABLE": table_data_1,
                 },
             ),
             # Keep the panda active with no changes until pytest tears it down
@@ -561,6 +628,10 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
             }
         ),
         command_to_key(Put(field="PCAP.TRIG_EDGE", value="Falling")): repeat("OK"),
+        command_to_key(Put(field="PULSE.DELAY.UNITS", value="min")): repeat("OK"),
+        command_to_key(
+            Put(field="*METADATA.LABEL_PCAP1", value="SomeOtherPcapMetadataLabel")
+        ): repeat("OK"),
         command_to_key(Arm()): repeat("OK"),
         command_to_key(Disarm()): repeat("OK"),
         command_to_key(
@@ -644,7 +715,7 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
                     "PCAP.GATE": "CLOCK1.OUT",
                     "PCAP.GATE.DELAY": "1",
                     "PCAP.ARM": "0",
-                    "*METADATA.LABEL_PCAP": "PcapMetadataLabel",
+                    "*METADATA.LABEL_PCAP1": "PcapMetadataLabel",
                     "PULSE.DELAY": "100",
                     "PULSE.DELAY.UNITS": "ms",
                     "PULSE.DELAY.MIN": "8e-06",

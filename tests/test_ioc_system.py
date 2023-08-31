@@ -425,7 +425,78 @@ async def test_metadata_parses_into_multiple_pvs(
 
 
 async def test_metadata_parses_into_single_pv(mocked_panda_standard_responses):
+    (
+        tmp_path,
+        child_conn,
+        response_handler,
+        command_queue,
+    ) = mocked_panda_standard_responses
     pcap_label_metadata = await caget(
         TEST_PREFIX + ":PCAP:LABEL", datatype=DBR_CHAR_STR
     )
     assert pcap_label_metadata == "PcapMetadataLabel"
+
+    await caput(
+        TEST_PREFIX + ":PCAP:LABEL", "SomeOtherPcapMetadataLabel", datatype=DBR_CHAR_STR
+    )
+
+    pcap_label_metadata = await caget(
+        TEST_PREFIX + ":PCAP:LABEL", datatype=DBR_CHAR_STR
+    )
+    assert pcap_label_metadata == "SomeOtherPcapMetadataLabel"
+
+    # Check PCAP:LABEL goes to METADATA_LABEL_PCAP1
+    assert command_to_key(
+        Put(field="*METADATA.LABEL_PCAP1", value="SomeOtherPcapMetadataLabel")
+    ) in multiprocessing_queue_to_list(command_queue)
+
+
+async def test_metadata_parses_into_multiple_pvs_caput_single_pv(
+    mocked_panda_multiple_seq_responses,
+):
+    (
+        tmp_path,
+        child_conn,
+        response_handler,
+        command_queue,
+    ) = mocked_panda_multiple_seq_responses
+    seq_1_label_metadata = await caget(
+        TEST_PREFIX + ":SEQ1:LABEL", datatype=DBR_CHAR_STR, timeout=TIMEOUT
+    )
+    seq_2_label_metadata = await caget(
+        TEST_PREFIX + ":SEQ2:LABEL", datatype=DBR_CHAR_STR, timeout=TIMEOUT
+    )
+
+    assert seq_1_label_metadata == "SeqMetadataLabel"
+    assert seq_2_label_metadata == "SeqMetadataLabel"
+
+    await caput(
+        TEST_PREFIX + ":SEQ1:LABEL",
+        "SomeOtherSequenceMetadataLabel",
+        datatype=DBR_CHAR_STR,
+        timeout=TIMEOUT,
+    )
+
+    seq_1_label_metadata = await caget(
+        TEST_PREFIX + ":SEQ1:LABEL", datatype=DBR_CHAR_STR
+    )
+    seq_2_label_metadata = await caget(
+        TEST_PREFIX + ":SEQ2:LABEL", datatype=DBR_CHAR_STR
+    )
+
+    assert seq_1_label_metadata == "SomeOtherSequenceMetadataLabel"
+    assert seq_2_label_metadata == "SeqMetadataLabel"
+
+    assert command_to_key(
+        Put(field="*METADATA.LABEL_SEQ1", value="SomeOtherSequenceMetadataLabel")
+    ) in multiprocessing_queue_to_list(command_queue)
+
+
+async def test_not_including_number_in_metadata_throws_error(
+    no_numbered_suffix_to_metadata_responses,
+):
+    response_handler = ResponseHandler(no_numbered_suffix_to_metadata_responses)
+    mocked_client = MockedAsyncioClient(response_handler)
+
+    with pytest.raises(ValueError):
+        await introspect_panda(mocked_client)

@@ -25,27 +25,69 @@
     <transparent use_class="true">true</transparent>
     <horizontal_alignment>1</horizontal_alignment>
   </widget>
-  <widget type="label" version="2.0.0">
-    <name>Label</name>
-    <text>PCAP: LABEL</text>
-    <x>23</x>
+  <widget type="group" version="2.0.0">
+    <name>INPUTS</name>
+    <x>5</x>
     <y>30</y>
-    <width>250</width>
-    <height>20</height>
-  </widget>
-  <widget type="textentry" version="3.0.0">
-    <name>TextEntry</name>
-    <pv_name>TEST-PREFIX:PCAP:LABEL</pv_name>
-    <x>278</x>
-    <y>30</y>
-    <width>60</width>
-    <height>20</height>
-    <horizontal_alignment>1</horizontal_alignment>
+    <width>351</width>
+    <height>106</height>
+    <transparent>true</transparent>
+    <widget type="label" version="2.0.0">
+      <name>Label</name>
+      <text>PCAP: LABEL</text>
+      <x>0</x>
+      <y>0</y>
+      <width>250</width>
+      <height>20</height>
+    </widget>
+    <widget type="textentry" version="3.0.0">
+      <name>TextEntry</name>
+      <pv_name>TEST-PREFIX:PCAP:LABEL</pv_name>
+      <x>255</x>
+      <y>0</y>
+      <width>60</width>
+      <height>20</height>
+      <horizontal_alignment>1</horizontal_alignment>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label</name>
+      <text>PCAP: GATE</text>
+      <x>0</x>
+      <y>25</y>
+      <width>250</width>
+      <height>20</height>
+    </widget>
+    <widget type="textentry" version="3.0.0">
+      <name>TextEntry</name>
+      <pv_name>TEST-PREFIX:PCAP:GATE</pv_name>
+      <x>255</x>
+      <y>25</y>
+      <width>60</width>
+      <height>20</height>
+      <horizontal_alignment>1</horizontal_alignment>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label</name>
+      <text>PCAP: GATE: DELAY</text>
+      <x>0</x>
+      <y>50</y>
+      <width>250</width>
+      <height>20</height>
+    </widget>
+    <widget type="textentry" version="3.0.0">
+      <name>TextEntry</name>
+      <pv_name>TEST-PREFIX:PCAP:GATE:DELAY</pv_name>
+      <x>255</x>
+      <y>50</y>
+      <width>60</width>
+      <height>20</height>
+      <horizontal_alignment>1</horizontal_alignment>
+    </widget>
   </widget>
   <widget type="group" version="2.0.0">
     <name>PARAMETERS</name>
     <x>5</x>
-    <y>55</y>
+    <y>141</y>
     <width>351</width>
     <height>56</height>
     <transparent>true</transparent>
@@ -64,48 +106,6 @@
       <y>0</y>
       <width>60</width>
       <height>20</height>
-    </widget>
-  </widget>
-  <widget type="group" version="2.0.0">
-    <name>INPUTS</name>
-    <x>5</x>
-    <y>116</y>
-    <width>351</width>
-    <height>81</height>
-    <transparent>true</transparent>
-    <widget type="label" version="2.0.0">
-      <name>Label</name>
-      <text>PCAP: GATE</text>
-      <x>0</x>
-      <y>0</y>
-      <width>250</width>
-      <height>20</height>
-    </widget>
-    <widget type="textentry" version="3.0.0">
-      <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:PCAP:GATE</pv_name>
-      <x>255</x>
-      <y>0</y>
-      <width>60</width>
-      <height>20</height>
-      <horizontal_alignment>1</horizontal_alignment>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <name>Label</name>
-      <text>PCAP: GATE: DELAY</text>
-      <x>0</x>
-      <y>25</y>
-      <width>250</width>
-      <height>20</height>
-    </widget>
-    <widget type="textentry" version="3.0.0">
-      <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:PCAP:GATE:DELAY</pv_name>
-      <x>255</x>
-      <y>25</y>
-      <width>60</width>
-      <height>20</height>
-      <horizontal_alignment>1</horizontal_alignment>
     </widget>
   </widget>
 </display>

@@ -785,10 +785,12 @@ async def test_update_on_error_marks_record(caplog):
     all_records = {EpicsName("ABC:DEF"): record_info}
     poll_period = 0.1
     all_values_dict = {}
+    block_info = {}
 
     try:
         await asyncio.wait_for(
-            update(client, all_records, poll_period, all_values_dict), timeout=0.3
+            update(client, all_records, poll_period, all_values_dict, block_info),
+            timeout=0.3,
         )
     except asyncio.TimeoutError:
         pass
@@ -819,10 +821,12 @@ async def test_update_toggles_bit_field():
     all_records = {EpicsName("ABC:DEF"): record_info}
     poll_period = 0.1
     all_values_dict = {}
+    block_info = {}
 
     try:
         await asyncio.wait_for(
-            update(client, all_records, poll_period, all_values_dict), timeout=0.5
+            update(client, all_records, poll_period, all_values_dict, block_info),
+            timeout=0.5,
         )
     except asyncio.TimeoutError:
         pass

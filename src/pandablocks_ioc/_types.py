@@ -37,7 +37,18 @@ def epics_to_panda_name(field_name: EpicsName) -> PandAName:
 def device_and_record_to_panda_name(field_name: EpicsName) -> PandAName:
     """Convert an EPICS naming convention (including Device prefix) to PandA
     convention."""
-    _, record_name = field_name.split(":", maxsplit=1)
+
+    if field_name.endswith(":LABEL"):
+        # Device is a metadata_label field
+
+        block_name = field_name.split(":")[-2]
+        if not block_name[-1].isdigit():
+            block_name += "1"
+
+        record_name = f"*METADATA.LABEL_{block_name}"
+    else:
+        _, record_name = field_name.split(":", maxsplit=1)
+
     return epics_to_panda_name(EpicsName(record_name))
 
 
