@@ -96,7 +96,7 @@ async def _create_softioc(
     except OSError:
         logging.exception("Unable to connect to PandA")
         raise
-    (all_records, all_values_dict, panda_dict) = await create_records(
+    (all_records, all_values_dict, block_info_dict) = await create_records(
         client, dispatcher, record_prefix
     )
 
@@ -105,7 +105,7 @@ async def _create_softioc(
         raise RuntimeError("Unexpected state - softioc task already exists")
 
     create_softioc_task = asyncio.create_task(
-        update(client, all_records, 0.1, all_values_dict, panda_dict)
+        update(client, all_records, 0.1, all_values_dict, block_info_dict)
     )
 
     create_softioc_task.add_done_callback(_when_finished)
@@ -189,13 +189,13 @@ async def introspect_panda(
 
 
 def _create_dicts_from_changes(
-    changes: Changes, block_info: Dict[str, BlockInfo]
+    changes: Changes, block_info_dict: Dict[str, BlockInfo]
 ) -> Tuple[Dict[str, Dict[EpicsName, RecordValue]], Dict[EpicsName, RecordValue]]:
     """Take the `Changes` object and convert it into two dictionaries.
 
     Args:
         changes: The `Changes` object as returned by `GetChanges`
-        block_info: Information from the initial `GetBlockInfo` request,
+        block_info_dict: Information from the initial `GetBlockInfo` request,
             used to check the `number` of blocks for parsing metadata
 
     Returns:
@@ -1696,7 +1696,7 @@ class IocRecordFactory:
 
             # The record uses the default _RecordUpdater.update to update the value
             # on the panda
-            record_dict[key] = self._create_record_info(
+            record_dict[EpicsName(key)] = self._create_record_info(
                 key,
                 None,
                 builder.longStringOut,
@@ -1748,7 +1748,7 @@ async def create_records(
         EpicsName,
         RecordValue,
     ],
-    Dict[str, _BlockAndFieldInfo],
+    Dict[str, BlockInfo],
 ]:
     """Query the PandA and create the relevant records based on the information
     returned"""
@@ -1823,7 +1823,8 @@ async def create_records(
 
     record_factory.initialise(dispatcher)
 
-    return (all_records, all_values_dict, panda_dict)
+    block_info_dict = {key: value.block_info for key, value in panda_dict.items()}
+    return (all_records, all_values_dict, block_info_dict)
 
 
 async def update(
@@ -1831,7 +1832,7 @@ async def update(
     all_records: Dict[EpicsName, RecordInfo],
     poll_period: float,
     all_values_dict: Dict[EpicsName, RecordValue],
-    block_info: Dict[str, BlockInfo],
+    block_info_dict: Dict[str, BlockInfo],
 ):
     """Query the PandA at regular intervals for any changed fields, and update
     the records accordingly
@@ -1874,7 +1875,9 @@ async def update(
             # Clear any alarm state as we've received a new update from PandA
             set_all_records_severity(all_records, alarm.NO_ALARM, alarm.UDF_ALARM)
 
-            _, new_all_values_dict = _create_dicts_from_changes(changes, block_info)
+            _, new_all_values_dict = _create_dicts_from_changes(
+                changes, block_info_dict
+            )
 
             # Apply the new values to the existing dict, so various updater classes
             # will have access to the latest values.
