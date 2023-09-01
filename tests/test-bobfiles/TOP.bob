@@ -3,7 +3,7 @@
   <x>0</x>
   <y>0</y>
   <width>278</width>
-  <height>105</height>
+  <height>130</height>
   <grid_step_x>4</grid_step_x>
   <grid_step_y>4</grid_step_y>
   <widget type="label" version="2.0.0">
@@ -35,7 +35,7 @@
   </widget>
   <widget type="label" version="2.0.0">
     <name>Label</name>
-    <text>SEQ: PVI</text>
+    <text>HDF5: PVI</text>
     <x>23</x>
     <y>55</y>
     <width>250</width>
@@ -43,9 +43,17 @@
   </widget>
   <widget type="label" version="2.0.0">
     <name>Label</name>
-    <text>PULSE: PVI</text>
+    <text>SEQ: PVI</text>
     <x>23</x>
     <y>80</y>
+    <width>250</width>
+    <height>20</height>
+  </widget>
+  <widget type="label" version="2.0.0">
+    <name>Label</name>
+    <text>PULSE: PVI</text>
+    <x>23</x>
+    <y>105</y>
     <width>250</width>
     <height>20</height>
   </widget>
