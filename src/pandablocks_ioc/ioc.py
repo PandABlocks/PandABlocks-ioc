@@ -1402,8 +1402,8 @@ class IocRecordFactory:
             builder.Action,
             int,  # not bool, as that'll treat string "0" as true
             PviGroup.OUTPUTS,  # TODO: Not sure what group to use
-            ZNAM=ZNAM_STR,
-            ONAM=ONAM_STR,
+            ZNAM="",
+            ONAM="",
             on_update=lambda v: updater.update(v),
         )
 
@@ -1707,12 +1707,17 @@ class IocRecordFactory:
         if block == "PCAP":
             # TODO: Need to add PVI Info here. Just use create_record_info?
             # And why isn't this record in the record_dict?
-            builder.Action(
+
+            pcap_arm_record = builder.Action(
                 "PCAP:ARM",
-                ZNAM=ZNAM_STR,
-                ONAM=ONAM_STR,
+                ZNAM="Disarm",
+                ONAM="Arm",
                 on_update=self._arm_on_update,
                 DESC="Arm/Disarm the PandA",
+            )
+
+            add_pvi_info(
+                PviGroup.INPUTS, pcap_arm_record, EpicsName("PCAP:ARM"), builder.Action
             )
 
             HDF5RecordController(self._client, self._record_prefix)

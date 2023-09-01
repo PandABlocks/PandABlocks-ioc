@@ -7,6 +7,8 @@ from typing import Callable, Dict, List
 from epicsdbbuilder import RecordName
 from pvi._format.dls import DLSFormatter
 from pvi.device import (
+    LED,
+    ButtonPanel,
     ComboBox,
     Component,
     Device,
@@ -61,9 +63,16 @@ def add_pvi_info(
     useComboBox: bool = record_creation_func == builder.mbbOut
 
     if record_creation_func == builder.Action:
-        # TODO: What value do I write? PandA uses an empty string
-        component = SignalX(record_name, record_name, value="")
-        access = "x"
+        if record_name == "PCAP:ARM":
+            component = SignalRW(
+                record_name, record_name, widget=ButtonPanel(), read_widget=LED()
+            )
+            access = "rw"
+
+        else:
+            # TODO: What value do I write? PandA uses an empty string
+            component = SignalX(record_name, record_name, value="")
+            access = "x"
     elif writeable:
         if useComboBox:
             widget = ComboBox()
