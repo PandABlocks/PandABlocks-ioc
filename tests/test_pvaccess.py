@@ -2,7 +2,6 @@ import collections
 from typing import OrderedDict
 
 import numpy
-import pytest
 from fixtures.mocked_panda import TEST_PREFIX
 from numpy import ndarray
 from p4p import Value
@@ -11,7 +10,6 @@ from p4p.client.thread import Context
 from pandablocks_ioc._types import EpicsName
 
 
-@pytest.mark.asyncio
 async def test_table_column_info(
     mocked_panda_standard_responses,
     table_unpacked_data: OrderedDict[EpicsName, ndarray],
@@ -21,7 +19,7 @@ async def test_table_column_info(
 
     ctxt = Context("pva", nt=False)
 
-    table_value: Value = ctxt.get(TEST_PREFIX + ":SEQ1:TABLE")
+    table_value: Value = ctxt.get(TEST_PREFIX + ":SEQ:TABLE")
 
     for (actual_name, actual_value), (expected_name, expected_value) in zip(
         table_value.todict(wrapper=collections.OrderedDict)["value"].items(),

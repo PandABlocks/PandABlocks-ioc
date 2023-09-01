@@ -95,7 +95,7 @@ async def _create_softioc(
     except OSError:
         logging.exception("Unable to connect to PandA")
         raise
-    (all_records, all_values_dict) = await create_records(
+    (all_records, all_values_dict, block_info_dict) = await create_records(
         client, dispatcher, record_prefix
     )
 
@@ -104,7 +104,7 @@ async def _create_softioc(
         raise RuntimeError("Unexpected state - softioc task already exists")
 
     create_softioc_task = asyncio.create_task(
-        update(client, all_records, 0.1, all_values_dict)
+        update(client, all_records, 0.1, all_values_dict, block_info_dict)
     )
 
     create_softioc_task.add_done_callback(_when_finished)
@@ -142,28 +142,6 @@ def create_softioc(client: AsyncioClient, record_prefix: str, screens_dir: str) 
             asyncio.run_coroutine_threadsafe(client.close(), dispatcher.loop).result()
 
 
-def _ensure_block_number_present(block_and_field_name: str) -> str:
-    """Ensure that the block instance number is always present on the end of the block
-    name. If it is not present, add "1" to it.
-
-    This works as PandA alias's the <1> suffix if there is only a single instance of a
-    block
-
-    Args:
-        block_and_field_name: A string containing the block and the field name,
-        e.g. "SYSTEM.TEMP_ZYNQ", or "INENC2.CLK". Must be in PandA format.
-
-    Returns:
-        str: The block and field name which will have an instance number.
-        e.g. "SYSTEM1.TEMP_ZYNQ", or "INENC2.CLK".
-    """
-    block_name_number, field_name = block_and_field_name.split(".", maxsplit=1)
-    if not block_name_number[-1].isdigit():
-        block_name_number += "1"
-
-    return f"{block_name_number}.{field_name}"
-
-
 async def introspect_panda(
     client: AsyncioClient,
 ) -> Tuple[Dict[str, _BlockAndFieldInfo], Dict[EpicsName, RecordValue]]:
@@ -183,6 +161,10 @@ async def introspect_panda(
 
     block_dict = await client.send(GetBlockInfo())
 
+    for block in block_dict.keys():
+        if block[-1].isdigit():
+            raise ValueError(f"Block name '{block}' contains a trailing number")
+
     # Concurrently request info for all fields of all blocks
     # Note order of requests is important as it is unpacked by index below
     returned_infos = await asyncio.gather(
@@ -194,7 +176,7 @@ async def introspect_panda(
 
     changes: Changes = returned_infos[-1]
 
-    values, all_values_dict = _create_dicts_from_changes(changes)
+    values, all_values_dict = _create_dicts_from_changes(changes, block_dict)
 
     panda_dict = {}
     for (block_name, block_info), field_info in zip(block_dict.items(), field_infos):
@@ -206,12 +188,14 @@ async def introspect_panda(
 
 
 def _create_dicts_from_changes(
-    changes: Changes,
+    changes: Changes, block_info_dict: Dict[str, BlockInfo]
 ) -> Tuple[Dict[str, Dict[EpicsName, RecordValue]], Dict[EpicsName, RecordValue]]:
     """Take the `Changes` object and convert it into two dictionaries.
 
     Args:
         changes: The `Changes` object as returned by `GetChanges`
+        block_info_dict: Information from the initial `GetBlockInfo` request,
+            used to check the `number` of blocks for parsing metadata
 
     Returns:
         Tuple of:
@@ -232,15 +216,34 @@ def _create_dicts_from_changes(
 
         block_name_number, field_name = block_and_field_name.split(".", maxsplit=1)
 
-        block_and_field_name = _ensure_block_number_present(block_and_field_name)
-
         # Parse *METADATA.LABEL_<block><num> into "<block>" key and
         # "<block><num>:LABEL" value
         if block_name_number.startswith("*METADATA") and field_name.startswith(
             "LABEL_"
         ):
             _, block_name_number = field_name.split("_", maxsplit=1)
-            block_and_field_name = EpicsName(block_name_number + ":LABEL")
+            if block_name_number in block_info_dict:
+                number_of_blocks = block_info_dict[block_name_number].number
+            else:
+                number_of_blocks = block_info_dict[block_name_number[:-1]].number
+
+            # The block is fixed with metadata
+            #     "*METADATA.LABEL_SEQ2": "NewSeqMetadataLabel",
+            if not block_name_number[-1].isdigit():
+                raise ValueError(
+                    f"Recieved metadata for a block name {block_name_number} that "
+                    "didn't contain a number"
+                )
+            if number_of_blocks == 1:
+                if block_name_number[-1] != "1" or block_name_number[-2].isdigit():
+                    raise ValueError(
+                        f"Recieved metadata '*METADATA.LABEL_{block_name_number}', "
+                        "this should have a single '1' on the end"
+                    )
+                block_and_field_name = EpicsName(block_name_number[:-1] + ":LABEL")
+            else:
+                block_and_field_name = EpicsName(block_name_number + ":LABEL")
+
         else:
             block_and_field_name = panda_to_epics_name(PandAName(block_and_field_name))
 
@@ -253,6 +256,7 @@ def _create_dicts_from_changes(
                 f"Duplicate values for {block_and_field_name} detected."
                 " Overriding existing value."
             )
+        block_and_field_name = EpicsName(block_and_field_name)
         values[block_name][block_and_field_name] = value
 
     # Create a dict which maps block name to all values for all instances
@@ -316,11 +320,13 @@ class _RecordUpdater:
                 # differentiate between ints and floats - some PandA fields will not
                 # accept the wrong number format.
                 val = str(self.record_info.data_type_func(new_val))
+
             else:
                 # value is None - expected for action-write fields
                 val = new_val
 
             panda_field = device_and_record_to_panda_name(self.record_info.record.name)
+
             await self.client.send(Put(panda_field, val))
 
             self.record_info._pending_change = True
@@ -991,7 +997,6 @@ class IocRecordFactory:
             if label == "":
                 # Some rows are empty. Do not create records.
                 continue
-            label = _ensure_block_number_present(label)
             link = self._record_prefix + ":" + label.replace(".", ":") + " CP"
             enumerated_bits_prefix = f"BITS:{offset + i}"
             builder.records.bi(
@@ -1671,7 +1676,11 @@ class IocRecordFactory:
             logging.exception("Failure arming/disarming PandA")
 
     def create_block_records(
-        self, block: str, block_info: BlockInfo, block_values: Dict[EpicsName, str]
+        self,
+        block: str,
+        block_info: BlockInfo,
+        block_values: Dict[EpicsName, str],
+        default_longStringOut_length=256,
     ) -> Dict[EpicsName, RecordInfo]:
         """Create the block-level records, and any other one-off block initialisation
         required."""
@@ -1683,12 +1692,15 @@ class IocRecordFactory:
             if (value == "" or value is None) and block_info.description:
                 value = block_info.description
 
-            record_dict[key] = self._create_record_info(
+            # The record uses the default _RecordUpdater.update to update the value
+            # on the panda
+            record_dict[EpicsName(key)] = self._create_record_info(
                 key,
                 None,
-                builder.longStringIn,
+                builder.longStringOut,
                 str,
-                PviGroup.NONE,
+                PviGroup.INPUTS,
+                length=default_longStringOut_length,
                 initial_value=value,
             )
 
@@ -1723,7 +1735,14 @@ async def create_records(
     client: AsyncioClient,
     dispatcher: asyncio_dispatcher.AsyncioDispatcher,
     record_prefix: str,
-) -> Tuple[Dict[EpicsName, RecordInfo], Dict[EpicsName, RecordValue]]:
+) -> Tuple[
+    Dict[EpicsName, RecordInfo],
+    Dict[
+        EpicsName,
+        RecordValue,
+    ],
+    Dict[str, BlockInfo],
+]:
     """Query the PandA and create the relevant records based on the information
     returned"""
 
@@ -1735,16 +1754,18 @@ async def create_records(
     record_factory = IocRecordFactory(client, record_prefix, all_values_dict)
 
     # For each field in each block, create block_num records of each field
+
     for block, panda_info in panda_dict.items():
         block_info = panda_info.block_info
         values = panda_info.values
 
-        # Create block-level records
         block_vals = {
             key: value
             for key, value in values.items()
             if key.endswith(":LABEL") and isinstance(value, str)
         }
+
+        # Create block-level records
         block_records = record_factory.create_block_records(
             block, block_info, block_vals
         )
@@ -1754,11 +1775,14 @@ async def create_records(
                 raise Exception(f"Duplicate record name {new_record} detected.")
 
         for block_num in range(block_info.number):
-            for field, field_info in panda_info.fields.items():
-                # For consistency in this module, always suffix the block with its
-                # number. This means all records will have the block number.
-                suffixed_block = block + str(block_num + 1)
+            # Add a suffix if there are multiple of a block e.g:
+            # "SEQ:TABLE" -> "SEQ3:TABLE"
+            # Block numbers are indexed from 1
+            suffixed_block = block
+            if block_info.number > 1:
+                suffixed_block += str(block_num + 1)
 
+            for field, field_info in panda_info.fields.items():
                 # ":" separator for EPICS Record names, unlike PandA's "."
                 record_name = EpicsName(suffixed_block + ":" + field)
 
@@ -1792,7 +1816,8 @@ async def create_records(
 
     record_factory.initialise(dispatcher)
 
-    return (all_records, all_values_dict)
+    block_info_dict = {key: value.block_info for key, value in panda_dict.items()}
+    return (all_records, all_values_dict, block_info_dict)
 
 
 async def update(
@@ -1800,6 +1825,7 @@ async def update(
     all_records: Dict[EpicsName, RecordInfo],
     poll_period: float,
     all_values_dict: Dict[EpicsName, RecordValue],
+    block_info_dict: Dict[str, BlockInfo],
 ):
     """Query the PandA at regular intervals for any changed fields, and update
     the records accordingly
@@ -1811,7 +1837,9 @@ async def update(
         poll_period: The wait time, in seconds, before the next GetChanges is called.
         all_values_dict: The dictionary containing the most recent value of all records
             as returned from GetChanges. This method will update values in the dict,
-            which will be read and used in other places"""
+            which will be read and used in other places
+        block_info: information recieved from the last `GetBlockInfo`, keys are block
+            names"""
 
     fields_to_reset: List[Tuple[RecordWrapper, Any]] = []
 
@@ -1840,7 +1868,9 @@ async def update(
             # Clear any alarm state as we've received a new update from PandA
             set_all_records_severity(all_records, alarm.NO_ALARM, alarm.UDF_ALARM)
 
-            _, new_all_values_dict = _create_dicts_from_changes(changes)
+            _, new_all_values_dict = _create_dicts_from_changes(
+                changes, block_info_dict
+            )
 
             # Apply the new values to the existing dict, so various updater classes
             # will have access to the latest values.
@@ -1849,7 +1879,6 @@ async def update(
             all_values_dict.update(new_all_values_dict)
 
             for field in changes.in_error:
-                field = _ensure_block_number_present(field)
                 field = PandAName(field)
                 field = panda_to_epics_name(field)
 
@@ -1870,7 +1899,6 @@ async def update(
                     )
 
             for field, value in changes.values.items():
-                field = _ensure_block_number_present(field)
                 field = PandAName(field)
                 field = panda_to_epics_name(field)
 
@@ -1927,7 +1955,6 @@ async def update(
                     logging.exception(
                         f"Exception setting record {record.name} to new value {value}"
                     )
-
             for table_field, value_list in changes.multiline_values.items():
                 table_field = PandAName(table_field)
                 table_field = panda_to_epics_name(table_field)

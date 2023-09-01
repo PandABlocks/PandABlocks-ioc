@@ -1,0 +1,69 @@
+<display version="2.0.0">
+  <name>Display</name>
+  <x>0</x>
+  <y>0</y>
+  <width>361</width>
+  <height>116</height>
+  <grid_step_x>4</grid_step_x>
+  <grid_step_y>4</grid_step_y>
+  <widget type="label" version="2.0.0">
+    <name>Title</name>
+    <class>TITLE</class>
+    <text>PULSE - TEST-PREFIX:</text>
+    <x use_class="true">0</x>
+    <y use_class="true">0</y>
+    <width>361</width>
+    <height>25</height>
+    <font use_class="true">
+      <font name="Header 1" family="Liberation Sans" style="BOLD" size="22.0">
+      </font>
+    </font>
+    <foreground_color use_class="true">
+      <color name="Text" red="0" green="0" blue="0">
+      </color>
+    </foreground_color>
+    <transparent use_class="true">true</transparent>
+    <horizontal_alignment>1</horizontal_alignment>
+  </widget>
+  <widget type="group" version="2.0.0">
+    <name>PARAMETERS</name>
+    <x>5</x>
+    <y>30</y>
+    <width>351</width>
+    <height>81</height>
+    <transparent>true</transparent>
+    <widget type="label" version="2.0.0">
+      <name>Label</name>
+      <text>PULSE: DELAY</text>
+      <x>0</x>
+      <y>0</y>
+      <width>250</width>
+      <height>20</height>
+    </widget>
+    <widget type="textentry" version="3.0.0">
+      <name>TextEntry</name>
+      <pv_name>TEST-PREFIX:PULSE:DELAY</pv_name>
+      <x>255</x>
+      <y>0</y>
+      <width>60</width>
+      <height>20</height>
+      <horizontal_alignment>1</horizontal_alignment>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label</name>
+      <text>PULSE: DELAY: UNITS</text>
+      <x>0</x>
+      <y>25</y>
+      <width>250</width>
+      <height>20</height>
+    </widget>
+    <widget type="combo" version="2.0.0">
+      <name>ComboBox</name>
+      <pv_name>TEST-PREFIX:PULSE:DELAY:UNITS</pv_name>
+      <x>255</x>
+      <y>25</y>
+      <width>60</width>
+      <height>20</height>
+    </widget>
+  </widget>
+</display>

@@ -6,7 +6,7 @@ from typing import List, OrderedDict
 
 import numpy
 import pytest
-from aioca import caget, camonitor, caput
+from aioca import DBR_CHAR_STR, CANothing, caget, camonitor, caput
 from fixtures.mocked_panda import (
     BOBFILE_DIR,
     TEST_PREFIX,
@@ -25,18 +25,13 @@ from pandablocks.responses import (
 )
 
 from pandablocks_ioc._types import EpicsName
-from pandablocks_ioc.ioc import (
-    _BlockAndFieldInfo,
-    _ensure_block_number_present,
-    introspect_panda,
-)
+from pandablocks_ioc.ioc import _BlockAndFieldInfo, introspect_panda
 
 # Test file for all tests that require a full setup system, with an IOC running in one
 # process, a MockedServer in another, and the test in the main thread accessing data
 # using Channel Access
 
 
-@pytest.mark.asyncio
 async def test_introspect_panda(
     standard_responses,
     table_field_info: TableFieldInfo,
@@ -63,11 +58,11 @@ async def test_introspect_panda(
             ),
         },
         values={
-            EpicsName("PCAP1:TRIG_EDGE"): "Falling",
-            EpicsName("PCAP1:GATE"): "CLOCK1.OUT",
-            EpicsName("PCAP1:GATE:DELAY"): "1",
-            EpicsName("PCAP1:LABEL"): "PcapMetadataLabel",
-            EpicsName("PCAP1:ARM"): "0",
+            EpicsName("PCAP:TRIG_EDGE"): "Falling",
+            EpicsName("PCAP:GATE"): "CLOCK1.OUT",
+            EpicsName("PCAP:GATE:DELAY"): "1",
+            EpicsName("PCAP:LABEL"): "PcapMetadataLabel",
+            EpicsName("PCAP:ARM"): "0",
         },
     )
 
@@ -76,23 +71,22 @@ async def test_introspect_panda(
         fields={
             "TABLE": table_field_info,
         },
-        values={EpicsName("SEQ1:TABLE"): table_data_1},
+        values={EpicsName("SEQ:TABLE"): table_data_1},
     )
 
     assert all_values_dict == {
-        "PCAP1:TRIG_EDGE": "Falling",
-        "PCAP1:GATE": "CLOCK1.OUT",
-        "PCAP1:GATE:DELAY": "1",
-        "PCAP1:LABEL": "PcapMetadataLabel",
-        "PULSE1:DELAY": "100",
-        "PCAP1:ARM": "0",
-        "PULSE1:DELAY:MIN": "8e-06",
-        "PULSE1:DELAY:UNITS": "ms",
-        "SEQ1:TABLE": table_data_1,
+        "PCAP:TRIG_EDGE": "Falling",
+        "PCAP:GATE": "CLOCK1.OUT",
+        "PCAP:GATE:DELAY": "1",
+        "PCAP:LABEL": "PcapMetadataLabel",
+        "PULSE:DELAY": "100",
+        "PCAP:ARM": "0",
+        "PULSE:DELAY:MIN": "8e-06",
+        "PULSE:DELAY:UNITS": "ms",
+        "SEQ:TABLE": table_data_1,
     }
 
 
-@pytest.mark.asyncio
 async def test_create_softioc_system(
     mocked_panda_standard_responses,
     table_unpacked_data: OrderedDict[EpicsName, ndarray],
@@ -102,21 +96,20 @@ async def test_create_softioc_system(
     values."""
     # Check table fields
     for field_name, expected_array in table_unpacked_data.items():
-        actual_array = await caget(TEST_PREFIX + ":SEQ1:TABLE:" + field_name)
+        actual_array = await caget(TEST_PREFIX + ":SEQ:TABLE:" + field_name)
         assert numpy.array_equal(actual_array, expected_array)
 
-    assert await caget(TEST_PREFIX + ":PCAP1:TRIG_EDGE") == 1  # == Falling
-    assert await caget(TEST_PREFIX + ":PCAP1:GATE") == "CLOCK1.OUT"
-    assert await caget(TEST_PREFIX + ":PCAP1:GATE:DELAY") == 1
+    assert await caget(TEST_PREFIX + ":PCAP:TRIG_EDGE") == 1  # == Falling
+    assert await caget(TEST_PREFIX + ":PCAP:GATE") == "CLOCK1.OUT"
+    assert await caget(TEST_PREFIX + ":PCAP:GATE:DELAY") == 1
 
-    pcap1_label = await caget(TEST_PREFIX + ":PCAP1:LABEL")
+    pcap1_label = await caget(TEST_PREFIX + ":PCAP:LABEL")
     assert numpy.array_equal(
         pcap1_label,
         numpy.array(list("PcapMetadataLabel".encode() + b"\0"), dtype=numpy.uint8),
     )
 
 
-@pytest.mark.asyncio
 async def test_create_softioc_update(
     mocked_panda_standard_responses,
 ):
@@ -126,7 +119,7 @@ async def test_create_softioc_update(
     try:
         # Set up a monitor to wait for the expected change
         capturing_queue = asyncio.Queue()
-        monitor = camonitor(TEST_PREFIX + ":PCAP1:TRIG_EDGE", capturing_queue.put)
+        monitor = camonitor(TEST_PREFIX + ":PCAP:TRIG_EDGE", capturing_queue.put)
 
         curr_val = await asyncio.wait_for(capturing_queue.get(), TIMEOUT)
         # First response is the current value
@@ -140,8 +133,18 @@ async def test_create_softioc_update(
         monitor.close()
 
 
+async def test_including_number_in_block_names_throws_error(
+    faulty_multiple_pcap_responses,
+):
+    response_handler = ResponseHandler(faulty_multiple_pcap_responses)
+    mocked_client = MockedAsyncioClient(response_handler)
+
+    with pytest.raises(ValueError):
+        await introspect_panda(mocked_client)
+
+
 # TODO: Enable this test once PythonSoftIOC issue #53 is resolved
-# @pytest.mark.asyncio
+#
 # async def test_create_softioc_update_in_error(
 #     mocked_server_system,
 #     subprocess_ioc,
@@ -181,12 +184,6 @@ async def test_create_softioc_update(
 #         purge_channel_caches()
 
 
-def test_ensure_block_number_present():
-    assert _ensure_block_number_present("ABC.DEF.GHI") == "ABC1.DEF.GHI"
-    assert _ensure_block_number_present("JKL1.MNOP") == "JKL1.MNOP"
-
-
-@pytest.mark.asyncio
 async def test_create_softioc_time_panda_changes(mocked_panda_standard_responses):
     """Test that the UNITS and MIN values of a TIME field correctly reflect into EPICS
     records when the value changes on the PandA"""
@@ -196,20 +193,20 @@ async def test_create_softioc_time_panda_changes(mocked_panda_standard_responses
         # and check the initial values are correct
         egu_queue = asyncio.Queue()
         m1 = camonitor(
-            TEST_PREFIX + ":PULSE1:DELAY.EGU",
+            TEST_PREFIX + ":PULSE:DELAY.EGU",
             egu_queue.put,
         )
         assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "ms"
 
         units_queue = asyncio.Queue()
         m2 = camonitor(
-            TEST_PREFIX + ":PULSE1:DELAY:UNITS", units_queue.put, datatype=str
+            TEST_PREFIX + ":PULSE:DELAY:UNITS", units_queue.put, datatype=str
         )
         assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "ms"
 
         drvl_queue = asyncio.Queue()
         m3 = camonitor(
-            TEST_PREFIX + ":PULSE1:DELAY.DRVL",
+            TEST_PREFIX + ":PULSE:DELAY.DRVL",
             drvl_queue.put,
         )
         # The units value changes from ms to s in the test Client, which causes
@@ -225,7 +222,6 @@ async def test_create_softioc_time_panda_changes(mocked_panda_standard_responses
         m3.close()
 
 
-@pytest.mark.asyncio
 async def test_create_softioc_time_epics_changes(
     mocked_panda_standard_responses,
 ):
@@ -236,20 +232,20 @@ async def test_create_softioc_time_epics_changes(
         # and check the initial values are correct
         egu_queue = asyncio.Queue()
         m1 = camonitor(
-            TEST_PREFIX + ":PULSE1:DELAY.EGU",
+            TEST_PREFIX + ":PULSE:DELAY.EGU",
             egu_queue.put,
         )
         assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "ms"
 
         units_queue = asyncio.Queue()
         m2 = camonitor(
-            TEST_PREFIX + ":PULSE1:DELAY:UNITS", units_queue.put, datatype=str
+            TEST_PREFIX + ":PULSE:DELAY:UNITS", units_queue.put, datatype=str
         )
         assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "ms"
 
         drvl_queue = asyncio.Queue()
         m3 = camonitor(
-            TEST_PREFIX + ":PULSE1:DELAY.DRVL",
+            TEST_PREFIX + ":PULSE:DELAY.DRVL",
             drvl_queue.put,
         )
         assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 8e-06
@@ -260,7 +256,7 @@ async def test_create_softioc_time_epics_changes(
 
         # Change the UNITS to "min"
         assert await caput(
-            TEST_PREFIX + ":PULSE1:DELAY:UNITS", "min", wait=True, timeout=TIMEOUT
+            TEST_PREFIX + ":PULSE:DELAY:UNITS", "min", wait=True, timeout=TIMEOUT
         )
 
         assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "min"
@@ -273,7 +269,6 @@ async def test_create_softioc_time_epics_changes(
         m3.close()
 
 
-@pytest.mark.asyncio
 async def test_softioc_records_block(mocked_panda_standard_responses):
     """Test that the records created are blocking, and wait until they finish their
     on_update processing.
@@ -293,7 +288,6 @@ async def test_softioc_records_block(mocked_panda_standard_responses):
         m1.close()
 
 
-@pytest.mark.asyncio
 async def test_bobfiles_created(mocked_panda_standard_responses):
     bobfile_temp_dir, *_ = mocked_panda_standard_responses
     await asyncio.sleep(1)  # Wait for the files to be created
@@ -317,7 +311,6 @@ def multiprocessing_queue_to_list(queue: Queue):
     return list(iter(queue.get, None))
 
 
-@pytest.mark.asyncio
 async def test_create_softioc_record_update_send_to_panda(
     mocked_panda_standard_responses,
 ):
@@ -330,7 +323,7 @@ async def test_create_softioc_record_update_send_to_panda(
     ) = mocked_panda_standard_responses
     try:
         trig_queue = asyncio.Queue()
-        m1 = camonitor(TEST_PREFIX + ":PCAP1:TRIG_EDGE", trig_queue.put, datatype=str)
+        m1 = camonitor(TEST_PREFIX + ":PCAP:TRIG_EDGE", trig_queue.put, datatype=str)
 
         # Wait for all the dummy changes to finish
         assert await asyncio.wait_for(trig_queue.get(), TIMEOUT) == "Falling"
@@ -338,7 +331,7 @@ async def test_create_softioc_record_update_send_to_panda(
 
         # Verify the pv has been put to
         await caput(
-            TEST_PREFIX + ":PCAP1:TRIG_EDGE", "Falling", wait=True, timeout=TIMEOUT
+            TEST_PREFIX + ":PCAP:TRIG_EDGE", "Falling", wait=True, timeout=TIMEOUT
         )
         assert await asyncio.wait_for(trig_queue.get(), TIMEOUT) == "Falling"
     finally:
@@ -347,12 +340,11 @@ async def test_create_softioc_record_update_send_to_panda(
     # Check the panda recieved the translated command
     commands_recieved_by_panda = multiprocessing_queue_to_list(command_queue)
     assert (
-        command_to_key(Put(field="PCAP1.TRIG_EDGE", value="Falling"))
+        command_to_key(Put(field="PCAP.TRIG_EDGE", value="Falling"))
         in commands_recieved_by_panda
     )
 
 
-@pytest.mark.asyncio
 async def test_create_softioc_arm_disarm(
     mocked_panda_standard_responses,
 ):
@@ -383,3 +375,128 @@ async def test_create_softioc_arm_disarm(
     commands_recieved_by_panda = multiprocessing_queue_to_list(command_queue)
     assert command_to_key(Arm()) in commands_recieved_by_panda
     assert command_to_key(Disarm()) in commands_recieved_by_panda
+
+
+async def test_multiple_seq_pvs_are_numbered(
+    mocked_panda_multiple_seq_responses,
+):
+    """Tests that the mocked_panda_multiple_seq_responses with a number=2 in the
+    seq block gives you a SEQ1 and a SEQ2 PV once the ioc starts up, with
+    independent values. We also double check a SEQ PV isn't broadcasted."""
+
+    (
+        tmp_path,
+        child_conn,
+        response_handler,
+        command_queue,
+    ) = mocked_panda_multiple_seq_responses
+
+    seq_1_outd1 = await caget(TEST_PREFIX + ":SEQ1:TABLE:OUTD2")
+    seq_2_outd2 = await caget(TEST_PREFIX + ":SEQ2:TABLE:OUTD2")
+
+    assert numpy.array_equal(seq_1_outd1, [0, 0, 1])
+    assert numpy.array_equal(seq_2_outd2, [0, 0, 1, 1, 0])
+
+    with pytest.raises(CANothing):
+        await caget(TEST_PREFIX + ":SEQ:TABLE:OUTD2", timeout=1)
+
+
+async def test_metadata_parses_into_multiple_pvs(
+    mocked_panda_multiple_seq_responses,
+):
+    # If number=n where n!=1 for the block info of a block
+    # then the metadata described for the block needs to be
+    # put to each individual PV
+
+    seq_1_label_metadata = await caget(
+        TEST_PREFIX + ":SEQ1:LABEL", datatype=DBR_CHAR_STR
+    )
+    seq_2_label_metadata = await caget(
+        TEST_PREFIX + ":SEQ2:LABEL", datatype=DBR_CHAR_STR
+    )
+
+    assert seq_1_label_metadata == "SeqMetadataLabel"
+    assert seq_2_label_metadata == "SeqMetadataLabel"
+
+    # Make sure "*METADATA.LABEL_SEQ": "PcapMetadataLabel", doesn't
+    # get parsed into :SEQ:LABEL
+    with pytest.raises(CANothing):
+        await caget(TEST_PREFIX + ":SEQ:LABEL", timeout=1)
+
+
+async def test_metadata_parses_into_single_pv(mocked_panda_standard_responses):
+    (
+        tmp_path,
+        child_conn,
+        response_handler,
+        command_queue,
+    ) = mocked_panda_standard_responses
+    pcap_label_metadata = await caget(
+        TEST_PREFIX + ":PCAP:LABEL", datatype=DBR_CHAR_STR
+    )
+    assert pcap_label_metadata == "PcapMetadataLabel"
+
+    await caput(
+        TEST_PREFIX + ":PCAP:LABEL", "SomeOtherPcapMetadataLabel", datatype=DBR_CHAR_STR
+    )
+
+    pcap_label_metadata = await caget(
+        TEST_PREFIX + ":PCAP:LABEL", datatype=DBR_CHAR_STR
+    )
+    assert pcap_label_metadata == "SomeOtherPcapMetadataLabel"
+
+    # Check PCAP:LABEL goes to METADATA_LABEL_PCAP1
+    assert command_to_key(
+        Put(field="*METADATA.LABEL_PCAP1", value="SomeOtherPcapMetadataLabel")
+    ) in multiprocessing_queue_to_list(command_queue)
+
+
+async def test_metadata_parses_into_multiple_pvs_caput_single_pv(
+    mocked_panda_multiple_seq_responses,
+):
+    (
+        tmp_path,
+        child_conn,
+        response_handler,
+        command_queue,
+    ) = mocked_panda_multiple_seq_responses
+    seq_1_label_metadata = await caget(
+        TEST_PREFIX + ":SEQ1:LABEL", datatype=DBR_CHAR_STR, timeout=TIMEOUT
+    )
+    seq_2_label_metadata = await caget(
+        TEST_PREFIX + ":SEQ2:LABEL", datatype=DBR_CHAR_STR, timeout=TIMEOUT
+    )
+
+    assert seq_1_label_metadata == "SeqMetadataLabel"
+    assert seq_2_label_metadata == "SeqMetadataLabel"
+
+    await caput(
+        TEST_PREFIX + ":SEQ1:LABEL",
+        "SomeOtherSequenceMetadataLabel",
+        datatype=DBR_CHAR_STR,
+        timeout=TIMEOUT,
+    )
+
+    seq_1_label_metadata = await caget(
+        TEST_PREFIX + ":SEQ1:LABEL", datatype=DBR_CHAR_STR
+    )
+    seq_2_label_metadata = await caget(
+        TEST_PREFIX + ":SEQ2:LABEL", datatype=DBR_CHAR_STR
+    )
+
+    assert seq_1_label_metadata == "SomeOtherSequenceMetadataLabel"
+    assert seq_2_label_metadata == "SeqMetadataLabel"
+
+    assert command_to_key(
+        Put(field="*METADATA.LABEL_SEQ1", value="SomeOtherSequenceMetadataLabel")
+    ) in multiprocessing_queue_to_list(command_queue)
+
+
+async def test_not_including_number_in_metadata_throws_error(
+    no_numbered_suffix_to_metadata_responses,
+):
+    response_handler = ResponseHandler(no_numbered_suffix_to_metadata_responses)
+    mocked_client = MockedAsyncioClient(response_handler)
+
+    with pytest.raises(ValueError):
+        await introspect_panda(mocked_client)

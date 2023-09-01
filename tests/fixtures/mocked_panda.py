@@ -49,7 +49,7 @@ T = TypeVar("T")
 # Use the unique TEST_PREFIX to ensure this isn't a problem for future tests
 TEST_PREFIX = "TEST-PREFIX-" + str(uuid4())[:4].upper()
 BOBFILE_DIR = Path(__file__).parent.parent / "test-bobfiles"
-TIMEOUT = 1000
+TIMEOUT = 10
 
 
 @pytest_asyncio.fixture
@@ -142,6 +142,7 @@ class ResponseHandler:
 
     def __call__(self, command: Command[T]) -> Any:
         key = command_to_key(command)
+
         if key not in self.responses:
             raise RuntimeError(
                 f"Error in mocked panda, command {command} was passed in, "
@@ -232,7 +233,6 @@ def get_multiprocessing_context():
     return get_context(start_method)
 
 
-@pytest.fixture
 def enable_codecov_multiprocess():
     """Code to enable pytest-cov to work properly with multiprocessing"""
     try:
@@ -241,8 +241,6 @@ def enable_codecov_multiprocess():
         pass
     else:
         cleanup_on_sigterm()
-
-    return
 
 
 def select_and_recv(conn: Connection):
@@ -271,7 +269,7 @@ def ioc_wrapper(
     test_prefix: str,
     mocked_interactive_ioc: MagicMock,
 ):
-    """Wrapper function to start the IOC and do some mocking"""
+    enable_codecov_multiprocess()
 
     async def inner_wrapper():
         create_softioc(
@@ -393,7 +391,7 @@ def respond_with_no_changes(number_of_iterations: int = 0) -> repeat:
 
 
 @pytest.fixture
-def standard_responses(table_field_info, table_data_1, table_data_2):
+def multiple_seq_responses(table_field_info, table_data_1, table_data_2):
     """
     Used by MockedAsyncioClient to generate panda responses to the ioc's commands.
     Keys are the commands recieved from the ioc (wrapped in a function to make them
@@ -403,26 +401,6 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
     GetChanges is polled at 10Hz if a different command isn't made.
     """
     return {
-        command_to_key(GetFieldInfo(block="PCAP", extended_metadata=True)): repeat(
-            {
-                "TRIG_EDGE": EnumFieldInfo(
-                    type="param",
-                    subtype="enum",
-                    description="Trig Edge Desc",
-                    labels=["Rising", "Falling", "Either"],
-                ),
-                "GATE": BitMuxFieldInfo(
-                    type="bit_mux",
-                    subtype=None,
-                    description="Gate Desc",
-                    max_delay=100,
-                    labels=["TTLIN1.VAL", "INENC1.A", "CLOCK1.OUT"],
-                ),
-            }
-        ),
-        command_to_key(Put(field="PCAP1.TRIG_EDGE", value="Falling")): repeat("OK"),
-        command_to_key(Arm()): repeat("OK"),
-        command_to_key(Disarm()): repeat("OK"),
         command_to_key(
             Put(
                 field="SEQ1.TABLE",
@@ -452,7 +430,240 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
         ): repeat(None),
         command_to_key(
             Put(
-                field="SEQ1.TABLE",
+                field="SEQ2.TABLE",
+                value=[
+                    "2457862145",
+                    "4294967291",
+                    "100",
+                    "0",
+                    "269877249",
+                    "678",
+                    "0",
+                    "55",
+                    "4293918721",
+                    "0",
+                    "9",
+                    "9999",
+                ],
+            )
+        ): repeat(None),
+        # DRVL changing from 8e-06 ms to minutes
+        command_to_key(GetFieldInfo(block="SEQ", extended_metadata=True)): repeat(
+            {"TABLE": table_field_info}
+        ),
+        command_to_key(GetBlockInfo(skip_description=False)): repeat(
+            {
+                "SEQ": BlockInfo(number=2, description="SEQ Desc"),
+            }
+        ),
+        command_to_key(
+            Put(field="*METADATA.LABEL_SEQ1", value="SomeOtherSequenceMetadataLabel")
+        ): repeat("OK"),
+        command_to_key(Put(field="SEQ2.LABEL")): repeat(None),
+        # Changes are given at 10Hz, the changes provided are used for many
+        # different tests
+        command_to_key(GetChanges(group=ChangeGroup.ALL, get_multiline=True)): chain(
+            # Initial value of every field
+            changes_iterator_wrapper(
+                values={
+                    "*METADATA.LABEL_SEQ1": "SeqMetadataLabel",
+                    "*METADATA.LABEL_SEQ2": "SeqMetadataLabel",
+                },
+                multiline_values={
+                    "SEQ1.TABLE": table_data_1,
+                    "SEQ2.TABLE": table_data_2,
+                },
+            ),
+            # Keep the panda active with no changes until pytest tears it down
+            respond_with_no_changes(),
+        ),
+    }
+
+
+@pytest.fixture
+def no_numbered_suffix_to_metadata_responses(table_field_info, table_data_1):
+    """
+    Used to test if pandablocks will fail if the *METADATA.LABEL_X
+    doesn't have a suffixed number.
+    """
+    return {
+        command_to_key(
+            Put(
+                field="SEQ.TABLE",
+                value=[
+                    "2457862145",
+                    "4294967291",
+                    "100",
+                    "0",
+                    "1",
+                    "0",
+                    "0",
+                    "0",
+                    "4293918721",
+                    "0",
+                    "9",
+                    "9999",
+                    "2035875841",
+                    "444444",
+                    "5",
+                    "1",
+                    "3464232961",
+                    "4294967197",
+                    "99999",
+                    "2222",
+                ],
+            )
+        ): repeat(None),
+        # DRVL changing from 8e-06 ms to minutes
+        command_to_key(GetFieldInfo(block="SEQ", extended_metadata=True)): repeat(
+            {"TABLE": table_field_info}
+        ),
+        command_to_key(GetBlockInfo(skip_description=False)): repeat(
+            {
+                "SEQ": BlockInfo(number=1, description="SEQ Desc"),
+            }
+        ),
+        # Changes are given at 10Hz, the changes provided are used for many
+        # different tests
+        command_to_key(GetChanges(group=ChangeGroup.ALL, get_multiline=True)): chain(
+            # Initial value of every field
+            changes_iterator_wrapper(
+                values={
+                    "*METADATA.LABEL_SEQ": "SeqMetadataLabel",
+                },
+                multiline_values={
+                    "SEQ.TABLE": table_data_1,
+                },
+            ),
+            # Keep the panda active with no changes until pytest tears it down
+            respond_with_no_changes(),
+        ),
+    }
+
+
+@pytest.fixture
+def faulty_multiple_pcap_responses():
+    """
+    Used to test if the ioc will fail with an error if the user abuses
+    the new numbering system.
+    """
+    pcap_info = {
+        "TRIG_EDGE": EnumFieldInfo(
+            type="param",
+            subtype="enum",
+            description="Trig Edge Desc",
+            labels=["Rising", "Falling", "Either"],
+        ),
+        "GATE": BitMuxFieldInfo(
+            type="bit_mux",
+            subtype=None,
+            description="Gate Desc",
+            max_delay=100,
+            labels=["TTLIN1.VAL", "INENC1.A", "CLOCK1.OUT"],
+        ),
+    }
+    return {
+        command_to_key(GetFieldInfo(block="PCAP1", extended_metadata=True)): repeat(
+            pcap_info
+        ),
+        command_to_key(GetFieldInfo(block="PCAP2", extended_metadata=True)): repeat(
+            pcap_info
+        ),
+        command_to_key(GetBlockInfo(skip_description=False)): repeat(
+            {
+                "PCAP1": BlockInfo(number=1, description="PCAP Desc"),
+                "PCAP": BlockInfo(number=2, description="PCAP Desc"),
+            }
+        ),
+        # Changes are given at 10Hz, the changes provided are used for many
+        # different tests
+        command_to_key(GetChanges(group=ChangeGroup.ALL, get_multiline=True)): chain(
+            # Initial value of every field
+            changes_iterator_wrapper(
+                values={
+                    "PCAP1.TRIG_EDGE": "Falling",
+                    "PCAP1.GATE": "CLOCK1.OUT",
+                    "PCAP1.GATE.DELAY": "1",
+                    "PCAP1.ARM": "0",
+                    "*METADATA.LABEL_PCAP1": "PcapMetadataLabel",
+                    "PCAP2.TRIG_EDGE": "Falling",
+                    "PCAP2.GATE": "CLOCK1.OUT",
+                    "PCAP2.GATE.DELAY": "1",
+                    "PCAP2.ARM": "0",
+                    "*METADATA.LABEL_PCAP2": "PcapMetadataLabel",
+                },
+            ),
+            # Keep the panda active with no changes until pytest tears it down
+            respond_with_no_changes(),
+        ),
+    }
+
+
+@pytest.fixture
+def standard_responses(table_field_info, table_data_1, table_data_2):
+    """
+    Used by MockedAsyncioClient to generate panda responses to the ioc's commands.
+    Keys are the commands recieved from the ioc (wrapped in a function to make them
+    immutable). Values are generators for the responses the dummy panda gives: the
+    client.send() calls next on them.
+
+    GetChanges is polled at 10Hz if a different command isn't made.
+    """
+    return {
+        command_to_key(GetFieldInfo(block="PCAP", extended_metadata=True)): repeat(
+            {
+                "TRIG_EDGE": EnumFieldInfo(
+                    type="param",
+                    subtype="enum",
+                    description="Trig Edge Desc",
+                    labels=["Rising", "Falling", "Either"],
+                ),
+                "GATE": BitMuxFieldInfo(
+                    type="bit_mux",
+                    subtype=None,
+                    description="Gate Desc",
+                    max_delay=100,
+                    labels=["TTLIN1.VAL", "INENC1.A", "CLOCK1.OUT"],
+                ),
+            }
+        ),
+        command_to_key(Put(field="PCAP.TRIG_EDGE", value="Falling")): repeat("OK"),
+        command_to_key(Put(field="PULSE.DELAY.UNITS", value="min")): repeat("OK"),
+        command_to_key(
+            Put(field="*METADATA.LABEL_PCAP1", value="SomeOtherPcapMetadataLabel")
+        ): repeat("OK"),
+        command_to_key(Arm()): repeat("OK"),
+        command_to_key(Disarm()): repeat("OK"),
+        command_to_key(
+            Put(
+                field="SEQ.TABLE",
+                value=[
+                    "2457862145",
+                    "4294967291",
+                    "100",
+                    "0",
+                    "1",
+                    "0",
+                    "0",
+                    "0",
+                    "4293918721",
+                    "0",
+                    "9",
+                    "9999",
+                    "2035875841",
+                    "444444",
+                    "5",
+                    "1",
+                    "3464232961",
+                    "4294967197",
+                    "99999",
+                    "2222",
+                ],
+            )
+        ): repeat(None),
+        command_to_key(
+            Put(
+                field="SEQ.TABLE",
                 value=[
                     "2457862145",
                     "4294967291",
@@ -481,7 +692,7 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
             },
         ),
         # DRVL changing from 8e-06 ms to minutes
-        command_to_key(GetLine(field="PULSE1.DELAY.MIN")): chain(
+        command_to_key(GetLine(field="PULSE.DELAY.MIN")): chain(
             ["8e-09"], repeat("1.333333333e-10")
         ),
         command_to_key(GetFieldInfo(block="SEQ", extended_metadata=True)): repeat(
@@ -506,10 +717,10 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
                     "PCAP.ARM": "0",
                     "*METADATA.LABEL_PCAP1": "PcapMetadataLabel",
                     "PULSE.DELAY": "100",
-                    "PULSE1.DELAY.UNITS": "ms",
-                    "PULSE1.DELAY.MIN": "8e-06",
+                    "PULSE.DELAY.UNITS": "ms",
+                    "PULSE.DELAY.MIN": "8e-06",
                 },
-                multiline_values={"SEQ1.TABLE": table_data_1},
+                multiline_values={"SEQ.TABLE": table_data_1},
             ),
             # 0.5 seconds of no changes in case the ioc setup completes
             # before the test starts
@@ -517,9 +728,9 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
             changes_iterator_wrapper(
                 values={
                     "PCAP.TRIG_EDGE": "Either",
-                    "PULSE1.DELAY.UNITS": "s",
+                    "PULSE.DELAY.UNITS": "s",
                 },
-                multiline_values={"SEQ1.TABLE": table_data_2},
+                multiline_values={"SEQ.TABLE": table_data_2},
             ),
             # Keep the panda active with no changes until pytest tears it down
             respond_with_no_changes(),
@@ -528,10 +739,30 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
 
 
 @pytest.fixture
+def mocked_panda_multiple_seq_responses(
+    multiple_seq_responses,
+    tmp_path: Path,
+    caplog,
+    caplog_workaround,
+    table_field_info,
+    table_fields,
+) -> Generator[Tuple[Path, Connection, ResponseHandler, Queue], None, None]:
+    response_handler = ResponseHandler(multiple_seq_responses)
+
+    yield from create_subprocess_ioc_and_responses(
+        response_handler,
+        tmp_path,
+        caplog,
+        caplog_workaround,
+        table_field_info,
+        table_fields,
+    )
+
+
+@pytest.fixture
 def mocked_panda_standard_responses(
     standard_responses,
     tmp_path: Path,
-    enable_codecov_multiprocess,
     caplog,
     caplog_workaround,
     table_field_info,
