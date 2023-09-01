@@ -7,6 +7,7 @@ from typing import Callable, Dict, List
 from epicsdbbuilder import RecordName
 from pvi._format.dls import DLSFormatter
 from pvi.device import (
+    LED,
     ButtonPanel,
     ComboBox,
     Component,
@@ -14,7 +15,6 @@ from pvi.device import (
     DeviceRef,
     Grid,
     Group,
-    LED,
     Row,
     SignalR,
     SignalRW,
