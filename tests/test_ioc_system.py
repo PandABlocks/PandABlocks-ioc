@@ -279,11 +279,11 @@ async def test_softioc_records_block(mocked_panda_standard_responses):
     try:
         arm_queue = asyncio.Queue()
         m1 = camonitor(TEST_PREFIX + ":PCAP:ARM", arm_queue.put, datatype=str)
-        assert await asyncio.wait_for(arm_queue.get(), TIMEOUT) == "0"
+        assert await asyncio.wait_for(arm_queue.get(), TIMEOUT) == "Disarm"
 
         await caput(TEST_PREFIX + ":PCAP:ARM", 1, wait=True, timeout=TIMEOUT)
 
-        assert await asyncio.wait_for(arm_queue.get(), TIMEOUT) == "1"
+        assert await asyncio.wait_for(arm_queue.get(), TIMEOUT) == "Arm"
     finally:
         m1.close()
 
@@ -360,13 +360,19 @@ async def test_create_softioc_arm_disarm(
     try:
         arm_queue = asyncio.Queue()
         m1 = camonitor(TEST_PREFIX + ":PCAP:ARM", arm_queue.put, datatype=str)
-        assert await asyncio.wait_for(arm_queue.get(), TIMEOUT) == "0"
+        assert await asyncio.wait_for(arm_queue.get(), TIMEOUT) == "Disarm"
 
         # Put PVs and check the ioc sets the values
         await caput(TEST_PREFIX + ":PCAP:ARM", "1", wait=True, timeout=TIMEOUT)
-        assert await asyncio.wait_for(arm_queue.get(), TIMEOUT) == "1"
+        assert await asyncio.wait_for(arm_queue.get(), TIMEOUT) == "Arm"
         await caput(TEST_PREFIX + ":PCAP:ARM", "0", wait=True, timeout=TIMEOUT)
-        assert await asyncio.wait_for(arm_queue.get(), TIMEOUT) == "0"
+        assert await asyncio.wait_for(arm_queue.get(), TIMEOUT) == "Disarm"
+
+        # Test you can also use "Arm" and "Disarm" instead of "1" and "0"
+        await caput(TEST_PREFIX + ":PCAP:ARM", "Arm", wait=True, timeout=TIMEOUT)
+        assert await asyncio.wait_for(arm_queue.get(), TIMEOUT) == "Arm"
+        await caput(TEST_PREFIX + ":PCAP:ARM", "Disarm", wait=True, timeout=TIMEOUT)
+        assert await asyncio.wait_for(arm_queue.get(), TIMEOUT) == "Disarm"
 
     finally:
         m1.close()
