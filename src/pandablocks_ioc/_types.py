@@ -39,7 +39,8 @@ def device_and_record_to_panda_name(field_name: EpicsName) -> PandAName:
     convention."""
 
     if field_name.endswith(":LABEL"):
-        # Device is a metadata_label field
+        # Field is the label for the block, which is stored in the special
+        # *METADATA area
 
         block_name = field_name.split(":")[-2]
         if not block_name[-1].isdigit():
