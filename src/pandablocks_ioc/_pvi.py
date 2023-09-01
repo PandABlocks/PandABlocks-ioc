@@ -7,7 +7,6 @@ from typing import Callable, Dict, List
 from epicsdbbuilder import RecordName
 from pvi._format.dls import DLSFormatter
 from pvi.device import (
-    LED,
     ButtonPanel,
     ComboBox,
     Component,
@@ -15,6 +14,7 @@ from pvi.device import (
     DeviceRef,
     Grid,
     Group,
+    LED,
     Row,
     SignalR,
     SignalRW,
@@ -65,7 +65,10 @@ def add_pvi_info(
     if record_creation_func == builder.Action:
         if record_name == "PCAP:ARM":
             component = SignalRW(
-                record_name, record_name, widget=ButtonPanel(), read_widget=LED()
+                record_name,
+                record_name,
+                widget=ButtonPanel(actions=dict(Arm=1, Disarm=0)),
+                read_widget=LED(),
             )
             access = "rw"
 
