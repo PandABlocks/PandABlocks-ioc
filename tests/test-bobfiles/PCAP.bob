@@ -2,7 +2,7 @@
   <name>Display</name>
   <x>0</x>
   <y>0</y>
-  <width>426</width>
+  <width>425</width>
   <height>227</height>
   <grid_step_x>4</grid_step_x>
   <grid_step_y>4</grid_step_y>
@@ -12,7 +12,7 @@
     <text>PCAP - TEST-PREFIX:</text>
     <x use_class="true">0</x>
     <y use_class="true">0</y>
-    <width>426</width>
+    <width>425</width>
     <height>25</height>
     <font use_class="true">
       <font name="Header 1" family="Liberation Sans" style="BOLD" size="22.0">
@@ -29,7 +29,7 @@
     <name>INPUTS</name>
     <x>5</x>
     <y>30</y>
-    <width>416</width>
+    <width>415</width>
     <height>131</height>
     <transparent>true</transparent>
     <widget type="label" version="2.0.0">
@@ -67,17 +67,34 @@
           <description>WritePV</description>
         </action>
       </actions>
-      <text>o</text>
+      <text>Arm</text>
       <x>255</x>
       <y>25</y>
-      <width>60</width>
+      <width>38</width>
+      <height>20</height>
+      <tooltip>$(actions)</tooltip>
+    </widget>
+    <widget type="action_button" version="3.0.0">
+      <name>ActionButton</name>
+      <pv_name>TEST-PREFIX:PCAP:ARM</pv_name>
+      <actions>
+        <action type="write_pv">
+          <pv_name>$(pv_name)</pv_name>
+          <value>0</value>
+          <description>WritePV</description>
+        </action>
+      </actions>
+      <text>Disarm</text>
+      <x>298</x>
+      <y>25</y>
+      <width>38</width>
       <height>20</height>
       <tooltip>$(actions)</tooltip>
     </widget>
     <widget type="led" version="2.0.0">
       <name>LED</name>
       <pv_name>TEST-PREFIX:</pv_name>
-      <x>340</x>
+      <x>350</x>
       <y>25</y>
       <width>20</width>
       <height>20</height>
