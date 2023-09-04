@@ -73,7 +73,6 @@ def add_pvi_info(
             access = "rw"
 
         else:
-            # TODO: What value do I write? PandA uses an empty string
             component = SignalX(record_name, record_name, value="")
             access = "x"
     elif writeable:
