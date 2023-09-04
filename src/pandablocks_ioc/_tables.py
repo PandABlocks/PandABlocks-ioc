@@ -61,6 +61,14 @@ class TableFieldRecordContainer:
     record_info: Optional[RecordInfo]
 
 
+def make_bit_order(
+    table_field_records: Dict[str, TableFieldRecordContainer]
+) -> Dict[str, TableFieldRecordContainer]:
+    return dict(
+        sorted(table_field_records.items(), key=lambda item: item[1].field.bit_low)
+    )
+
+
 class TablePacking:
     """Class to handle packing and unpacking Table data to and from a PandA"""
 
@@ -90,12 +98,7 @@ class TablePacking:
         packed = data.T
 
         # Ensure fields are in bit-order
-        table_fields_records = dict(
-            sorted(
-                table_fields_records.items(),
-                key=lambda item: item[1].field.bit_low,
-            )
-        )
+        table_fields_records = make_bit_order(table_fields_records)
 
         unpacked: Dict[str, UnpackedArray] = {}
         for field_name, field_record in table_fields_records.items():
@@ -151,12 +154,7 @@ class TablePacking:
         packed = None
 
         # Ensure fields are in bit-order
-        table_fields_records = dict(
-            sorted(
-                table_fields_records.items(),
-                key=lambda item: item[1].field.bit_low,
-            )
-        )
+        table_fields_records = make_bit_order(table_fields_records)
 
         # Iterate over the zipped fields and their associated records to construct the
         # packed array.

@@ -1,4 +1,3 @@
-import logging
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -25,6 +24,13 @@ from softioc import builder
 from softioc.pythonSoftIoc import RecordWrapper
 
 from ._types import OUT_RECORD_FUNCTIONS, EpicsName
+
+overwrite_bobfiles = False
+
+
+def set_overwrite_bobfiles(overwrite_bobfiles_argument: bool):
+    global overwrite_bobfiles
+    overwrite_bobfiles = overwrite_bobfiles_argument
 
 
 class PviGroup(Enum):
@@ -218,12 +224,14 @@ class Pvi:
         # TODO: Need to decide how to handle already existing directory/files.
         # Could still be left over stuff from a previous run?
         formatter = DLSFormatter(label_width=250)
+
         for device in devices:
-            try:
-                formatter.format(
-                    device,
-                    record_prefix + ":",
-                    Pvi._screens_dir / Path(f"{device.label}.bob"),
-                )
-            except NotImplementedError:
-                logging.exception("Cannot create TABLES yet")
+            bobfile_path = Pvi._screens_dir / Path(f"{device.label}.bob")
+            if not overwrite_bobfiles:
+                if bobfile_path.is_file():
+                    raise FileExistsError(
+                        f"Trying to write bobfile for {device.label}, but File "
+                        f"{bobfile_path} already exists. Use --overwrite-bobfiles "
+                        "to enable overwrite."
+                    )
+            formatter.format(device, record_prefix + ":", bobfile_path)
