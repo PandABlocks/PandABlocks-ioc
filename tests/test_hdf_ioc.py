@@ -10,6 +10,7 @@ from uuid import uuid4
 
 import h5py
 import numpy
+import pytest
 import pytest_asyncio
 from aioca import caget, camonitor, caput
 from fixtures.mocked_panda import (
@@ -348,10 +349,9 @@ async def test_hdf5_ioc_parameter_validate_works(hdf5_subprocess_ioc_no_logging_
     assert val.tobytes().decode() == "/new/path"  # put should have been stopped
 
 
+@pytest.mark.parametrize("num_capture", [1, 1000, 10000])
 async def test_hdf5_file_writing(
-    hdf5_subprocess_ioc,
-    tmp_path: Path,
-    caplog,
+    hdf5_subprocess_ioc, tmp_path: Path, caplog, num_capture
 ):
     """Test that an HDF5 file is written when Capture is enabled"""
     test_dir = str(tmp_path) + "\0"
@@ -376,8 +376,6 @@ async def test_hdf5_file_writing(
     val = await caget(HDF5_PREFIX + ":FileName")
     assert val.tobytes().decode() == test_filename
 
-    # The example data contains 10000 data points, but we acquire only 1000
-    num_capture = 1000
     assert await caget(HDF5_PREFIX + ":NumCapture") == 0
     await caput(HDF5_PREFIX + ":NumCapture", num_capture, wait=True, timeout=TIMEOUT)
     assert await caget(HDF5_PREFIX + ":NumCapture") == num_capture
