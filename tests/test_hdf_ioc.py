@@ -404,11 +404,12 @@ async def test_hdf5_file_writing(
     val = await caget(hdf5_test_prefix + ":FileName")
     assert val.tobytes().decode() == test_filename
 
-    # The example data contains 10000 data points, but we acquire only 1000
-    num_capture = 1000
-    assert await caget(HDF5_PREFIX + ":NumCapture") == 0
-    await caput(HDF5_PREFIX + ":NumCapture", num_capture, wait=True, timeout=TIMEOUT)
-    assert await caget(HDF5_PREFIX + ":NumCapture") == num_capture
+    # Only a single FrameData in the example data
+    assert await caget(hdf5_test_prefix + ":NumCapture") == 0
+    await caput(
+        hdf5_test_prefix + ":NumCapture", num_capture, wait=True, timeout=TIMEOUT
+    )
+    assert await caget(hdf5_test_prefix + ":NumCapture") == num_capture
 
     # The queue expects to see Capturing go 0 -> 1 -> 0 as Capture is enabled
     # and subsequently finishes
