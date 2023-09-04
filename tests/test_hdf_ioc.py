@@ -376,10 +376,11 @@ async def test_hdf5_file_writing(
     val = await caget(HDF5_PREFIX + ":FileName")
     assert val.tobytes().decode() == test_filename
 
-    # Only a single FrameData in the example data
+    # The example data contains 10000 data points, but we acquire only 1000
+    num_capture = 1000
     assert await caget(HDF5_PREFIX + ":NumCapture") == 0
-    await caput(HDF5_PREFIX + ":NumCapture", 1, wait=True, timeout=TIMEOUT)
-    assert await caget(HDF5_PREFIX + ":NumCapture") == 1
+    await caput(HDF5_PREFIX + ":NumCapture", num_capture, wait=True, timeout=TIMEOUT)
+    assert await caget(HDF5_PREFIX + ":NumCapture") == num_capture
 
     # The queue expects to see Capturing go 0 -> 1 -> 0 as Capture is enabled
     # and subsequently finishes
@@ -418,7 +419,7 @@ async def test_hdf5_file_writing(
         "PCAP.TS_START.Value",
     ]
 
-    assert len(hdf_file["/COUNTER1.OUT.Max"]) == 10000
+    assert len(hdf_file["/COUNTER1.OUT.Max"]) == num_capture
 
 
 def test_hdf_parameter_validate_not_capturing(hdf5_controller: HDF5RecordController):
