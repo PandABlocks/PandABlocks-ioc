@@ -308,9 +308,9 @@ class TableUpdater:
             value,
         )
 
-        putorder_index = 1
-
-        for field_name, field_record_container in self.table_fields_records.items():
+        for i, (field_name, field_record_container) in enumerate(
+            self.table_fields_records.items()
+        ):
             field_details = field_record_container.field
 
             full_name = table_name + ":" + field_name
@@ -333,14 +333,14 @@ class TableUpdater:
             field_pva_info = {
                 "+type": "plain",
                 "+channel": "VAL",
-                "+putorder": putorder_index,
+                "+putorder": i + 1,
                 "+trigger": "",
             }
 
             pva_info = {f"value.{field_name.lower()}": field_pva_info}
 
             # For the last column in the table
-            if putorder_index == len(self.table_fields_records):
+            if i == len(self.table_fields_records) - 1:
                 # Trigger a monitor update
                 field_pva_info["+trigger"] = "*"
                 # Add metadata
@@ -350,8 +350,6 @@ class TableUpdater:
                 "Q:group",
                 {pva_table_name: pva_info},
             )
-
-            putorder_index += 1
 
             field_record_container.record_info = RecordInfo(lambda x: x, None, False)
 
@@ -456,7 +454,9 @@ class TableUpdater:
                 OUT=PP(mode_record),
             )
             # Edit mode done first, Submit mode done last
-            putorder = 0 if action == TableModeEnum.EDIT else putorder_index
+            putorder = (
+                0 if action == TableModeEnum.EDIT else len(self.table_fields_records)
+            )
             action_record.add_info(
                 "Q:group",
                 {
