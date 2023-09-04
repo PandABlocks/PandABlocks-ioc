@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from string import digits
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+import re
 import numpy as np
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import (
@@ -222,18 +223,19 @@ def _create_dicts_from_changes(
             "LABEL_"
         ):
             _, block_name_number = field_name.split("_", maxsplit=1)
-            if block_name_number in block_info:
-                number_of_blocks = block_info[block_name_number].number
-            else:
-                number_of_blocks = block_info[block_name_number[:-1]].number
 
-            # The block is fixed with metadata
+            # The block is fixed with metadata, it should end with a number
             #     "*METADATA.LABEL_SEQ2": "NewSeqMetadataLabel",
             if not block_name_number[-1].isdigit():
                 raise ValueError(
                     f"Recieved metadata for a block name {block_name_number} that "
                     "didn't contain a number"
                 )
+
+            parts = re.findall(r"\d+|[^\d]+", block_name_number)
+            block_name_no_number = "".join(parts[:-1])
+            number_of_blocks = block_info[block_name_no_number].number
+
             if number_of_blocks == 1:
                 if block_name_number[-1] != "1" or block_name_number[-2].isdigit():
                     raise ValueError(
