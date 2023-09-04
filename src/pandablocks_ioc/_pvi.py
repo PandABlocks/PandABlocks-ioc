@@ -221,8 +221,6 @@ class Pvi:
         devices.append(device)
 
         # TODO: label widths need some tweaking - some are pretty long right now
-        # TODO: Need to decide how to handle already existing directory/files.
-        # Could still be left over stuff from a previous run?
         formatter = DLSFormatter(label_width=250)
 
         for device in devices:
