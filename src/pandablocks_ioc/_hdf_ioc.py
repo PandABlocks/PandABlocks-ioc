@@ -238,7 +238,7 @@ class HDF5RecordController:
                         pipeline[0].queue.put_nowait(data)
 
                 elif isinstance(data, FrameData):
-                    captured_frames += data.data.shape[0]
+                    captured_frames += len(data.data)
 
                     num_frames_to_capture: int = self._num_capture_record.get()
                     if (

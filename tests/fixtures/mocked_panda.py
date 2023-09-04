@@ -156,6 +156,9 @@ class Rows:
     def __init__(self, *rows):
         self.rows = rows
 
+    def __len__(self):
+        return len(self.rows)
+
     def __eq__(self, o):
         same = o.tolist() == [pytest.approx(row) for row in self.rows]
         return same
