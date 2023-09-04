@@ -2,6 +2,7 @@
 import asyncio
 import inspect
 import logging
+import re
 from dataclasses import dataclass
 from string import digits
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -222,18 +223,19 @@ def _create_dicts_from_changes(
             "LABEL_"
         ):
             _, block_name_number = field_name.split("_", maxsplit=1)
-            if block_name_number in block_info_dict:
-                number_of_blocks = block_info_dict[block_name_number].number
-            else:
-                number_of_blocks = block_info_dict[block_name_number[:-1]].number
 
-            # The block is fixed with metadata
+            # The block is fixed with metadata, it should end with a number
             #     "*METADATA.LABEL_SEQ2": "NewSeqMetadataLabel",
             if not block_name_number[-1].isdigit():
                 raise ValueError(
                     f"Recieved metadata for a block name {block_name_number} that "
                     "didn't contain a number"
                 )
+
+            parts = re.findall(r"\d+|[^\d]+", block_name_number)
+            block_name_no_number = "".join(parts[:-1])
+            number_of_blocks = block_info_dict[block_name_no_number].number
+
             if number_of_blocks == 1:
                 if block_name_number[-1] != "1" or block_name_number[-2].isdigit():
                     raise ValueError(
@@ -1402,8 +1404,8 @@ class IocRecordFactory:
             builder.Action,
             int,  # not bool, as that'll treat string "0" as true
             PviGroup.OUTPUTS,  # TODO: Not sure what group to use
-            ZNAM=ZNAM_STR,
-            ONAM=ONAM_STR,
+            ZNAM="",
+            ONAM="",
             on_update=lambda v: updater.update(v),
         )
 
@@ -1707,12 +1709,17 @@ class IocRecordFactory:
         if block == "PCAP":
             # TODO: Need to add PVI Info here. Just use create_record_info?
             # And why isn't this record in the record_dict?
-            builder.Action(
+
+            pcap_arm_record = builder.Action(
                 "PCAP:ARM",
-                ZNAM=ZNAM_STR,
-                ONAM=ONAM_STR,
+                ZNAM="Disarm",
+                ONAM="Arm",
                 on_update=self._arm_on_update,
                 DESC="Arm/Disarm the PandA",
+            )
+
+            add_pvi_info(
+                PviGroup.INPUTS, pcap_arm_record, EpicsName("PCAP:ARM"), builder.Action
             )
 
             HDF5RecordController(self._client, self._record_prefix)
