@@ -229,10 +229,7 @@ class Pvi:
 
         screens_dir_contents = list(Pvi._screens_dir.iterdir())
         if screens_dir_contents:
-            raise FileExistsError(
-                "Screens directory is not empty, "
-                f"contains files: {screens_dir_contents}"
-            )
+            raise FileExistsError("Screens directory is not empty")
 
         for device in devices:
             bobfile_path = Pvi._screens_dir / Path(f"{device.label}.bob")
