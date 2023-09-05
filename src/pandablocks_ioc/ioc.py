@@ -232,8 +232,7 @@ def _create_dicts_from_changes(
                     "didn't contain a number"
                 )
 
-            parts = re.findall(r"\d+|[^\d]+", block_name_number)
-            block_name_no_number = "".join(parts[:-1])
+            block_name_no_number = re.sub(r"\d*$", "", block_name_number)
             number_of_blocks = block_info_dict[block_name_no_number].number
 
             if number_of_blocks == 1:
