@@ -18,7 +18,8 @@ from pandablocks.responses import EndReason, ReadyData
 from softioc import alarm, builder
 from softioc.pythonSoftIoc import RecordWrapper
 
-from ._types import ONAM_STR, ZNAM_STR
+from ._pvi import PviGroup, add_pvi_info
+from ._types import ONAM_STR, ZNAM_STR, EpicsName
 
 
 class HDF5RecordController:
@@ -52,51 +53,76 @@ class HDF5RecordController:
 
         # Create the records, including an uppercase alias for each
         # Naming convention and settings (mostly) copied from FSCN2 HDF5 records
-        file_path_record_name = self._HDF5_PREFIX + ":FilePath"
+        file_path_record_name = EpicsName(self._HDF5_PREFIX + ":FilePath")
         self._file_path_record = builder.longStringOut(
             file_path_record_name,
             length=path_length,
             DESC="File path for HDF5 files",
             validate=self._parameter_validate,
         )
+        add_pvi_info(
+            PviGroup.INPUTS,
+            self._file_path_record,
+            file_path_record_name,
+            builder.longStringOut,
+        )
         self._file_path_record.add_alias(
             record_prefix + ":" + file_path_record_name.upper()
         )
 
-        file_name_record_name = self._HDF5_PREFIX + ":FileName"
+        file_name_record_name = EpicsName(self._HDF5_PREFIX + ":FileName")
         self._file_name_record = builder.longStringOut(
             file_name_record_name,
             length=filename_length,
             DESC="File name prefix for HDF5 files",
             validate=self._parameter_validate,
         )
+        add_pvi_info(
+            PviGroup.INPUTS,
+            self._file_name_record,
+            file_name_record_name,
+            builder.longStringOut,
+        )
         self._file_name_record.add_alias(
             record_prefix + ":" + file_name_record_name.upper()
         )
 
-        num_capture_record_name = self._HDF5_PREFIX + ":NumCapture"
+        num_capture_record_name = EpicsName(self._HDF5_PREFIX + ":NumCapture")
         self._num_capture_record = builder.longOut(
             num_capture_record_name,
             initial_value=0,  # Infinite capture
             DESC="Number of frames to capture. 0=infinite",
             DRVL=0,
         )
+
+        add_pvi_info(
+            PviGroup.INPUTS,
+            self._num_capture_record,
+            num_capture_record_name,
+            builder.longOut,
+        )
         # No validate - users are allowed to change this at any time
         self._num_capture_record.add_alias(
             record_prefix + ":" + num_capture_record_name.upper()
         )
 
-        flush_period_record_name = self._HDF5_PREFIX + ":FlushPeriod"
+        flush_period_record_name = EpicsName(self._HDF5_PREFIX + ":FlushPeriod")
         self._flush_period_record = builder.aOut(
             flush_period_record_name,
             initial_value=1.0,
             DESC="Frequency that data is flushed (seconds)",
         )
+        add_pvi_info(
+            PviGroup.INPUTS,
+            self._flush_period_record,
+            flush_period_record_name,
+            builder.aOut,
+        )
         self._flush_period_record.add_alias(
             record_prefix + ":" + flush_period_record_name.upper()
         )
 
-        capture_control_record_name = self._HDF5_PREFIX + ":Capture"
+        capture_control_record_name = EpicsName(self._HDF5_PREFIX + ":Capture")
         self._capture_control_record = builder.boolOut(
             capture_control_record_name,
             ZNAM=ZNAM_STR,
@@ -105,26 +131,44 @@ class HDF5RecordController:
             validate=self._capture_validate,
             DESC="Start/stop HDF5 capture",
         )
+        add_pvi_info(
+            PviGroup.INPUTS,
+            self._capture_control_record,
+            capture_control_record_name,
+            builder.boolOut,
+        )
         self._capture_control_record.add_alias(
             record_prefix + ":" + capture_control_record_name.upper()
         )
 
-        status_message_record_name = self._HDF5_PREFIX + ":Status"
+        status_message_record_name = EpicsName(self._HDF5_PREFIX + ":Status")
         self._status_message_record = builder.stringIn(
             status_message_record_name,
             initial_value="OK",
             DESC="Reports current status of HDF5 capture",
         )
+        add_pvi_info(
+            PviGroup.OUTPUTS,
+            self._status_message_record,
+            status_message_record_name,
+            builder.stringIn,
+        )
         self._status_message_record.add_alias(
             record_prefix + ":" + status_message_record_name.upper()
         )
 
-        currently_capturing_record_name = self._HDF5_PREFIX + ":Capturing"
+        currently_capturing_record_name = EpicsName(self._HDF5_PREFIX + ":Capturing")
         self._currently_capturing_record = builder.boolIn(
             currently_capturing_record_name,
             ZNAM=ZNAM_STR,
             ONAM=ONAM_STR,
             DESC="If HDF5 file is currently being written",
+        )
+        add_pvi_info(
+            PviGroup.OUTPUTS,
+            self._currently_capturing_record,
+            currently_capturing_record_name,
+            builder.boolIn,
         )
         self._currently_capturing_record.add_alias(
             record_prefix + ":" + currently_capturing_record_name.upper()
@@ -212,8 +256,12 @@ class HDF5RecordController:
                         pipeline[0].queue.put_nowait(
                             EndData(captured_frames, EndReason.OK)
                         )
-
                         break
+                elif not isinstance(data, EndData):
+                    raise RuntimeError(
+                        f"Data was recieved that was of type {type(data)}, not"
+                        "StartData, EndData, ReadyData or FrameData"
+                    )
                 # Ignore EndData - handle terminating capture with the Capture
                 # record or when we capture the requested number of frames
 

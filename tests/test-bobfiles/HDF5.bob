@@ -1,0 +1,171 @@
+<display version="2.0.0">
+  <name>Display</name>
+  <x>0</x>
+  <y>0</y>
+  <width>426</width>
+  <height>277</height>
+  <grid_step_x>4</grid_step_x>
+  <grid_step_y>4</grid_step_y>
+  <widget type="label" version="2.0.0">
+    <name>Title</name>
+    <class>TITLE</class>
+    <text>HDF5 - TEST-PREFIX:</text>
+    <x use_class="true">0</x>
+    <y use_class="true">0</y>
+    <width>426</width>
+    <height>25</height>
+    <font use_class="true">
+      <font name="Header 1" family="Liberation Sans" style="BOLD" size="22.0">
+      </font>
+    </font>
+    <foreground_color use_class="true">
+      <color name="Text" red="0" green="0" blue="0">
+      </color>
+    </foreground_color>
+    <transparent use_class="true">true</transparent>
+    <horizontal_alignment>1</horizontal_alignment>
+  </widget>
+  <widget type="group" version="2.0.0">
+    <name>INPUTS</name>
+    <x>5</x>
+    <y>30</y>
+    <width>351</width>
+    <height>156</height>
+    <transparent>true</transparent>
+    <widget type="label" version="2.0.0">
+      <name>Label</name>
+      <text>HDF5: File Path</text>
+      <x>0</x>
+      <y>0</y>
+      <width>250</width>
+      <height>20</height>
+    </widget>
+    <widget type="textentry" version="3.0.0">
+      <name>TextEntry</name>
+      <pv_name>TEST-PREFIX:HDF5:FilePath</pv_name>
+      <x>255</x>
+      <y>0</y>
+      <width>60</width>
+      <height>20</height>
+      <horizontal_alignment>1</horizontal_alignment>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label</name>
+      <text>HDF5: File Name</text>
+      <x>0</x>
+      <y>25</y>
+      <width>250</width>
+      <height>20</height>
+    </widget>
+    <widget type="textentry" version="3.0.0">
+      <name>TextEntry</name>
+      <pv_name>TEST-PREFIX:HDF5:FileName</pv_name>
+      <x>255</x>
+      <y>25</y>
+      <width>60</width>
+      <height>20</height>
+      <horizontal_alignment>1</horizontal_alignment>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label</name>
+      <text>HDF5: Num Capture</text>
+      <x>0</x>
+      <y>50</y>
+      <width>250</width>
+      <height>20</height>
+    </widget>
+    <widget type="textentry" version="3.0.0">
+      <name>TextEntry</name>
+      <pv_name>TEST-PREFIX:HDF5:NumCapture</pv_name>
+      <x>255</x>
+      <y>50</y>
+      <width>60</width>
+      <height>20</height>
+      <horizontal_alignment>1</horizontal_alignment>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label</name>
+      <text>HDF5: Flush Period</text>
+      <x>0</x>
+      <y>75</y>
+      <width>250</width>
+      <height>20</height>
+    </widget>
+    <widget type="textentry" version="3.0.0">
+      <name>TextEntry</name>
+      <pv_name>TEST-PREFIX:HDF5:FlushPeriod</pv_name>
+      <x>255</x>
+      <y>75</y>
+      <width>60</width>
+      <height>20</height>
+      <horizontal_alignment>1</horizontal_alignment>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label</name>
+      <text>HDF5: Capture</text>
+      <x>0</x>
+      <y>100</y>
+      <width>250</width>
+      <height>20</height>
+    </widget>
+    <widget type="textentry" version="3.0.0">
+      <name>TextEntry</name>
+      <pv_name>TEST-PREFIX:HDF5:Capture</pv_name>
+      <x>255</x>
+      <y>100</y>
+      <width>60</width>
+      <height>20</height>
+      <horizontal_alignment>1</horizontal_alignment>
+    </widget>
+  </widget>
+  <widget type="group" version="2.0.0">
+    <name>OUTPUTS</name>
+    <x>5</x>
+    <y>191</y>
+    <width>416</width>
+    <height>81</height>
+    <transparent>true</transparent>
+    <widget type="label" version="2.0.0">
+      <name>Label</name>
+      <text>HDF5: Status</text>
+      <x>0</x>
+      <y>0</y>
+      <width>250</width>
+      <height>20</height>
+    </widget>
+    <widget type="textupdate" version="2.0.0">
+      <name>TextUpdate</name>
+      <pv_name>TEST-PREFIX:HDF5:Status</pv_name>
+      <x>255</x>
+      <y>0</y>
+      <width>125</width>
+      <height>20</height>
+      <font>
+        <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+      </font>
+      </font>
+      <horizontal_alignment>1</horizontal_alignment>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label</name>
+      <text>HDF5: Capturing</text>
+      <x>0</x>
+      <y>25</y>
+      <width>250</width>
+      <height>20</height>
+    </widget>
+    <widget type="textupdate" version="2.0.0">
+      <name>TextUpdate</name>
+      <pv_name>TEST-PREFIX:HDF5:Capturing</pv_name>
+      <x>255</x>
+      <y>25</y>
+      <width>125</width>
+      <height>20</height>
+      <font>
+        <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+      </font>
+      </font>
+      <horizontal_alignment>1</horizontal_alignment>
+    </widget>
+  </widget>
+</display>

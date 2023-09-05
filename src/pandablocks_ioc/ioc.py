@@ -2,12 +2,12 @@
 import asyncio
 import inspect
 import logging
+import re
 from dataclasses import dataclass
 from string import digits
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
-from aiohttp import web
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import (
     Arm,
@@ -64,11 +64,6 @@ from ._types import (
 # TODO: Try turning python.analysis.typeCheckingMode on, as it does highlight a couple
 # of possible errors
 
-REQUEST_FILE_NAME = "filename"
-INTERNAL_DICT_NAME = "bob_file_dict"
-BOB_FILE_HOST = "0.0.0.0"
-BOB_FILE_PORT = 8080
-
 
 @dataclass
 class _BlockAndFieldInfo:
@@ -90,71 +85,18 @@ def _when_finished(task):
     create_softioc_task = None
 
 
-async def _handle_file(request: web.Request) -> web.Response:
-    """Handles HTTP GET requests for individual bob files.
-
-    This function will handle incoming requests for .bob files. Returns a reponse
-    containing the contents of the bobfile.
-
-    Args:
-        request: An incoming HTTP request
-    Returns:
-        Response: A HTTP response
-    """
-    bob_file_dict = request.app[INTERNAL_DICT_NAME]
-    filename = request.match_info["URL_FILENAME"]
-    if filename in bob_file_dict:
-        return web.Response(text=bob_file_dict[filename])
-    else:
-        raise web.HTTPNotFound()
-
-
-async def _handle_available_files(request: web.Request) -> web.Response:
-    """Handles HTTP GET requests to the sever root (/).
-
-    This function handles requests to the sites root and returns a response containing
-    a json array of all the bob files in the internal dictionary.
-
-    Args:
-        Request: An incoming HTTP request
-    Returns:
-        Response: A HTTP response
-    """
-    bob_file_dict = request.app[INTERNAL_DICT_NAME]
-    return web.json_response(list(bob_file_dict.keys()))
-
-
-def initialise_server(bob_file_dict: Dict[str, str]) -> web.Application:
-    """Initialises the server configuration."""
-    app = web.Application()
-    app[INTERNAL_DICT_NAME] = bob_file_dict
-    app.add_routes(
-        [
-            web.get("/", _handle_available_files),
-            web.get("/{URL_FILENAME}", _handle_file),
-        ]
-    )
-    return app
-
-
-async def _start_bobfile_server(host: str, port: int) -> None:
-    """Sets up and starts the bobfile server."""
-    app = initialise_server(Pvi.bob_file_dict)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, host=host, port=port)
-    await site.start()
-    logging.info(f"Running bob file server on http://{host}:{port}\n")
-
-
 async def _create_softioc(
     client: AsyncioClient,
     record_prefix: str,
     dispatcher: asyncio_dispatcher.AsyncioDispatcher,
 ):
     """Asynchronous wrapper for IOC creation"""
-    await client.connect()
-    (all_records, all_values_dict) = await create_records(
+    try:
+        await client.connect()
+    except OSError:
+        logging.exception("Unable to connect to PandA")
+        raise
+    (all_records, all_values_dict, block_info_dict) = await create_records(
         client, dispatcher, record_prefix
     )
 
@@ -163,36 +105,32 @@ async def _create_softioc(
         raise RuntimeError("Unexpected state - softioc task already exists")
 
     create_softioc_task = asyncio.create_task(
-        update(client, all_records, 0.1, all_values_dict)
+        update(client, all_records, 0.1, all_values_dict, block_info_dict)
     )
 
     create_softioc_task.add_done_callback(_when_finished)
 
 
-def create_softioc(host: str, record_prefix: str) -> None:
+def create_softioc(client: AsyncioClient, record_prefix: str, screens_dir: str) -> None:
     """Create a PythonSoftIOC from fields and attributes of a PandA.
 
     This function will introspect a PandA for all defined Blocks, Fields of each Block,
     and Attributes of each Field, and create appropriate EPICS records for each.
 
     Args:
-        host: The address of the PandA, in IP or hostname form. No port number required.
+        client: The asyncio client to be used to read/write to of the PandA
         record_prefix: The string prefix used for creation of all records.
     """
     # TODO: This needs to read/take in a YAML configuration file, for various aspects
     # e.g. the update() wait time between calling GetChanges
 
+    Pvi.set_screens_dir(screens_dir)
+
     try:
         dispatcher = asyncio_dispatcher.AsyncioDispatcher()
-        client = AsyncioClient(host)
         asyncio.run_coroutine_threadsafe(
             _create_softioc(client, record_prefix, dispatcher), dispatcher.loop
         ).result()
-
-        asyncio.run_coroutine_threadsafe(
-            _start_bobfile_server(host=BOB_FILE_HOST, port=BOB_FILE_PORT),
-            dispatcher.loop,
-        )
 
         # Must leave this blocking line here, in the main thread, not in the
         # dispatcher's loop or it'll block every async process in this module
@@ -201,29 +139,8 @@ def create_softioc(host: str, record_prefix: str) -> None:
         logging.exception("Exception while initializing softioc")
     finally:
         # Client was connected in the _create_softioc method
-        asyncio.run_coroutine_threadsafe(client.close(), dispatcher.loop).result()
-
-
-def _ensure_block_number_present(block_and_field_name: str) -> str:
-    """Ensure that the block instance number is always present on the end of the block
-    name. If it is not present, add "1" to it.
-
-    This works as PandA alias's the <1> suffix if there is only a single instance of a
-    block
-
-    Args:
-        block_and_field_name: A string containing the block and the field name,
-        e.g. "SYSTEM.TEMP_ZYNQ", or "INENC2.CLK". Must be in PandA format.
-
-    Returns:
-        str: The block and field name which will have an instance number.
-        e.g. "SYSTEM1.TEMP_ZYNQ", or "INENC2.CLK".
-    """
-    block_name_number, field_name = block_and_field_name.split(".", maxsplit=1)
-    if not block_name_number[-1].isdigit():
-        block_name_number += "1"
-
-    return f"{block_name_number}.{field_name}"
+        if client.is_connected():
+            asyncio.run_coroutine_threadsafe(client.close(), dispatcher.loop).result()
 
 
 async def introspect_panda(
@@ -245,6 +162,10 @@ async def introspect_panda(
 
     block_dict = await client.send(GetBlockInfo())
 
+    for block in block_dict.keys():
+        if block[-1].isdigit():
+            raise ValueError(f"Block name '{block}' contains a trailing number")
+
     # Concurrently request info for all fields of all blocks
     # Note order of requests is important as it is unpacked by index below
     returned_infos = await asyncio.gather(
@@ -256,7 +177,7 @@ async def introspect_panda(
 
     changes: Changes = returned_infos[-1]
 
-    values, all_values_dict = _create_dicts_from_changes(changes)
+    values, all_values_dict = _create_dicts_from_changes(changes, block_dict)
 
     panda_dict = {}
     for (block_name, block_info), field_info in zip(block_dict.items(), field_infos):
@@ -268,12 +189,14 @@ async def introspect_panda(
 
 
 def _create_dicts_from_changes(
-    changes: Changes,
+    changes: Changes, block_info_dict: Dict[str, BlockInfo]
 ) -> Tuple[Dict[str, Dict[EpicsName, RecordValue]], Dict[EpicsName, RecordValue]]:
     """Take the `Changes` object and convert it into two dictionaries.
 
     Args:
         changes: The `Changes` object as returned by `GetChanges`
+        block_info_dict: Information from the initial `GetBlockInfo` request,
+            used to check the `number` of blocks for parsing metadata
 
     Returns:
         Tuple of:
@@ -294,15 +217,34 @@ def _create_dicts_from_changes(
 
         block_name_number, field_name = block_and_field_name.split(".", maxsplit=1)
 
-        block_and_field_name = _ensure_block_number_present(block_and_field_name)
-
         # Parse *METADATA.LABEL_<block><num> into "<block>" key and
         # "<block><num>:LABEL" value
         if block_name_number.startswith("*METADATA") and field_name.startswith(
             "LABEL_"
         ):
             _, block_name_number = field_name.split("_", maxsplit=1)
-            block_and_field_name = EpicsName(block_name_number + ":LABEL")
+
+            # The block is fixed with metadata, it should end with a number
+            #     "*METADATA.LABEL_SEQ2": "NewSeqMetadataLabel",
+            if not block_name_number[-1].isdigit():
+                raise ValueError(
+                    f"Recieved metadata for a block name {block_name_number} that "
+                    "didn't contain a number"
+                )
+
+            block_name_no_number = re.sub(r"\d*$", "", block_name_number)
+            number_of_blocks = block_info_dict[block_name_no_number].number
+
+            if number_of_blocks == 1:
+                if block_name_number[-1] != "1" or block_name_number[-2].isdigit():
+                    raise ValueError(
+                        f"Recieved metadata '*METADATA.LABEL_{block_name_number}', "
+                        "this should have a single '1' on the end"
+                    )
+                block_and_field_name = EpicsName(block_name_number[:-1] + ":LABEL")
+            else:
+                block_and_field_name = EpicsName(block_name_number + ":LABEL")
+
         else:
             block_and_field_name = panda_to_epics_name(PandAName(block_and_field_name))
 
@@ -315,6 +257,7 @@ def _create_dicts_from_changes(
                 f"Duplicate values for {block_and_field_name} detected."
                 " Overriding existing value."
             )
+        block_and_field_name = EpicsName(block_and_field_name)
         values[block_name][block_and_field_name] = value
 
     # Create a dict which maps block name to all values for all instances
@@ -378,11 +321,13 @@ class _RecordUpdater:
                 # differentiate between ints and floats - some PandA fields will not
                 # accept the wrong number format.
                 val = str(self.record_info.data_type_func(new_val))
+
             else:
                 # value is None - expected for action-write fields
                 val = new_val
 
             panda_field = device_and_record_to_panda_name(self.record_info.record.name)
+
             await self.client.send(Put(panda_field, val))
 
             self.record_info._pending_change = True
@@ -852,26 +797,6 @@ class IocRecordFactory:
             initial_value=values[record_name],
         )
 
-        cw_record_name = EpicsName(record_name + ":CAPTURE_WORD")
-        record_dict[cw_record_name] = self._create_record_info(
-            cw_record_name,
-            "Name of field containing this bit",
-            builder.stringIn,
-            type(field_info.capture_word),
-            PviGroup.OUTPUTS,
-            initial_value=field_info.capture_word,
-        )
-
-        offset_record_name = EpicsName(record_name + ":OFFSET")
-        record_dict[offset_record_name] = self._create_record_info(
-            offset_record_name,
-            "Position of this bit in captured word",
-            builder.longIn,
-            type(field_info.offset),
-            PviGroup.OUTPUTS,
-            initial_value=field_info.offset,
-        )
-
         # TODO: Add BITS table support here
 
         return record_dict
@@ -886,6 +811,8 @@ class IocRecordFactory:
         assert isinstance(field_info, PosOutFieldInfo)
         record_dict: Dict[EpicsName, RecordInfo] = {}
 
+        units_record_name = EpicsName(record_name + ":UNITS")
+
         record_dict[record_name] = self._create_record_info(
             record_name,
             field_info.description,
@@ -893,6 +820,7 @@ class IocRecordFactory:
             int,
             PviGroup.OUTPUTS,
             initial_value=values[record_name],
+            EGU=values[units_record_name],
         )
 
         capture_record_name = EpicsName(record_name + ":CAPTURE")
@@ -929,7 +857,6 @@ class IocRecordFactory:
             initial_value=values[scale_record_name],
         )
 
-        units_record_name = EpicsName(record_name + ":UNITS")
         record_dict[units_record_name] = self._create_record_info(
             units_record_name,
             "Units string",
@@ -1068,6 +995,9 @@ class IocRecordFactory:
 
         # Each row of the table has a VAL and a NAME.
         for i, label in enumerate(field_info.bits):
+            if label == "":
+                # Some rows are empty. Do not create records.
+                continue
             link = self._record_prefix + ":" + label.replace(".", ":") + " CP"
             enumerated_bits_prefix = f"BITS:{offset + i}"
             builder.records.bi(
@@ -1125,15 +1055,8 @@ class IocRecordFactory:
             initial_value=values[delay_record_name],
         )
 
-        max_delay_record_name = EpicsName(record_name + ":MAX_DELAY")
-        record_dict[max_delay_record_name] = self._create_record_info(
-            max_delay_record_name,
-            "Maximum valid input delay",
-            builder.longIn,
-            type(field_info.max_delay),
-            PviGroup.INPUTS,
-            initial_value=field_info.max_delay,
-        )
+        record_dict[delay_record_name].record.DRVH = field_info.max_delay
+        record_dict[delay_record_name].record.DRVL = 0
 
         return record_dict
 
@@ -1150,7 +1073,8 @@ class IocRecordFactory:
 
         # This should be an mbbOut record, but there are too many posssible labels
         # TODO: There will need to be some mechanism to retrieve the labels,
-        # but there's a POSITIONS table that can probably be used
+        # but there's a POSITIONS table that can probably be used.
+        # OR PVAccess somehow?
         validator = StringRecordLabelValidator(field_info.labels)
         # Ensure we're putting a valid value to start with
         assert values[record_name] in field_info.labels
@@ -1341,37 +1265,8 @@ class IocRecordFactory:
             record_creation_func,
             float,
             PviGroup.READBACKS,
+            EGU=field_info.units,
             **kwargs,
-        )
-
-        offset_record_name = EpicsName(record_name + ":OFFSET")
-        record_dict[offset_record_name] = self._create_record_info(
-            offset_record_name,
-            "Offset from scaled data to value",
-            builder.aIn,
-            type(field_info.offset),
-            PviGroup.READBACKS,
-            initial_value=field_info.offset,
-        )
-
-        scale_record_name = EpicsName(record_name + ":SCALE")
-        record_dict[scale_record_name] = self._create_record_info(
-            scale_record_name,
-            "Scaling from raw data to value",
-            builder.aIn,
-            type(field_info.scale),
-            PviGroup.READBACKS,
-            initial_value=field_info.scale,
-        )
-
-        units_record_name = EpicsName(record_name + ":UNITS")
-        record_dict[units_record_name] = self._create_record_info(
-            units_record_name,
-            "Units associated with value",
-            builder.stringIn,
-            type(field_info.units),
-            PviGroup.READBACKS,
-            initial_value=field_info.units,
         )
 
         return record_dict
@@ -1508,8 +1403,8 @@ class IocRecordFactory:
             builder.Action,
             int,  # not bool, as that'll treat string "0" as true
             PviGroup.OUTPUTS,  # TODO: Not sure what group to use
-            ZNAM=ZNAM_STR,
-            ONAM=ONAM_STR,
+            ZNAM="",
+            ONAM="",
             on_update=lambda v: updater.update(v),
         )
 
@@ -1782,7 +1677,11 @@ class IocRecordFactory:
             logging.exception("Failure arming/disarming PandA")
 
     def create_block_records(
-        self, block: str, block_info: BlockInfo, block_values: Dict[EpicsName, str]
+        self,
+        block: str,
+        block_info: BlockInfo,
+        block_values: Dict[EpicsName, str],
+        default_longStringOut_length=256,
     ) -> Dict[EpicsName, RecordInfo]:
         """Create the block-level records, and any other one-off block initialisation
         required."""
@@ -1794,24 +1693,32 @@ class IocRecordFactory:
             if (value == "" or value is None) and block_info.description:
                 value = block_info.description
 
-            record_dict[key] = self._create_record_info(
+            # The record uses the default _RecordUpdater.update to update the value
+            # on the panda
+            record_dict[EpicsName(key)] = self._create_record_info(
                 key,
                 None,
-                builder.longStringIn,
+                builder.longStringOut,
                 str,
-                PviGroup.NONE,
+                PviGroup.INPUTS,
+                length=default_longStringOut_length,
                 initial_value=value,
             )
 
         if block == "PCAP":
             # TODO: Need to add PVI Info here. Just use create_record_info?
             # And why isn't this record in the record_dict?
-            builder.Action(
+
+            pcap_arm_record = builder.Action(
                 "PCAP:ARM",
-                ZNAM=ZNAM_STR,
-                ONAM=ONAM_STR,
+                ZNAM="Disarm",
+                ONAM="Arm",
                 on_update=self._arm_on_update,
                 DESC="Arm/Disarm the PandA",
+            )
+
+            add_pvi_info(
+                PviGroup.INPUTS, pcap_arm_record, EpicsName("PCAP:ARM"), builder.Action
             )
 
             HDF5RecordController(self._client, self._record_prefix)
@@ -1834,7 +1741,14 @@ async def create_records(
     client: AsyncioClient,
     dispatcher: asyncio_dispatcher.AsyncioDispatcher,
     record_prefix: str,
-) -> Tuple[Dict[EpicsName, RecordInfo], Dict[EpicsName, RecordValue]]:
+) -> Tuple[
+    Dict[EpicsName, RecordInfo],
+    Dict[
+        EpicsName,
+        RecordValue,
+    ],
+    Dict[str, BlockInfo],
+]:
     """Query the PandA and create the relevant records based on the information
     returned"""
 
@@ -1846,16 +1760,18 @@ async def create_records(
     record_factory = IocRecordFactory(client, record_prefix, all_values_dict)
 
     # For each field in each block, create block_num records of each field
+
     for block, panda_info in panda_dict.items():
         block_info = panda_info.block_info
         values = panda_info.values
 
-        # Create block-level records
         block_vals = {
             key: value
             for key, value in values.items()
             if key.endswith(":LABEL") and isinstance(value, str)
         }
+
+        # Create block-level records
         block_records = record_factory.create_block_records(
             block, block_info, block_vals
         )
@@ -1865,11 +1781,14 @@ async def create_records(
                 raise Exception(f"Duplicate record name {new_record} detected.")
 
         for block_num in range(block_info.number):
-            for field, field_info in panda_info.fields.items():
-                # For consistency in this module, always suffix the block with its
-                # number. This means all records will have the block number.
-                suffixed_block = block + str(block_num + 1)
+            # Add a suffix if there are multiple of a block e.g:
+            # "SEQ:TABLE" -> "SEQ3:TABLE"
+            # Block numbers are indexed from 1
+            suffixed_block = block
+            if block_info.number > 1:
+                suffixed_block += str(block_num + 1)
 
+            for field, field_info in panda_info.fields.items():
                 # ":" separator for EPICS Record names, unlike PandA's "."
                 record_name = EpicsName(suffixed_block + ":" + field)
 
@@ -1903,7 +1822,8 @@ async def create_records(
 
     record_factory.initialise(dispatcher)
 
-    return (all_records, all_values_dict)
+    block_info_dict = {key: value.block_info for key, value in panda_dict.items()}
+    return (all_records, all_values_dict, block_info_dict)
 
 
 async def update(
@@ -1911,6 +1831,7 @@ async def update(
     all_records: Dict[EpicsName, RecordInfo],
     poll_period: float,
     all_values_dict: Dict[EpicsName, RecordValue],
+    block_info_dict: Dict[str, BlockInfo],
 ):
     """Query the PandA at regular intervals for any changed fields, and update
     the records accordingly
@@ -1922,9 +1843,14 @@ async def update(
         poll_period: The wait time, in seconds, before the next GetChanges is called.
         all_values_dict: The dictionary containing the most recent value of all records
             as returned from GetChanges. This method will update values in the dict,
-            which will be read and used in other places"""
+            which will be read and used in other places
+        block_info: information recieved from the last `GetBlockInfo`, keys are block
+            names"""
 
     fields_to_reset: List[Tuple[RecordWrapper, Any]] = []
+
+    # Fairly arbitrary choice of timeout time
+    timeout = 10 * poll_period
 
     while True:
         try:
@@ -1932,9 +1858,25 @@ async def update(
                 record.set(value)
                 fields_to_reset.remove((record, value))
 
-            changes = await client.send(GetChanges(ChangeGroup.ALL, True))
+            try:
+                changes = await client.send(GetChanges(ChangeGroup.ALL, True), timeout)
+            except asyncio.TimeoutError:
+                # Indicates PandA did not reply within the timeout
+                logging.error(
+                    f"PandA did not respond to GetChanges within {timeout} seconds. "
+                    "Setting all records to major alarm state."
+                )
+                set_all_records_severity(
+                    all_records, alarm.MAJOR_ALARM, alarm.READ_ACCESS_ALARM
+                )
+                continue
 
-            _, new_all_values_dict = _create_dicts_from_changes(changes)
+            # Clear any alarm state as we've received a new update from PandA
+            set_all_records_severity(all_records, alarm.NO_ALARM, alarm.UDF_ALARM)
+
+            _, new_all_values_dict = _create_dicts_from_changes(
+                changes, block_info_dict
+            )
 
             # Apply the new values to the existing dict, so various updater classes
             # will have access to the latest values.
@@ -1943,7 +1885,6 @@ async def update(
             all_values_dict.update(new_all_values_dict)
 
             for field in changes.in_error:
-                field = _ensure_block_number_present(field)
                 field = PandAName(field)
                 field = panda_to_epics_name(field)
 
@@ -1964,7 +1905,6 @@ async def update(
                     )
 
             for field, value in changes.values.items():
-                field = _ensure_block_number_present(field)
                 field = PandAName(field)
                 field = panda_to_epics_name(field)
 
@@ -2021,7 +1961,6 @@ async def update(
                     logging.exception(
                         f"Exception setting record {record.name} to new value {value}"
                     )
-
             for table_field, value_list in changes.multiline_values.items():
                 table_field = PandAName(table_field)
                 table_field = panda_to_epics_name(table_field)
@@ -2046,3 +1985,14 @@ async def update(
         except Exception:
             logging.exception("Exception while processing updates from PandA")
             continue
+
+
+def set_all_records_severity(
+    all_records: Dict[EpicsName, RecordInfo], severity: int, alarm: int
+):
+    """Set the severity of all possible records to the given state"""
+    logging.debug(f"Setting all record to severity {severity} alarm {alarm}")
+    for record_info in all_records.values():
+        # TODO: Update this if PythonSoftIOC issue #53 is fixed
+        if record_info.is_in_record:
+            record_info.record.set_alarm(severity, alarm)

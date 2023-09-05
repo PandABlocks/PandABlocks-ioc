@@ -2,23 +2,24 @@
 
 import asyncio
 import logging
-import time
 from asyncio import CancelledError
-from io import BufferedReader
+from multiprocessing.connection import Connection
 from pathlib import Path
-from typing import AsyncGenerator, Generator, Iterator
+from typing import AsyncGenerator, Generator
+from uuid import uuid4
 
 import h5py
 import numpy
-import pytest
 import pytest_asyncio
 from aioca import caget, camonitor, caput
-from conftest import (
+from fixtures.mocked_panda import (
     TIMEOUT,
-    DummyServer,
+    MockedAsyncioClient,
     Rows,
     custom_logger,
+    enable_codecov_multiprocess,
     get_multiprocessing_context,
+    select_and_recv,
 )
 from mock.mock import AsyncMock, MagicMock, patch
 from pandablocks.asyncio import AsyncioClient
@@ -34,36 +35,8 @@ from softioc import asyncio_dispatcher, builder, softioc
 
 from pandablocks_ioc._hdf_ioc import HDF5RecordController
 
-NAMESPACE_PREFIX = "HDF-RECORD-PREFIX"
+NAMESPACE_PREFIX = "HDF-RECORD-PREFIX-" + str(uuid4())[:4].upper()
 HDF5_PREFIX = NAMESPACE_PREFIX + ":HDF5"
-
-
-def chunked_read(f: BufferedReader, size: int) -> Iterator[bytes]:
-    data = f.read(size)
-    while data:
-        yield data
-        data = f.read(size)
-
-
-@pytest_asyncio.fixture
-def slow_dump():
-    with open(Path(__file__).parent / "slow_dump.txt", "rb") as f:
-        # Simulate small chunked read, sized so we hit the middle of a "BIN " marker
-        yield chunked_read(f, 44)
-
-
-@pytest_asyncio.fixture
-def fast_dump():
-    with open(Path(__file__).parent / "fast_dump.txt", "rb") as f:
-        # Simulate larger chunked read
-        yield chunked_read(f, 500)
-
-
-@pytest_asyncio.fixture
-def raw_dump():
-    with open(Path(__file__).parent / "raw_dump.txt", "rb") as f:
-        # Simulate largest chunked read
-        yield chunked_read(f, 200000)
 
 
 DUMP_FIELDS = [
@@ -232,7 +205,7 @@ def fast_dump_expected():
 
 
 @pytest_asyncio.fixture
-async def hdf5_controller(clear_records: None) -> AsyncGenerator:
+async def hdf5_controller(clear_records: None, standard_responses) -> AsyncGenerator:
     """Construct an HDF5 controller, ensuring we delete all records before
     and after the test runs, as well as ensuring the sockets opened in the HDF5
     controller are closed"""
@@ -243,15 +216,20 @@ async def hdf5_controller(clear_records: None) -> AsyncGenerator:
     await asyncio.sleep(0)
 
 
-def subprocess_func() -> None:
+def subprocess_func(
+    namespace_prefix: str, standard_responses, child_conn: Connection
+) -> None:
     """Function to start the HDF5 IOC"""
+    enable_codecov_multiprocess()
 
     async def wrapper():
-        builder.SetDeviceName(NAMESPACE_PREFIX)
-        HDF5RecordController(AsyncioClient("localhost"), NAMESPACE_PREFIX)
+        builder.SetDeviceName(namespace_prefix)
+        client = MockedAsyncioClient(standard_responses)
+        HDF5RecordController(client, namespace_prefix)
         dispatcher = asyncio_dispatcher.AsyncioDispatcher()
         builder.LoadDatabase()
         softioc.iocInit(dispatcher)
+        child_conn.send("R")
 
         # Leave this coroutine running until it's torn down by pytest
         await asyncio.Event().wait()
@@ -262,38 +240,52 @@ def subprocess_func() -> None:
 
 @pytest_asyncio.fixture
 def hdf5_subprocess_ioc_no_logging_check(
-    enable_codecov_multiprocess, caplog, caplog_workaround
+    caplog, caplog_workaround, standard_responses
 ) -> Generator:
     """Create an instance of HDF5 class in its own subprocess, then start the IOC.
     Note you probably want to use `hdf5_subprocess_ioc` instead."""
     ctx = get_multiprocessing_context()
-    p = ctx.Process(target=subprocess_func)
-    p.start()
-    time.sleep(3)  # Give IOC some time to start up
-    yield
-    p.terminate()
-    p.join(10)
-    # Should never take anywhere near 10 seconds to terminate, it's just there
-    # to ensure the test doesn't hang indefinitely during cleanup
+    parent_conn, child_conn = ctx.Pipe()
+    p = ctx.Process(
+        target=subprocess_func, args=(NAMESPACE_PREFIX, standard_responses, child_conn)
+    )
+    try:
+        p.start()
+        select_and_recv(parent_conn)  # Wait for IOC to start up
+        yield
+    finally:
+        child_conn.close()
+        parent_conn.close()
+        p.terminate()
+        p.join(10)
+        # Should never take anywhere near 10 seconds to terminate, it's just there
+        # to ensure the test doesn't hang indefinitely during cleanup
 
 
 @pytest_asyncio.fixture
-def hdf5_subprocess_ioc(
-    enable_codecov_multiprocess, caplog, caplog_workaround
-) -> Generator:
+def hdf5_subprocess_ioc(caplog, caplog_workaround, standard_responses) -> Generator:
     """Create an instance of HDF5 class in its own subprocess, then start the IOC.
     When finished check logging logged no messages of WARNING or higher level."""
     with caplog.at_level(logging.WARNING):
         with caplog_workaround():
             ctx = get_multiprocessing_context()
-            p = ctx.Process(target=subprocess_func)
-            p.start()
-            time.sleep(3)  # Give IOC some time to start up
-            yield
-            p.terminate()
-            p.join(10)
-            # Should never take anywhere near 10 seconds to terminate, it's just there
-            # to ensure the test doesn't hang indefinitely during cleanup
+            parent_conn, child_conn = ctx.Pipe()
+            p = ctx.Process(
+                target=subprocess_func,
+                args=(NAMESPACE_PREFIX, standard_responses, child_conn),
+            )
+            try:
+                p.start()
+                select_and_recv(parent_conn)  # Wait for IOC to start up
+                yield
+            finally:
+                child_conn.close()
+                parent_conn.close()
+                p.terminate()
+                p.join(10)
+                # Should never take anywhere near 10 seconds to terminate,
+                # it's just there to ensure the test doesn't hang indefinitely
+                # during cleanup
 
     # We expect all tests to pass without warnings (or worse) logged.
     assert (
@@ -301,11 +293,9 @@ def hdf5_subprocess_ioc(
     ), f"At least one warning/error/exception logged during test: {caplog.records}"
 
 
-@pytest.mark.asyncio
 async def test_hdf5_ioc(hdf5_subprocess_ioc):
     """Run the HDF5 module as its own IOC and check the expected records are created,
     with some default values checked"""
-    HDF5_PREFIX = NAMESPACE_PREFIX + ":HDF5"
     val = await caget(HDF5_PREFIX + ":FilePath")
 
     # Default value of longStringOut is an array of a single NULL byte
@@ -337,13 +327,11 @@ def _string_to_buffer(string: str):
     return numpy.frombuffer(string.encode(), dtype=numpy.uint8)
 
 
-@pytest.mark.asyncio
 async def test_hdf5_ioc_parameter_validate_works(hdf5_subprocess_ioc_no_logging_check):
     """Run the HDF5 module as its own IOC and check the _parameter_validate method
     does not stop updates, then stops when capture record is changed"""
 
     # EPICS bug means caputs always appear to succeed, so do a caget to prove it worked
-
     await caput(HDF5_PREFIX + ":FilePath", _string_to_buffer("/new/path"), wait=True)
     val = await caget(HDF5_PREFIX + ":FilePath")
     assert val.tobytes().decode() == "/new/path"
@@ -360,21 +348,15 @@ async def test_hdf5_ioc_parameter_validate_works(hdf5_subprocess_ioc_no_logging_
     assert val.tobytes().decode() == "/new/path"  # put should have been stopped
 
 
-@pytest.mark.asyncio
 async def test_hdf5_file_writing(
     hdf5_subprocess_ioc,
-    dummy_server_async: DummyServer,
-    raw_dump,
     tmp_path: Path,
     caplog,
 ):
     """Test that an HDF5 file is written when Capture is enabled"""
-    # For reasons unknown the threaded DummyServer prints warnings during its cleanup.
-    # The asyncio one does not, so just use that.
-    dummy_server_async.data = raw_dump
-
     test_dir = str(tmp_path) + "\0"
     test_filename = "test.h5\0"
+    # HDF5_PREFIX = TEST_PREFIX + ":HDF5"
 
     await caput(
         HDF5_PREFIX + ":FilePath",
@@ -395,6 +377,7 @@ async def test_hdf5_file_writing(
     assert val.tobytes().decode() == test_filename
 
     # Only a single FrameData in the example data
+    assert await caget(HDF5_PREFIX + ":NumCapture") == 0
     await caput(HDF5_PREFIX + ":NumCapture", 1, wait=True, timeout=TIMEOUT)
     assert await caget(HDF5_PREFIX + ":NumCapture") == 1
 
@@ -409,14 +392,12 @@ async def test_hdf5_file_writing(
     # Initially Capturing should be 0
     assert await capturing_queue.get() == 0
 
-    await caput(HDF5_PREFIX + ":Capture", 1, wait=True)
-    assert await caget(HDF5_PREFIX + ":Capture") == 1
+    await caput(HDF5_PREFIX + ":Capture", 1, wait=True, timeout=TIMEOUT)
 
-    # Shortly after Capture = 1, Capturing should be set to 1
     assert await capturing_queue.get() == 1
 
     # The HDF5 data will be processed, and when it's done Capturing is set to 0
-    assert await asyncio.wait_for(capturing_queue.get(), timeout=10) == 0
+    assert await asyncio.wait_for(capturing_queue.get(), timeout=TIMEOUT) == 0
 
     m.close()
 
@@ -464,7 +445,6 @@ def test_hdf_parameter_validate_capturing(hdf5_controller: HDF5RecordController)
     assert hdf5_controller._parameter_validate(MagicMock(), None) is False
 
 
-@pytest.mark.asyncio
 @patch("pandablocks_ioc._hdf_ioc.stop_pipeline")
 @patch("pandablocks_ioc._hdf_ioc.create_default_pipeline")
 async def test_handle_data(
@@ -503,7 +483,6 @@ async def test_handle_data(
     mock_stop_pipeline.assert_called_once()
 
 
-@pytest.mark.asyncio
 @patch("pandablocks_ioc._hdf_ioc.stop_pipeline")
 @patch("pandablocks_ioc._hdf_ioc.create_default_pipeline")
 async def test_handle_data_two_start_data(
@@ -545,7 +524,6 @@ async def test_handle_data_two_start_data(
     mock_stop_pipeline.assert_called_once()
 
 
-@pytest.mark.asyncio
 @patch("pandablocks_ioc._hdf_ioc.stop_pipeline")
 @patch("pandablocks_ioc._hdf_ioc.create_default_pipeline")
 async def test_handle_data_mismatching_start_data(
@@ -617,7 +595,6 @@ async def test_handle_data_mismatching_start_data(
     mock_stop_pipeline.assert_called_once()
 
 
-@pytest.mark.asyncio
 @patch("pandablocks_ioc._hdf_ioc.stop_pipeline")
 @patch("pandablocks_ioc._hdf_ioc.create_default_pipeline")
 async def test_handle_data_cancelled_error(
@@ -673,7 +650,6 @@ async def test_handle_data_cancelled_error(
     mock_stop_pipeline.assert_called_once()
 
 
-@pytest.mark.asyncio
 @patch("pandablocks_ioc._hdf_ioc.stop_pipeline")
 @patch("pandablocks_ioc._hdf_ioc.create_default_pipeline")
 async def test_handle_data_unexpected_exception(
@@ -734,7 +710,6 @@ async def test_handle_data_unexpected_exception(
     mock_stop_pipeline.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_capture_on_update(
     hdf5_controller: HDF5RecordController,
 ):
@@ -747,7 +722,6 @@ async def test_capture_on_update(
     hdf5_controller._handle_hdf5_data.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_capture_on_update_cancel_task(
     hdf5_controller: HDF5RecordController,
 ):
@@ -762,7 +736,6 @@ async def test_capture_on_update_cancel_task(
     task_mock.cancel.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_capture_on_update_cancel_unexpected_task(
     hdf5_controller: HDF5RecordController,
 ):

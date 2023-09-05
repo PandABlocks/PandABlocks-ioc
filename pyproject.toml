@@ -7,20 +7,18 @@ name = "PandABlocks-ioc"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "License :: OSI Approved :: Apache Software License",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
 ]
 description = "One line description of your module"
 dependencies = [
+    "setuptools>=64",
     "numpy",
     "click",
     "h5py",
-    "softioc>=4.1.0",
+    "softioc>=4.4.0",
     "pandablocks>=0.3.1",
-    "pvi[cli]>=0.4",
-    "aiohttp",
+    "pvi>=0.5",
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"
@@ -37,8 +35,9 @@ dev = [
     "Flake8-pyproject",
     "pipdeptree",
     "pre-commit",
+    "p4p",
     "pydata-sphinx-theme>=0.12",
-    "pytest-asyncio",
+    "pytest-asyncio>=0.20",
     "pytest-cov",
     "sphinx-autobuild",
     "sphinx-copybutton",
@@ -88,22 +87,24 @@ addopts = """
     --cov=pandablocks_ioc --cov-report term --cov-report xml:cov.xml
     """
 # https://iscinumpy.gitlab.io/post/bound-version-constraints/#watch-for-warnings
-# The ignores are all related to the test DummyServer, both async and in_thread variants, 
-# which appear to have issues cleanly shutting down and raise exceptions in their destructors.
-# The issue seems like all we need is to add await asyncio.sleep(0) to allow asyncio to
-# clean up its connections, but that doesn't seem to behave as expected inside pytest.
+# First ignore is due to p4p staticly linking an old numpy version and us installing
+# Next is something that needs to be fixed in PandABlocks-client asyncio.py's write_and_drain function
+# which triggers a deprecation warning on Python 3.9+. See https://github.com/PandABlocks/PandABlocks-client/issues/47.
+# a more recent version with a different C API. See https://github.com/mdavidsaver/p4p/issues/102.
 filterwarnings = """
     error
-    ignore:unclosed transport <_SelectorSocketTransport:
-    ignore:unclosed <socket.socket:
-    ignore:unclosed event loop <_UnixSelectorEventLoop:
+    ignore:numpy.ufunc size changed
+    ignore:The explicit passing of coroutine objects to asyncio.wait()
 """
-# ignore::ResourceWarning
 # Doctest python code in docs, python code in src docstrings, test functions in tests
 testpaths = "docs src tests"
+asyncio_mode = "auto"
 
 [tool.coverage.run]
+concurrency = ["thread", "multiprocessing"]
 data_file = "/tmp/pandablocks_ioc.coverage"
+branch = true
+omit = ["tests/*"]
 
 [tool.coverage.paths]
 # Tests are run from installed location, map back to the src directory
@@ -120,8 +121,8 @@ skipsdist=True
 # Don't create a virtualenv for the command, requires tox-direct plugin
 direct = True
 passenv = *
-allowlist_externals = 
-    pytest 
+allowlist_externals =
+    pytest
     pre-commit
     mypy
     sphinx-build

@@ -1,0 +1,161 @@
+<display version="2.0.0">
+  <name>Display</name>
+  <x>0</x>
+  <y>0</y>
+  <width>425</width>
+  <height>227</height>
+  <grid_step_x>4</grid_step_x>
+  <grid_step_y>4</grid_step_y>
+  <widget type="label" version="2.0.0">
+    <name>Title</name>
+    <class>TITLE</class>
+    <text>PCAP - TEST-PREFIX:</text>
+    <x use_class="true">0</x>
+    <y use_class="true">0</y>
+    <width>425</width>
+    <height>25</height>
+    <font use_class="true">
+      <font name="Header 1" family="Liberation Sans" style="BOLD" size="22.0">
+      </font>
+    </font>
+    <foreground_color use_class="true">
+      <color name="Text" red="0" green="0" blue="0">
+      </color>
+    </foreground_color>
+    <transparent use_class="true">true</transparent>
+    <horizontal_alignment>1</horizontal_alignment>
+  </widget>
+  <widget type="group" version="2.0.0">
+    <name>INPUTS</name>
+    <x>5</x>
+    <y>30</y>
+    <width>415</width>
+    <height>131</height>
+    <transparent>true</transparent>
+    <widget type="label" version="2.0.0">
+      <name>Label</name>
+      <text>PCAP: LABEL</text>
+      <x>0</x>
+      <y>0</y>
+      <width>250</width>
+      <height>20</height>
+    </widget>
+    <widget type="textentry" version="3.0.0">
+      <name>TextEntry</name>
+      <pv_name>TEST-PREFIX:PCAP:LABEL</pv_name>
+      <x>255</x>
+      <y>0</y>
+      <width>60</width>
+      <height>20</height>
+      <horizontal_alignment>1</horizontal_alignment>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label</name>
+      <text>PCAP: ARM</text>
+      <x>0</x>
+      <y>25</y>
+      <width>250</width>
+      <height>20</height>
+    </widget>
+    <widget type="action_button" version="3.0.0">
+      <name>ActionButton</name>
+      <pv_name>TEST-PREFIX:PCAP:ARM</pv_name>
+      <actions>
+        <action type="write_pv">
+          <pv_name>$(pv_name)</pv_name>
+          <value>1</value>
+          <description>WritePV</description>
+        </action>
+      </actions>
+      <text>Arm</text>
+      <x>255</x>
+      <y>25</y>
+      <width>38</width>
+      <height>20</height>
+      <tooltip>$(actions)</tooltip>
+    </widget>
+    <widget type="action_button" version="3.0.0">
+      <name>ActionButton</name>
+      <pv_name>TEST-PREFIX:PCAP:ARM</pv_name>
+      <actions>
+        <action type="write_pv">
+          <pv_name>$(pv_name)</pv_name>
+          <value>0</value>
+          <description>WritePV</description>
+        </action>
+      </actions>
+      <text>Disarm</text>
+      <x>298</x>
+      <y>25</y>
+      <width>38</width>
+      <height>20</height>
+      <tooltip>$(actions)</tooltip>
+    </widget>
+    <widget type="led" version="2.0.0">
+      <name>LED</name>
+      <pv_name>TEST-PREFIX:</pv_name>
+      <x>350</x>
+      <y>25</y>
+      <width>20</width>
+      <height>20</height>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label</name>
+      <text>PCAP: GATE</text>
+      <x>0</x>
+      <y>50</y>
+      <width>250</width>
+      <height>20</height>
+    </widget>
+    <widget type="textentry" version="3.0.0">
+      <name>TextEntry</name>
+      <pv_name>TEST-PREFIX:PCAP:GATE</pv_name>
+      <x>255</x>
+      <y>50</y>
+      <width>60</width>
+      <height>20</height>
+      <horizontal_alignment>1</horizontal_alignment>
+    </widget>
+    <widget type="label" version="2.0.0">
+      <name>Label</name>
+      <text>PCAP: GATE: DELAY</text>
+      <x>0</x>
+      <y>75</y>
+      <width>250</width>
+      <height>20</height>
+    </widget>
+    <widget type="textentry" version="3.0.0">
+      <name>TextEntry</name>
+      <pv_name>TEST-PREFIX:PCAP:GATE:DELAY</pv_name>
+      <x>255</x>
+      <y>75</y>
+      <width>60</width>
+      <height>20</height>
+      <horizontal_alignment>1</horizontal_alignment>
+    </widget>
+  </widget>
+  <widget type="group" version="2.0.0">
+    <name>PARAMETERS</name>
+    <x>5</x>
+    <y>166</y>
+    <width>351</width>
+    <height>56</height>
+    <transparent>true</transparent>
+    <widget type="label" version="2.0.0">
+      <name>Label</name>
+      <text>PCAP: TRIG_ EDGE</text>
+      <x>0</x>
+      <y>0</y>
+      <width>250</width>
+      <height>20</height>
+    </widget>
+    <widget type="combo" version="2.0.0">
+      <name>ComboBox</name>
+      <pv_name>TEST-PREFIX:PCAP:TRIG_EDGE</pv_name>
+      <x>255</x>
+      <y>0</y>
+      <width>60</width>
+      <height>20</height>
+    </widget>
+  </widget>
+</display>

@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict
 
 import pytest
-from conftest import TEST_PREFIX
+from fixtures.mocked_panda import TEST_PREFIX
 from mock import AsyncMock, patch
 from mock.mock import MagicMock, call
 from pandablocks.asyncio import AsyncioClient
@@ -69,7 +69,6 @@ def ioc_record_factory(clear_records: None):
 TEST_RECORD = EpicsName("TEST:RECORD")
 
 
-@pytest.mark.asyncio
 async def test_record_updater(record_updater: _RecordUpdater):
     """Test that the record updater succesfully Put's data to the client"""
 
@@ -78,7 +77,6 @@ async def test_record_updater(record_updater: _RecordUpdater):
     mock.assert_called_once_with(Put("ABC.DEF", "1.0"))
 
 
-@pytest.mark.asyncio
 async def test_record_updater_labels(record_updater: _RecordUpdater):
     """Test that the record updater succesfully Put's data to the client
     when the data is a label index"""
@@ -90,7 +88,6 @@ async def test_record_updater_labels(record_updater: _RecordUpdater):
     mock.assert_called_once_with(Put("ABC.DEF", "Label3"))
 
 
-@pytest.mark.asyncio
 async def test_record_updater_value_none(record_updater: _RecordUpdater):
     """Test that the record updater succesfully Put's data to the client
     when the data is 'None' e.g. for action-write fields"""
@@ -100,7 +97,6 @@ async def test_record_updater_value_none(record_updater: _RecordUpdater):
     mock.assert_called_once_with(Put("ABC.DEF", None))
 
 
-@pytest.mark.asyncio
 async def test_record_updater_restore_previous_value(record_updater: _RecordUpdater):
     """Test that the record updater rolls back records to previous value on
     Put failure"""
@@ -195,7 +191,7 @@ def idfn(val):
             {
                 f"{TEST_RECORD}": "0",
             },
-            [f"{TEST_RECORD}", f"{TEST_RECORD}:CAPTURE_WORD", f"{TEST_RECORD}:OFFSET"],
+            [f"{TEST_RECORD}"],
         ),
         (
             PosOutFieldInfo("pos_out", None, None, capture_labels=["No", "Diff"]),
@@ -250,7 +246,6 @@ def idfn(val):
             [
                 f"{TEST_RECORD}",
                 f"{TEST_RECORD}:DELAY",
-                f"{TEST_RECORD}:MAX_DELAY",
             ],
         ),
         (
@@ -353,9 +348,6 @@ def idfn(val):
             },
             [
                 f"{TEST_RECORD}",
-                f"{TEST_RECORD}:OFFSET",
-                f"{TEST_RECORD}:SCALE",
-                f"{TEST_RECORD}:UNITS",
             ],
         ),
         (
@@ -365,9 +357,6 @@ def idfn(val):
             },
             [
                 f"{TEST_RECORD}",
-                f"{TEST_RECORD}:OFFSET",
-                f"{TEST_RECORD}:SCALE",
-                f"{TEST_RECORD}:UNITS",
             ],
         ),
         (
@@ -377,9 +366,6 @@ def idfn(val):
             {},
             [
                 f"{TEST_RECORD}",
-                f"{TEST_RECORD}:OFFSET",
-                f"{TEST_RECORD}:SCALE",
-                f"{TEST_RECORD}:UNITS",
             ],
         ),
         (
@@ -648,16 +634,14 @@ def test_create_record_info_value_error(
     ), f"STAT not found twice in record file contents: {file_contents}"
 
 
-@pytest.mark.asyncio
 @patch("pandablocks_ioc.ioc.db_put_field")
 @pytest.mark.parametrize("new_val", ["TEST2", 2])
 async def test_time_record_updater_update_egu(
-    db_put_field: MagicMock, mocked_time_record_updater: _TimeRecordUpdater, new_val
+    db_put_field: MagicMock,
+    mocked_time_record_updater: _TimeRecordUpdater,
+    new_val,
 ):
-    """Test that _TimeRecordUpdater.update_egu works correctly with any valid input"""
-
     mocked_time_record_updater.update_egu(new_val)
-
     db_put_field.assert_called_once()
 
     # Check the expected arguments are passed to db_put_field.
@@ -667,10 +651,9 @@ async def test_time_record_updater_update_egu(
     expected_args = [TEST_PREFIX + ":BASE:RECORD.EGU", fields.DBF_STRING, 1]
     for arg in expected_args:
         assert arg in put_field_args
-    assert type(put_field_args[2]) == int
+    assert isinstance(put_field_args[2], int)
 
 
-@pytest.mark.asyncio
 @patch("pandablocks_ioc.ioc.db_put_field")
 async def test_time_record_updater_update_drvl(
     db_put_field: MagicMock, mocked_time_record_updater: _TimeRecordUpdater
@@ -692,7 +675,7 @@ async def test_time_record_updater_update_drvl(
     expected_args = [TEST_PREFIX + ":BASE:RECORD.DRVL", fields.DBF_DOUBLE, 1]
     for arg in expected_args:
         assert arg in put_field_args
-    assert type(put_field_args[2]) == int
+    assert isinstance(put_field_args[2], int)
 
 
 def test_uint_sets_record_attributes(ioc_record_factory: IocRecordFactory):
@@ -784,7 +767,6 @@ def test_unknown_type_subtype(
     assert f"Unrecognised type {(type, subtype)} while processing record" in caplog.text
 
 
-@pytest.mark.asyncio
 async def test_update_on_error_marks_record(caplog):
     """Test that errors reported from *CHANGES? are correctly marked in EPICS records"""
     caplog.set_level(logging.INFO)
@@ -800,23 +782,24 @@ async def test_update_on_error_marks_record(caplog):
     record_info = RecordInfo(None, is_in_record=True)
     record_info.record = MagicMock()
 
-    all_records = {EpicsName("ABC1:DEF"): record_info}
+    all_records = {EpicsName("ABC:DEF"): record_info}
     poll_period = 0.1
     all_values_dict = {}
+    block_info = {}
 
     try:
         await asyncio.wait_for(
-            update(client, all_records, poll_period, all_values_dict), timeout=0.3
+            update(client, all_records, poll_period, all_values_dict, block_info),
+            timeout=0.3,
         )
     except asyncio.TimeoutError:
         pass
 
     record_info.record.set_alarm.assert_called_with(3, 17)
     assert "PandA reports field in error" in caplog.text
-    assert "Setting record ABC1:DEF to invalid value error state." in caplog.text
+    assert "Setting record ABC:DEF to invalid value error state." in caplog.text
 
 
-@pytest.mark.asyncio
 async def test_update_toggles_bit_field():
     """Test that a bit field whose value changed too fast for a *CHANGES poll
     to detect still toggles the value of the EPICS record"""
@@ -835,13 +818,15 @@ async def test_update_toggles_bit_field():
     record_info.record.get.return_value = 0
     record_info._field_info = FieldInfo("bit_out", None, None)
 
-    all_records = {EpicsName("ABC1:DEF"): record_info}
+    all_records = {EpicsName("ABC:DEF"): record_info}
     poll_period = 0.1
     all_values_dict = {}
+    block_info = {}
 
     try:
         await asyncio.wait_for(
-            update(client, all_records, poll_period, all_values_dict), timeout=0.5
+            update(client, all_records, poll_period, all_values_dict, block_info),
+            timeout=0.5,
         )
     except asyncio.TimeoutError:
         pass

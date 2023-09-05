@@ -1,6 +1,8 @@
 # IOC Table record support
 
 import logging
+import typing
+from collections import OrderedDict
 from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional, Union
@@ -8,10 +10,11 @@ from typing import Dict, List, Optional, Union
 import numpy as np
 import numpy.typing as npt
 from epicsdbbuilder import RecordName
+from epicsdbbuilder.recordbase import PP
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import GetMultiline, Put
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
-from pvi.device import ComboBox, SignalRW, TextWrite
+from pvi.device import ComboBox, SignalRW, TableWrite, TextWrite
 from softioc import alarm, builder, fields
 from softioc.imports import db_put_field
 from softioc.pythonSoftIoc import RecordWrapper
@@ -58,6 +61,14 @@ class TableFieldRecordContainer:
     record_info: Optional[RecordInfo]
 
 
+def make_bit_order(
+    table_field_records: Dict[str, TableFieldRecordContainer]
+) -> Dict[str, TableFieldRecordContainer]:
+    return dict(
+        sorted(table_field_records.items(), key=lambda item: item[1].field.bit_low)
+    )
+
+
 class TablePacking:
     """Class to handle packing and unpacking Table data to and from a PandA"""
 
@@ -66,14 +77,13 @@ class TablePacking:
         row_words: int,
         table_fields_records: Dict[str, TableFieldRecordContainer],
         table_data: List[str],
-    ) -> List[UnpackedArray]:
+    ) -> Dict[str, UnpackedArray]:
         """Unpacks the given `packed` data based on the fields provided.
-        Returns the unpacked data in column-indexed format
+        Returns the unpacked data in {column_name: column_data} column-indexed format
 
         Args:
             row_words: The number of 32-bit words per row
-            table_fields: The list of fields present in the packed data. Must be ordered
-                in bit-ascending order (i.e. lowest bit_low field first)
+            table_fields: The list of fields present in the packed data.
             table_data: The list of data for this table, from PandA. Each item is
                 expected to be the string representation of a uint32.
 
@@ -87,8 +97,11 @@ class TablePacking:
         data = data.reshape(len(data) // row_words, row_words)
         packed = data.T
 
-        unpacked = []
-        for field_record in table_fields_records.values():
+        # Ensure fields are in bit-order
+        table_fields_records = make_bit_order(table_fields_records)
+
+        unpacked: Dict[str, UnpackedArray] = {}
+        for field_name, field_record in table_fields_records.items():
             field_details = field_record.field
             offset = field_details.bit_low
             bit_len = field_details.bit_high - field_details.bit_low + 1
@@ -118,7 +131,7 @@ class TablePacking:
                 elif bit_len <= 16:
                     val = val.astype(np.uint16)
 
-            unpacked.append(val)
+            unpacked.update({field_name: val})
 
         return unpacked
 
@@ -132,14 +145,16 @@ class TablePacking:
         Args:
             row_words: The number of 32-bit words per row
             table_fields_records: The list of fields and their associated RecordInfo
-                structure, used to access the value of each record. The fields and
-                records must be in bit-ascending order (i.e. lowest bit_low field first)
+                structure, used to access the value of each record.
 
         Returns:
             List[str]: The list of data ready to be sent to PandA
         """
 
         packed = None
+
+        # Ensure fields are in bit-order
+        table_fields_records = make_bit_order(table_fields_records)
 
         # Iterate over the zipped fields and their associated records to construct the
         # packed array.
@@ -149,6 +164,12 @@ class TablePacking:
             assert record_info
 
             curr_val = record_info.record.get()
+
+            if field_details.labels:
+                # Must convert the list of strings into integers
+                curr_val = [field_details.labels.index(x) for x in curr_val]
+                curr_val = np.array(curr_val)
+
             assert isinstance(curr_val, np.ndarray)  # Check no SCALAR records here
             # PandA always handles tables in uint32 format
             curr_val = np.uint32(curr_val)
@@ -195,8 +216,9 @@ class TableUpdater:
     client: AsyncioClient
     table_name: EpicsName
     field_info: TableFieldInfo
-    # Collection of the records that comprise the table's fields
-    table_fields_records: Dict[str, TableFieldRecordContainer]
+    # Collection of the records that comprise the table's fields.
+    # Order is exactly that which PandA sent.
+    table_fields_records: typing.OrderedDict[str, TableFieldRecordContainer]
     # Collection of the records that comprise the SCALAR records for each field
     table_scalar_records: Dict[EpicsName, RecordInfo] = {}
     all_values_dict: Dict[EpicsName, RecordValue]
@@ -224,6 +246,7 @@ class TableUpdater:
         pva_table_name = RecordName(table_name)
 
         # Make a labels field
+        block, field = table_name.split(":", maxsplit=1)
         columns: RecordWrapper = builder.WaveformOut(
             table_name + ":LABELS",
             initial_value=np.array([k.encode() for k in field_info.fields]),
@@ -237,27 +260,36 @@ class TableUpdater:
                 }
             },
         )
+        pv_rec = builder.longStringIn(
+            table_name + ":PV",
+            initial_value=pva_table_name,
+        )
+        pv_rec.add_info(
+            "Q:group",
+            {
+                RecordName(f"{block}:PVI"): {
+                    f"pvi.{field.lower().replace(':', '_')}.rw": {
+                        "+channel": "VAL",
+                        "+type": "plain",
+                    }
+                },
+            },
+        )
 
-        self.table_fields_records = {
-            k: TableFieldRecordContainer(v, None) for k, v in field_info.fields.items()
-        }
+        self.table_fields_records = OrderedDict(
+            {
+                k: TableFieldRecordContainer(v, None)
+                for k, v in field_info.fields.items()
+            }
+        )
         self.all_values_dict = all_values_dict
 
         # The PVI group to put all records into
         pvi_group = PviGroup.PARAMETERS
-        # Pvi.add_pvi_info(
-        #     table_name,
-        #     pvi_group,
-        #     SignalRW(table_name, table_name, TableWrite([])),
-        # )
-
-        # The input field order will be whatever was configured in the PandA.
-        # Ensure fields in bit order from lowest to highest so we can parse data
-        self.table_fields_records = dict(
-            sorted(
-                self.table_fields_records.items(),
-                key=lambda item: item[1].field.bit_low,
-            )
+        Pvi.add_pvi_info(
+            table_name,
+            pvi_group,
+            SignalRW(table_name, table_name, TableWrite([])),
         )
 
         # The INDEX record's starting value
@@ -274,8 +306,8 @@ class TableUpdater:
             value,
         )
 
-        for (field_name, field_record_container), data in zip(
-            self.table_fields_records.items(), field_data
+        for i, (field_name, field_record_container) in enumerate(
+            self.table_fields_records.items()
         ):
             field_details = field_record_container.field
 
@@ -283,32 +315,39 @@ class TableUpdater:
             full_name = EpicsName(full_name)
             description = trim_description(field_details.description, full_name)
 
+            waveform_val = self._construct_waveform_val(
+                field_data, field_name, field_details
+            )
+
             field_record: RecordWrapper = builder.WaveformOut(
                 full_name,
                 DESC=description,
                 validate=self.validate_waveform,
                 on_update_name=self.update_waveform,
-                initial_value=[str(x).encode() for x in data],
+                initial_value=waveform_val,
                 length=field_info.max_length,
             )
+
+            field_pva_info = {
+                "+type": "plain",
+                "+channel": "VAL",
+                "+putorder": i + 1,
+                "+trigger": "",
+            }
+
+            pva_info = {f"value.{field_name.lower()}": field_pva_info}
+
+            # For the last column in the table
+            if i == len(self.table_fields_records) - 1:
+                # Trigger a monitor update
+                field_pva_info["+trigger"] = "*"
+                # Add metadata
+                pva_info[""] = {"+type": "meta", "+channel": "VAL"}
+
             field_record.add_info(
                 "Q:group",
-                {
-                    pva_table_name: {
-                        f"value.{field_name}": {
-                            "+type": "plain",
-                            "+channel": "VAL",
-                        }
-                    }
-                },
+                {pva_table_name: pva_info},
             )
-            print(list(field_info.fields.keys()).index(field_name))
-            # TODO: TableWrite currently isn't implemented in PVI
-            # Pvi.add_pvi_info(
-            #     full_name,
-            #     pvi_group,
-            #     SignalRW(full_name, full_name, TableWrite([TextWrite()])),
-            # )
 
             field_record_container.record_info = RecordInfo(lambda x: x, None, False)
 
@@ -321,7 +360,11 @@ class TableUpdater:
             scalar_record_desc = "Scalar val (set by INDEX rec) of column"
             # No better default than zero, despite the fact it could be a valid value
             # PythonSoftIOC issue #53 may alleviate this.
-            initial_value = data[DEFAULT_INDEX] if data.size > 0 else 0
+            initial_value = (
+                field_data[field_name][DEFAULT_INDEX]
+                if field_data[field_name].size > 0
+                else 0
+            )
 
             # Three possible field types, do per-type config
             if field_details.subtype == "int":
@@ -399,6 +442,32 @@ class TableUpdater:
         self.mode_record_info.record = TableRecordWrapper(
             self.mode_record_info.record, self
         )
+        # PVA needs a record to start and finish processing, but these don't need
+        # putting on a screen
+        for action in (TableModeEnum.EDIT, TableModeEnum.SUBMIT):
+            action_record = builder.records.ao(
+                mode_record_name + ":" + action.name,
+                VAL=action.value,
+                MDEL=-1,
+                OUT=PP(mode_record),
+            )
+            # Edit mode done first, Submit mode done last
+            putorder = (
+                0 if action == TableModeEnum.EDIT else len(self.table_fields_records)
+            )
+            action_record.add_info(
+                "Q:group",
+                {
+                    pva_table_name: {
+                        f"_{action.name.lower()}": {
+                            "+type": "proc",
+                            "+channel": "PROC",
+                            "+putorder": putorder,
+                            "+trigger": "",
+                        }
+                    }
+                },
+            )
 
         # Index record specifies which element the scalar records should access
         index_record_name = EpicsName(table_name + ":INDEX")
@@ -408,13 +477,28 @@ class TableUpdater:
             initial_value=DEFAULT_INDEX,
             on_update=self.update_index,
             DRVL=0,
-            DRVH=data.size - 1,
+            DRVH=field_data[field_name].size - 1,
         )
 
         Pvi.add_pvi_info(
             index_record_name,
             pvi_group,
             SignalRW(index_record_name, index_record_name, TextWrite()),
+        )
+
+    def _construct_waveform_val(
+        self,
+        field_data: Dict[str, UnpackedArray],
+        field_name: str,
+        field_details: TableFieldDetails,
+    ):
+        """Convert the values into the right form. For enums this means converting
+        the numeric values PandA sends us into the string representation. For all other
+        types the numeric representation is used."""
+        return (
+            [field_details.labels[x] for x in field_data[field_name]]
+            if field_details.labels
+            else field_data[field_name]
         )
 
     def validate_waveform(self, record: RecordWrapper, new_val) -> bool:
@@ -475,6 +559,7 @@ class TableUpdater:
 
         assert self.mode_record_info.labels
 
+        packed_data: List[str] = []
         new_label = self.mode_record_info.labels[new_val]
 
         if new_label == TableModeEnum.SUBMIT.name:
@@ -511,12 +596,12 @@ class TableUpdater:
                 field_data = TablePacking.unpack(
                     self.field_info.row_words, self.table_fields_records, old_val
                 )
-                for field_record, data in zip(
-                    self.table_fields_records.values(), field_data
-                ):
+                for field_name, field_record in self.table_fields_records.items():
                     assert field_record.record_info
                     # Table records are never In type, so can always disable processing
-                    field_record.record_info.record.set(data, process=False)
+                    field_record.record_info.record.set(
+                        field_data[field_name], process=False
+                    )
             finally:
                 # Already in on_update of this record, so disable processing to
                 # avoid recursion
@@ -534,11 +619,11 @@ class TableUpdater:
                 self.field_info.row_words, self.table_fields_records, panda_vals
             )
 
-            for field_record, data in zip(
-                self.table_fields_records.values(), field_data
-            ):
+            for field_name, field_record in self.table_fields_records.items():
                 assert field_record.record_info
-                field_record.record_info.record.set(data, process=False)
+                field_record.record_info.record.set(
+                    field_data[field_name], process=False
+                )
 
             # Already in on_update of this record, so disable processing to
             # avoid recursion
@@ -560,16 +645,17 @@ class TableUpdater:
                 self.field_info.row_words, self.table_fields_records, list(new_values)
             )
 
-            for field_record, data in zip(
-                self.table_fields_records.values(), field_data
-            ):
+            for field_name, field_record in self.table_fields_records.items():
                 assert field_record.record_info
+                waveform_val = self._construct_waveform_val(
+                    field_data, field_name, field_record.field
+                )
                 # Must skip processing as the validate method would reject the update
-                field_record.record_info.record.set(data, process=False)
+                field_record.record_info.record.set(waveform_val, process=False)
                 self._update_scalar(field_record.record_info.record.name)
 
             # All items in field_data have the same length, so just use 0th.
-            self._update_index_drvh(field_data[0])
+            self._update_index_drvh(list(field_data.values())[0])
         else:
             # No other mode allows PandA updates to EPICS records
             logging.warning(
@@ -607,12 +693,25 @@ class TableUpdater:
 
         index = self.index_record.get()
 
+        labels = self.table_fields_records[field_name].field.labels
+
         try:
             scalar_val = waveform_data[index]
+            if labels:
+                # mbbi/o records must use the numeric index
+                scalar_val = labels.index(scalar_val)
             sev = alarm.NO_ALARM
         except IndexError as e:
             logging.warning(
                 f"Index {index} of record {waveform_record_name} is out of bounds.",
+                exc_info=e,
+            )
+            scalar_val = 0
+            sev = alarm.INVALID_ALARM
+        except ValueError as e:
+            logging.warning(
+                f"Value {scalar_val} of record {waveform_record_name} is not "
+                "a recognised value.",
                 exc_info=e,
             )
             scalar_val = 0

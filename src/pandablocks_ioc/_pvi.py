@@ -1,5 +1,3 @@
-import logging
-import tempfile
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -8,6 +6,8 @@ from typing import Callable, Dict, List
 from epicsdbbuilder import RecordName
 from pvi._format.dls import DLSFormatter
 from pvi.device import (
+    LED,
+    ButtonPanel,
     ComboBox,
     Component,
     Device,
@@ -62,9 +62,18 @@ def add_pvi_info(
     useComboBox: bool = record_creation_func == builder.mbbOut
 
     if record_creation_func == builder.Action:
-        # TODO: What value do I write? PandA uses an empty string
-        component = SignalX(record_name, record_name, value="")
-        access = "x"
+        if record_name == "PCAP:ARM":
+            component = SignalRW(
+                record_name,
+                record_name,
+                widget=ButtonPanel(actions=dict(Arm=1, Disarm=0)),
+                read_widget=LED(),
+            )
+            access = "rw"
+
+        else:
+            component = SignalX(record_name, record_name, value="")
+            access = "x"
     elif writeable:
         if useComboBox:
             widget = ComboBox()
@@ -80,7 +89,7 @@ def add_pvi_info(
         "Q:group",
         {
             RecordName(f"{block}:PVI"): {
-                f"pvi.{field.replace(':', '_')}.{access}": {
+                f"pvi.{field.lower().replace(':', '_')}.{access}": {
                     "+channel": "NAME",
                     "+type": "plain",
                 }
@@ -139,9 +148,13 @@ def add_positions_table_row(
 class Pvi:
     """TODO: Docs"""
 
-    # pvi_info_dict: Dict[EpicsName, PviInfo] = {}
+    _screens_dir: Path = Path()
     pvi_info_dict: Dict[str, Dict[PviGroup, List[Component]]] = {}
-    bob_file_dict: Dict[str, str] = {}
+
+    @staticmethod
+    def set_screens_dir(screens_dir: str):
+        Pvi._screens_dir = Path(screens_dir)
+        assert Pvi._screens_dir.is_dir(), "Screens directory must exist"
 
     @staticmethod
     def add_pvi_info(record_name: EpicsName, group: PviGroup, component: Component):
@@ -172,7 +185,7 @@ class Pvi:
             for group, components in v.items():
                 children.append(Group(group.name, Grid(), components))
 
-            device = Device(block_name, children)
+            device = Device(block_name, children=children)
             devices.append(device)
 
             # Add PVI structure. Unfortunately we need something in the database
@@ -180,14 +193,15 @@ class Pvi:
             # in the database, so have to make an extra record here just to hold the
             # PVI PV name
             pvi_record_name = block_name + ":PVI"
-            block_pvi = builder.stringIn(
-                pvi_record_name + "_PV", initial_value=RecordName(pvi_record_name)
+            block_pvi = builder.longStringIn(
+                pvi_record_name + "_PV",
+                initial_value=RecordName(pvi_record_name),
             )
             block_pvi.add_info(
                 "Q:group",
                 {
                     RecordName("PVI"): {
-                        f"pvi.{block_name}.d": {
+                        f"pvi.{block_name.lower()}.d": {
                             "+channel": "VAL",
                             "+type": "plain",
                         }
@@ -207,21 +221,16 @@ class Pvi:
         device_refs = [DeviceRef(x, x) for x in pvi_records]
 
         # # TODO: What should the label be?
-        device = Device("TOP", device_refs)
+        device = Device("TOP", children=device_refs)
         devices.append(device)
 
         # TODO: label widths need some tweaking - some are pretty long right now
         formatter = DLSFormatter(label_width=250)
-        with tempfile.TemporaryDirectory() as temp_dir:
-            for device in devices:
-                try:
-                    formatter.format(
-                        device,
-                        record_prefix + ":",
-                        Path(f"{temp_dir}/{device.label}.bob"),
-                    )
-                    with open(f"{temp_dir}/{device.label}.bob") as f:
-                        Pvi.bob_file_dict.update({f"{device.label}.bob": f.read()})
 
-                except NotImplementedError:
-                    logging.exception("Cannot create TABLES yet")
+        screens_dir_contents = list(Pvi._screens_dir.iterdir())
+        if screens_dir_contents:
+            raise FileExistsError("Screens directory is not empty")
+
+        for device in devices:
+            bobfile_path = Pvi._screens_dir / Path(f"{device.label}.bob")
+            formatter.format(device, record_prefix + ":", bobfile_path)
