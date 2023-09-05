@@ -25,11 +25,7 @@ from pandablocks.responses import (
 )
 
 from pandablocks_ioc._types import EpicsName
-from pandablocks_ioc.ioc import (
-    _BlockAndFieldInfo,
-    introspect_panda,
-    _create_softioc,
-)
+from pandablocks_ioc.ioc import _BlockAndFieldInfo, _create_softioc, introspect_panda
 
 # Test file for all tests that require a full setup system, with an IOC running in one
 # process, a MockedServer in another, and the test in the main thread accessing data
