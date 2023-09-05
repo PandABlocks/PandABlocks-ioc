@@ -27,13 +27,6 @@ from softioc.pythonSoftIoc import RecordWrapper
 
 from ._types import OUT_RECORD_FUNCTIONS, EpicsName
 
-overwrite_bobfiles = False
-
-
-def set_overwrite_bobfiles(overwrite_bobfiles_argument: bool):
-    global overwrite_bobfiles
-    overwrite_bobfiles = overwrite_bobfiles_argument
-
 
 class PviGroup(Enum):
     """Categories to group record display widgets"""
@@ -234,13 +227,13 @@ class Pvi:
         # TODO: label widths need some tweaking - some are pretty long right now
         formatter = DLSFormatter(label_width=250)
 
+        screens_dir_contents = list(Pvi._screens_dir.iterdir())
+        if screens_dir_contents:
+            raise FileExistsError(
+                "Screens directory is not empty, "
+                f"contains files: {screens_dir_contents}"
+            )
+
         for device in devices:
             bobfile_path = Pvi._screens_dir / Path(f"{device.label}.bob")
-            if not overwrite_bobfiles:
-                if bobfile_path.is_file():
-                    raise FileExistsError(
-                        f"Trying to write bobfile for {device.label}, but File "
-                        f"{bobfile_path} already exists. Use --overwrite-bobfiles "
-                        "to enable overwrite."
-                    )
             formatter.format(device, record_prefix + ":", bobfile_path)

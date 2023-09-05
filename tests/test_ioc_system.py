@@ -25,7 +25,11 @@ from pandablocks.responses import (
 )
 
 from pandablocks_ioc._types import EpicsName
-from pandablocks_ioc.ioc import _BlockAndFieldInfo, introspect_panda
+from pandablocks_ioc.ioc import (
+    _BlockAndFieldInfo,
+    introspect_panda,
+    _create_softioc,
+)
 
 # Test file for all tests that require a full setup system, with an IOC running in one
 # process, a MockedServer in another, and the test in the main thread accessing data
@@ -304,6 +308,15 @@ async def test_bobfiles_created(mocked_panda_standard_responses):
     # And check that the same number of files are created
     new_files = os.listdir(bobfile_temp_dir)
     assert len(old_files) == len(new_files)
+
+
+async def test_create_bobfiles_fails_if_files_present(standard_responses, tmp_path):
+    response_handler = ResponseHandler(standard_responses)
+    mocked_client = MockedAsyncioClient(response_handler)
+    Path(tmp_path / "PCAP.bob").touch()
+
+    with pytest.raises(FileExistsError):
+        await _create_softioc(mocked_client, TEST_PREFIX, tmp_path)
 
 
 def multiprocessing_queue_to_list(queue: Queue):

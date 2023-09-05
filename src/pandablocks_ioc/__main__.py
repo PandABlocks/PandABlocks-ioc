@@ -3,7 +3,6 @@ import logging
 import click
 from pandablocks.asyncio import AsyncioClient
 
-from pandablocks_ioc._pvi import set_overwrite_bobfiles
 from pandablocks_ioc.ioc import create_softioc
 
 __all__ = ["cli"]
@@ -17,21 +16,13 @@ __all__ = ["cli"]
         ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"], case_sensitive=False
     ),
 )
-@click.option(
-    "--overwrite-bobfiles",
-    default=False,
-    is_flag=True,
-    help="Overwrite .bob files if already present.",
-)
 @click.version_option()
 @click.pass_context
-def cli(ctx, log_level: str, overwrite_bobfiles: bool):
+def cli(ctx, log_level: str):
     """PandaBlocks client library command line interface."""
 
     level = getattr(logging, log_level.upper(), None)
     logging.basicConfig(format="%(levelname)s:%(message)s", level=level)
-
-    set_overwrite_bobfiles(overwrite_bobfiles)
 
     # if no command is supplied, print the help message
     if ctx.invoked_subcommand is None:
