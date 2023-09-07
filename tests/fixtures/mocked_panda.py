@@ -280,7 +280,7 @@ def ioc_wrapper(
                 response_handler, child_conn=child_conn, command_queue=command_queue
             ),
             test_prefix,
-            bobfile_dir,
+            screens_dir=bobfile_dir,
         )
 
         # Leave this process running until its torn down by pytest

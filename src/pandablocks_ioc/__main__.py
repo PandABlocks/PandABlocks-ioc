@@ -32,14 +32,29 @@ def cli(ctx, log_level: str):
 @cli.command()
 @click.argument("host")
 @click.argument("prefix")
-@click.argument("screens_dir")
-def softioc(host: str, prefix: str, screens_dir: str):
+@click.option(
+    "--screens-dir",
+    type=str,
+    help=(
+        "Provide an existing directory to export generated bobfiles to, if no "
+        "directory is provided then bobfiles will not be generated."
+    ),
+)
+@click.option("--skip-bobfile-gen-if-dir-not-empty", default=False, is_flag=True)
+def softioc(
+    host: str,
+    prefix: str,
+    screens_dir: str,
+    skip_bobfile_gen_if_dir_not_empty: bool,
+):
     """
     Connect to the given HOST and create an IOC with the given PREFIX.
-    Create .bob files for screens in the SCREENS_DIR. Directory must exist.
     """
     create_softioc(
-        client=AsyncioClient(host), record_prefix=prefix, screens_dir=screens_dir
+        client=AsyncioClient(host),
+        record_prefix=prefix,
+        screens_dir=screens_dir,
+        skip_bobfile_gen_if_dir_not_empty=skip_bobfile_gen_if_dir_not_empty,
     )
 
 
