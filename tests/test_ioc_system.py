@@ -24,8 +24,9 @@ from pandablocks.responses import (
     TableFieldInfo,
 )
 
+from pandablocks_ioc._pvi import Pvi
 from pandablocks_ioc._types import EpicsName
-from pandablocks_ioc.ioc import _BlockAndFieldInfo, _create_softioc, introspect_panda
+from pandablocks_ioc.ioc import _BlockAndFieldInfo, introspect_panda
 
 # Test file for all tests that require a full setup system, with an IOC running in one
 # process, a MockedServer in another, and the test in the main thread accessing data
@@ -306,13 +307,12 @@ async def test_bobfiles_created(mocked_panda_standard_responses):
     assert len(old_files) == len(new_files)
 
 
-async def test_create_bobfiles_fails_if_files_present(standard_responses, tmp_path):
-    response_handler = ResponseHandler(standard_responses)
-    mocked_client = MockedAsyncioClient(response_handler)
+def test_create_bobfiles_fails_if_files_present(standard_responses, tmp_path):
     Path(tmp_path / "PCAP.bob").touch()
 
     with pytest.raises(FileExistsError):
-        await _create_softioc(mocked_client, TEST_PREFIX, tmp_path)
+        Pvi.set_screens_dir(tmp_path, False)
+        Pvi.create_pvi_records(TEST_PREFIX)
 
 
 def multiprocessing_queue_to_list(queue: Queue):
@@ -345,6 +345,9 @@ async def test_create_softioc_record_update_send_to_panda(
         assert await asyncio.wait_for(trig_queue.get(), TIMEOUT) == "Falling"
     finally:
         m1.close()
+
+    # Give the queue time to be put to
+    await asyncio.sleep(0.1)
 
     # Check the panda recieved the translated command
     commands_recieved_by_panda = multiprocessing_queue_to_list(command_queue)
@@ -385,6 +388,9 @@ async def test_create_softioc_arm_disarm(
 
     finally:
         m1.close()
+
+    # Give the queue time to be put to
+    await asyncio.sleep(0.1)
 
     # Check the panda recieved the translated commands
     commands_recieved_by_panda = multiprocessing_queue_to_list(command_queue)
@@ -460,6 +466,9 @@ async def test_metadata_parses_into_single_pv(mocked_panda_standard_responses):
     )
     assert pcap_label_metadata == "SomeOtherPcapMetadataLabel"
 
+    # Give the queue time to be put to
+    await asyncio.sleep(0.1)
+
     # Check PCAP:LABEL goes to METADATA_LABEL_PCAP1
     assert command_to_key(
         Put(field="*METADATA.LABEL_PCAP1", value="SomeOtherPcapMetadataLabel")
@@ -501,6 +510,9 @@ async def test_metadata_parses_into_multiple_pvs_caput_single_pv(
 
     assert seq_1_label_metadata == "SomeOtherSequenceMetadataLabel"
     assert seq_2_label_metadata == "SeqMetadataLabel"
+
+    # Give the queue time to be put to
+    await asyncio.sleep(0.1)
 
     assert command_to_key(
         Put(field="*METADATA.LABEL_SEQ1", value="SomeOtherSequenceMetadataLabel")
