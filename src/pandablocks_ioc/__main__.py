@@ -40,21 +40,30 @@ def cli(ctx, log_level: str):
         "directory is provided then bobfiles will not be generated."
     ),
 )
-@click.option("--skip-bobfile-gen-if-dir-not-empty", default=False, is_flag=True)
+@click.option(
+    "--clear-bobfiles",
+    default=False,
+    is_flag=True,
+    help="Clear bobfiles from the given `--screens-dir` before generating new ones.",
+)
 def softioc(
     host: str,
     prefix: str,
     screens_dir: str,
-    skip_bobfile_gen_if_dir_not_empty: bool,
+    clear_bobfiles: bool,
 ):
     """
     Connect to the given HOST and create an IOC with the given PREFIX.
     """
+
+    if clear_bobfiles and not screens_dir:
+        raise RuntimeError("--clear-bobfiles passed in without a --screens-dir")
+
     create_softioc(
         client=AsyncioClient(host),
         record_prefix=prefix,
         screens_dir=screens_dir,
-        skip_bobfile_gen_if_dir_not_empty=skip_bobfile_gen_if_dir_not_empty,
+        clear_bobfiles=clear_bobfiles,
     )
 
 

@@ -9,7 +9,6 @@ import pytest
 from aioca import DBR_CHAR_STR, CANothing, caget, camonitor, caput
 from fixtures.mocked_panda import (
     BOBFILE_DIR,
-    TEST_PREFIX,
     TIMEOUT,
     MockedAsyncioClient,
     ResponseHandler,
@@ -23,8 +22,9 @@ from pandablocks.responses import (
     EnumFieldInfo,
     TableFieldInfo,
 )
+from pvi.device import SignalX
 
-from pandablocks_ioc._pvi import Pvi
+from pandablocks_ioc._pvi import Pvi, PviGroup
 from pandablocks_ioc._types import EpicsName
 from pandablocks_ioc.ioc import _BlockAndFieldInfo, introspect_panda
 
@@ -96,15 +96,23 @@ async def test_create_softioc_system(
     that the input data is turned into a collection of records with the appropriate
     values."""
     # Check table fields
+    (
+        tmp_path,
+        child_conn,
+        response_handler,
+        command_queue,
+        test_prefix,
+    ) = mocked_panda_standard_responses
+
     for field_name, expected_array in table_unpacked_data.items():
-        actual_array = await caget(TEST_PREFIX + ":SEQ:TABLE:" + field_name)
+        actual_array = await caget(test_prefix + ":SEQ:TABLE:" + field_name)
         assert numpy.array_equal(actual_array, expected_array)
 
-    assert await caget(TEST_PREFIX + ":PCAP:TRIG_EDGE") == 1  # == Falling
-    assert await caget(TEST_PREFIX + ":PCAP:GATE") == "CLOCK1.OUT"
-    assert await caget(TEST_PREFIX + ":PCAP:GATE:DELAY") == 1
+    assert await caget(test_prefix + ":PCAP:TRIG_EDGE") == 1  # == Falling
+    assert await caget(test_prefix + ":PCAP:GATE") == "CLOCK1.OUT"
+    assert await caget(test_prefix + ":PCAP:GATE:DELAY") == 1
 
-    pcap1_label = await caget(TEST_PREFIX + ":PCAP:LABEL")
+    pcap1_label = await caget(test_prefix + ":PCAP:LABEL")
     assert numpy.array_equal(
         pcap1_label,
         numpy.array(list("PcapMetadataLabel".encode() + b"\0"), dtype=numpy.uint8),
@@ -116,11 +124,18 @@ async def test_create_softioc_update(
 ):
     """Test that the update mechanism correctly changes record values when PandA
     reports values have changed"""
+    (
+        tmp_path,
+        child_conn,
+        response_handler,
+        command_queue,
+        test_prefix,
+    ) = mocked_panda_standard_responses
 
     try:
         # Set up a monitor to wait for the expected change
         capturing_queue = asyncio.Queue()
-        monitor = camonitor(TEST_PREFIX + ":PCAP:TRIG_EDGE", capturing_queue.put)
+        monitor = camonitor(test_prefix + ":PCAP:TRIG_EDGE", capturing_queue.put)
 
         curr_val = await asyncio.wait_for(capturing_queue.get(), TIMEOUT)
         # First response is the current value
@@ -188,26 +203,32 @@ async def test_including_number_in_block_names_throws_error(
 async def test_create_softioc_time_panda_changes(mocked_panda_standard_responses):
     """Test that the UNITS and MIN values of a TIME field correctly reflect into EPICS
     records when the value changes on the PandA"""
-
+    (
+        tmp_path,
+        child_conn,
+        response_handler,
+        command_queue,
+        test_prefix,
+    ) = mocked_panda_standard_responses
     try:
         # Set up monitors for expected changes when the UNITS are changed,
         # and check the initial values are correct
         egu_queue = asyncio.Queue()
         m1 = camonitor(
-            TEST_PREFIX + ":PULSE:DELAY.EGU",
+            test_prefix + ":PULSE:DELAY.EGU",
             egu_queue.put,
         )
         assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "ms"
 
         units_queue = asyncio.Queue()
         m2 = camonitor(
-            TEST_PREFIX + ":PULSE:DELAY:UNITS", units_queue.put, datatype=str
+            test_prefix + ":PULSE:DELAY:UNITS", units_queue.put, datatype=str
         )
         assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "ms"
 
         drvl_queue = asyncio.Queue()
         m3 = camonitor(
-            TEST_PREFIX + ":PULSE:DELAY.DRVL",
+            test_prefix + ":PULSE:DELAY.DRVL",
             drvl_queue.put,
         )
         # The units value changes from ms to s in the test Client, which causes
@@ -228,25 +249,32 @@ async def test_create_softioc_time_epics_changes(
 ):
     """Test that the UNITS and MIN values of a TIME field correctly sent to the PandA
     when an EPICS record is updated"""
+    (
+        tmp_path,
+        child_conn,
+        response_handler,
+        command_queue,
+        test_prefix,
+    ) = mocked_panda_standard_responses
     try:
         # Set up monitors for expected changes when the UNITS are changed,
         # and check the initial values are correct
         egu_queue = asyncio.Queue()
         m1 = camonitor(
-            TEST_PREFIX + ":PULSE:DELAY.EGU",
+            test_prefix + ":PULSE:DELAY.EGU",
             egu_queue.put,
         )
         assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "ms"
 
         units_queue = asyncio.Queue()
         m2 = camonitor(
-            TEST_PREFIX + ":PULSE:DELAY:UNITS", units_queue.put, datatype=str
+            test_prefix + ":PULSE:DELAY:UNITS", units_queue.put, datatype=str
         )
         assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "ms"
 
         drvl_queue = asyncio.Queue()
         m3 = camonitor(
-            TEST_PREFIX + ":PULSE:DELAY.DRVL",
+            test_prefix + ":PULSE:DELAY.DRVL",
             drvl_queue.put,
         )
         assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 8e-06
@@ -257,7 +285,7 @@ async def test_create_softioc_time_epics_changes(
 
         # Change the UNITS to "min"
         assert await caput(
-            TEST_PREFIX + ":PULSE:DELAY:UNITS", "min", wait=True, timeout=TIMEOUT
+            test_prefix + ":PULSE:DELAY:UNITS", "min", wait=True, timeout=TIMEOUT
         )
 
         assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "min"
@@ -276,13 +304,19 @@ async def test_softioc_records_block(mocked_panda_standard_responses):
 
     Note that a lot of other tests implicitly test this feature too - any test that
     uses caput with wait=True is effectively testing this."""
-
+    (
+        tmp_path,
+        child_conn,
+        response_handler,
+        command_queue,
+        test_prefix,
+    ) = mocked_panda_standard_responses
     try:
         arm_queue = asyncio.Queue()
-        m1 = camonitor(TEST_PREFIX + ":PCAP:ARM", arm_queue.put, datatype=str)
+        m1 = camonitor(test_prefix + ":PCAP:ARM", arm_queue.put, datatype=str)
         assert await asyncio.wait_for(arm_queue.get(), TIMEOUT) == "Disarm"
 
-        await caput(TEST_PREFIX + ":PCAP:ARM", 1, wait=True, timeout=TIMEOUT)
+        await caput(test_prefix + ":PCAP:ARM", 1, wait=True, timeout=TIMEOUT)
 
         assert await asyncio.wait_for(arm_queue.get(), TIMEOUT) == "Arm"
     finally:
@@ -290,7 +324,13 @@ async def test_softioc_records_block(mocked_panda_standard_responses):
 
 
 async def test_bobfiles_created(mocked_panda_standard_responses):
-    bobfile_temp_dir, *_ = mocked_panda_standard_responses
+    (
+        bobfile_temp_dir,
+        child_conn,
+        response_handler,
+        command_queue,
+        test_prefix,
+    ) = mocked_panda_standard_responses
     await asyncio.sleep(1)  # Wait for the files to be created
     assert bobfile_temp_dir.exists() and BOBFILE_DIR.exists()
     old_files = os.listdir(BOBFILE_DIR)
@@ -298,7 +338,7 @@ async def test_bobfiles_created(mocked_panda_standard_responses):
         assert (
             Path(bobfile_temp_dir / file)
             .read_text()
-            .replace(TEST_PREFIX, "TEST-PREFIX")
+            .replace(test_prefix, "TEST-PREFIX")
             == (BOBFILE_DIR / file).read_text()
         )
 
@@ -307,12 +347,42 @@ async def test_bobfiles_created(mocked_panda_standard_responses):
     assert len(old_files) == len(new_files)
 
 
-def test_create_bobfiles_fails_if_files_present(standard_responses, tmp_path):
+async def test_create_bobfiles_fails_if_files_present(tmp_path, new_random_test_prefix):
     Path(tmp_path / "PCAP.bob").touch()
 
     with pytest.raises(FileExistsError):
         Pvi.set_screens_dir(tmp_path, False)
-        Pvi.create_pvi_records(TEST_PREFIX)
+        Pvi.create_pvi_records(new_random_test_prefix)
+
+
+async def test_create_bobfiles_deletes_existing_files_with_clear_bobfiles(
+    tmp_path,
+    new_random_test_prefix,
+    clear_records,
+):
+    generated_bobfile = Path(tmp_path / "TOP.bob")
+    non_generated_bobfile = Path(tmp_path / "Blahblah.bob")
+    non_bobfile = Path(tmp_path / "Blahblah.txt")
+
+    generated_bobfile.touch()
+    assert generated_bobfile.read_text() == ""
+    non_generated_bobfile.touch()
+    non_bobfile.touch()
+
+    Pvi.set_screens_dir(tmp_path, True)
+    Pvi.add_pvi_info(
+        new_random_test_prefix + ":PCAP:TRIG_EDGE",
+        PviGroup.PARAMETERS,
+        SignalX("TRIG_EDGE", "Falling"),
+    )
+    Pvi.create_pvi_records(new_random_test_prefix)
+
+    await asyncio.sleep(1)
+
+    assert not non_generated_bobfile.is_file()
+    assert non_bobfile.is_file()
+    assert generated_bobfile.is_file()
+    assert generated_bobfile.read_text() != ""
 
 
 def multiprocessing_queue_to_list(queue: Queue):
@@ -329,10 +399,11 @@ async def test_create_softioc_record_update_send_to_panda(
         child_conn,
         response_handler,
         command_queue,
+        test_prefix,
     ) = mocked_panda_standard_responses
     try:
         trig_queue = asyncio.Queue()
-        m1 = camonitor(TEST_PREFIX + ":PCAP:TRIG_EDGE", trig_queue.put, datatype=str)
+        m1 = camonitor(test_prefix + ":PCAP:TRIG_EDGE", trig_queue.put, datatype=str)
 
         # Wait for all the dummy changes to finish
         assert await asyncio.wait_for(trig_queue.get(), TIMEOUT) == "Falling"
@@ -340,7 +411,7 @@ async def test_create_softioc_record_update_send_to_panda(
 
         # Verify the pv has been put to
         await caput(
-            TEST_PREFIX + ":PCAP:TRIG_EDGE", "Falling", wait=True, timeout=TIMEOUT
+            test_prefix + ":PCAP:TRIG_EDGE", "Falling", wait=True, timeout=TIMEOUT
         )
         assert await asyncio.wait_for(trig_queue.get(), TIMEOUT) == "Falling"
     finally:
@@ -367,23 +438,24 @@ async def test_create_softioc_arm_disarm(
         child_conn,
         response_handler,
         command_queue,
+        test_prefix,
     ) = mocked_panda_standard_responses
 
     try:
         arm_queue = asyncio.Queue()
-        m1 = camonitor(TEST_PREFIX + ":PCAP:ARM", arm_queue.put, datatype=str)
+        m1 = camonitor(test_prefix + ":PCAP:ARM", arm_queue.put, datatype=str)
         assert await asyncio.wait_for(arm_queue.get(), TIMEOUT) == "Disarm"
 
         # Put PVs and check the ioc sets the values
-        await caput(TEST_PREFIX + ":PCAP:ARM", "1", wait=True, timeout=TIMEOUT)
+        await caput(test_prefix + ":PCAP:ARM", "1", wait=True, timeout=TIMEOUT)
         assert await asyncio.wait_for(arm_queue.get(), TIMEOUT) == "Arm"
-        await caput(TEST_PREFIX + ":PCAP:ARM", "0", wait=True, timeout=TIMEOUT)
+        await caput(test_prefix + ":PCAP:ARM", "0", wait=True, timeout=TIMEOUT)
         assert await asyncio.wait_for(arm_queue.get(), TIMEOUT) == "Disarm"
 
         # Test you can also use "Arm" and "Disarm" instead of "1" and "0"
-        await caput(TEST_PREFIX + ":PCAP:ARM", "Arm", wait=True, timeout=TIMEOUT)
+        await caput(test_prefix + ":PCAP:ARM", "Arm", wait=True, timeout=TIMEOUT)
         assert await asyncio.wait_for(arm_queue.get(), TIMEOUT) == "Arm"
-        await caput(TEST_PREFIX + ":PCAP:ARM", "Disarm", wait=True, timeout=TIMEOUT)
+        await caput(test_prefix + ":PCAP:ARM", "Disarm", wait=True, timeout=TIMEOUT)
         assert await asyncio.wait_for(arm_queue.get(), TIMEOUT) == "Disarm"
 
     finally:
@@ -410,16 +482,17 @@ async def test_multiple_seq_pvs_are_numbered(
         child_conn,
         response_handler,
         command_queue,
+        test_prefix,
     ) = mocked_panda_multiple_seq_responses
 
-    seq_1_outd1 = await caget(TEST_PREFIX + ":SEQ1:TABLE:OUTD2")
-    seq_2_outd2 = await caget(TEST_PREFIX + ":SEQ2:TABLE:OUTD2")
+    seq_1_outd1 = await caget(test_prefix + ":SEQ1:TABLE:OUTD2")
+    seq_2_outd2 = await caget(test_prefix + ":SEQ2:TABLE:OUTD2")
 
     assert numpy.array_equal(seq_1_outd1, [0, 0, 1])
     assert numpy.array_equal(seq_2_outd2, [0, 0, 1, 1, 0])
 
     with pytest.raises(CANothing):
-        await caget(TEST_PREFIX + ":SEQ:TABLE:OUTD2", timeout=1)
+        await caget(test_prefix + ":SEQ:TABLE:OUTD2", timeout=1)
 
 
 async def test_metadata_parses_into_multiple_pvs(
@@ -428,12 +501,19 @@ async def test_metadata_parses_into_multiple_pvs(
     # If number=n where n!=1 for the block info of a block
     # then the metadata described for the block needs to be
     # put to each individual PV
+    (
+        tmp_path,
+        child_conn,
+        response_handler,
+        command_queue,
+        test_prefix,
+    ) = mocked_panda_multiple_seq_responses
 
     seq_1_label_metadata = await caget(
-        TEST_PREFIX + ":SEQ1:LABEL", datatype=DBR_CHAR_STR
+        test_prefix + ":SEQ1:LABEL", datatype=DBR_CHAR_STR
     )
     seq_2_label_metadata = await caget(
-        TEST_PREFIX + ":SEQ2:LABEL", datatype=DBR_CHAR_STR
+        test_prefix + ":SEQ2:LABEL", datatype=DBR_CHAR_STR
     )
 
     assert seq_1_label_metadata == "SeqMetadataLabel"
@@ -442,7 +522,7 @@ async def test_metadata_parses_into_multiple_pvs(
     # Make sure "*METADATA.LABEL_SEQ": "PcapMetadataLabel", doesn't
     # get parsed into :SEQ:LABEL
     with pytest.raises(CANothing):
-        await caget(TEST_PREFIX + ":SEQ:LABEL", timeout=1)
+        await caget(test_prefix + ":SEQ:LABEL", timeout=1)
 
 
 async def test_metadata_parses_into_single_pv(mocked_panda_standard_responses):
@@ -451,18 +531,19 @@ async def test_metadata_parses_into_single_pv(mocked_panda_standard_responses):
         child_conn,
         response_handler,
         command_queue,
+        test_prefix,
     ) = mocked_panda_standard_responses
     pcap_label_metadata = await caget(
-        TEST_PREFIX + ":PCAP:LABEL", datatype=DBR_CHAR_STR
+        test_prefix + ":PCAP:LABEL", datatype=DBR_CHAR_STR
     )
     assert pcap_label_metadata == "PcapMetadataLabel"
 
     await caput(
-        TEST_PREFIX + ":PCAP:LABEL", "SomeOtherPcapMetadataLabel", datatype=DBR_CHAR_STR
+        test_prefix + ":PCAP:LABEL", "SomeOtherPcapMetadataLabel", datatype=DBR_CHAR_STR
     )
 
     pcap_label_metadata = await caget(
-        TEST_PREFIX + ":PCAP:LABEL", datatype=DBR_CHAR_STR
+        test_prefix + ":PCAP:LABEL", datatype=DBR_CHAR_STR
     )
     assert pcap_label_metadata == "SomeOtherPcapMetadataLabel"
 
@@ -483,29 +564,30 @@ async def test_metadata_parses_into_multiple_pvs_caput_single_pv(
         child_conn,
         response_handler,
         command_queue,
+        test_prefix,
     ) = mocked_panda_multiple_seq_responses
     seq_1_label_metadata = await caget(
-        TEST_PREFIX + ":SEQ1:LABEL", datatype=DBR_CHAR_STR, timeout=TIMEOUT
+        test_prefix + ":SEQ1:LABEL", datatype=DBR_CHAR_STR, timeout=TIMEOUT
     )
     seq_2_label_metadata = await caget(
-        TEST_PREFIX + ":SEQ2:LABEL", datatype=DBR_CHAR_STR, timeout=TIMEOUT
+        test_prefix + ":SEQ2:LABEL", datatype=DBR_CHAR_STR, timeout=TIMEOUT
     )
 
     assert seq_1_label_metadata == "SeqMetadataLabel"
     assert seq_2_label_metadata == "SeqMetadataLabel"
 
     await caput(
-        TEST_PREFIX + ":SEQ1:LABEL",
+        test_prefix + ":SEQ1:LABEL",
         "SomeOtherSequenceMetadataLabel",
         datatype=DBR_CHAR_STR,
         timeout=TIMEOUT,
     )
 
     seq_1_label_metadata = await caget(
-        TEST_PREFIX + ":SEQ1:LABEL", datatype=DBR_CHAR_STR
+        test_prefix + ":SEQ1:LABEL", datatype=DBR_CHAR_STR
     )
     seq_2_label_metadata = await caget(
-        TEST_PREFIX + ":SEQ2:LABEL", datatype=DBR_CHAR_STR
+        test_prefix + ":SEQ2:LABEL", datatype=DBR_CHAR_STR
     )
 
     assert seq_1_label_metadata == "SomeOtherSequenceMetadataLabel"

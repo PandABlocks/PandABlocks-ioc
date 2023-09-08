@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
+from os import remove
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
@@ -149,18 +150,16 @@ class Pvi:
     """TODO: Docs"""
 
     _screens_dir: Optional[Path] = None
-    _skip_bobfile_gen_if_dir_not_empty: bool = False
+    _clear_bobfiles: bool = False
     pvi_info_dict: Dict[str, Dict[PviGroup, List[Component]]] = {}
 
     @staticmethod
-    def set_screens_dir(
-        screens_dir: Optional[str], skip_bobfile_gen_if_dir_not_empty: bool
-    ):
+    def set_screens_dir(screens_dir: Optional[str], clear_bobfiles: bool):
         if screens_dir:
             Pvi._screens_dir = Path(screens_dir)
             assert Pvi._screens_dir.is_dir(), "Screens directory must exist"
 
-        Pvi._skip_bobfile_gen_if_dir_not_empty = skip_bobfile_gen_if_dir_not_empty
+        Pvi._clear_bobfiles = clear_bobfiles
 
     @staticmethod
     def add_pvi_info(record_name: EpicsName, group: PviGroup, component: Component):
@@ -234,13 +233,16 @@ class Pvi:
         formatter = DLSFormatter(label_width=250)
 
         if Pvi._screens_dir:
-            screens_dir_contents = list(Pvi._screens_dir.iterdir())
-            from pprint import pprint
+            screens_dir_current_bobfiles = [
+                file
+                for file in Pvi._screens_dir.iterdir()
+                if str(file)[-4:] == ".bob" and file.is_file()
+            ]
 
-            if screens_dir_contents:
-                pprint(screens_dir_contents)
-                if Pvi._skip_bobfile_gen_if_dir_not_empty:
-                    return
+            if screens_dir_current_bobfiles:
+                if Pvi._clear_bobfiles:
+                    for file in screens_dir_current_bobfiles:
+                        remove(file)
                 else:
                     raise FileExistsError(
                         "Screens directory is not empty, if you want to run the ioc"

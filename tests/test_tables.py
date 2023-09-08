@@ -6,7 +6,7 @@ import numpy
 import numpy.testing
 import pytest
 from aioca import caget, camonitor, caput
-from fixtures.mocked_panda import TEST_PREFIX, TIMEOUT, command_to_key
+from fixtures.mocked_panda import TIMEOUT, command_to_key
 from mock import AsyncMock, patch
 from mock.mock import MagicMock, PropertyMock, call
 from numpy import array, ndarray
@@ -59,7 +59,7 @@ def table_fields_records(
 def table_updater(
     table_field_info: TableFieldInfo,
     table_data_1_dict: Dict[EpicsName, RecordValue],
-    clear_records: None,
+    clear_records,
     table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
 ) -> TableUpdater:
     """Provides a TableUpdater with configured records and mocked functionality"""
@@ -114,10 +114,18 @@ async def test_create_softioc_update_table(
     """Test that the update mechanism correctly changes table values when PandA
     reports values have changed"""
 
+    (
+        tmp_path,
+        child_conn,
+        response_handler,
+        command_queue,
+        test_prefix,
+    ) = mocked_panda_standard_responses
+
     try:
         # Set up a monitor to wait for the expected change
         capturing_queue = asyncio.Queue()
-        monitor = camonitor(TEST_PREFIX + ":SEQ:TABLE:TIME1", capturing_queue.put)
+        monitor = camonitor(test_prefix + ":SEQ:TABLE:TIME1", capturing_queue.put)
 
         curr_val = await asyncio.wait_for(capturing_queue.get(), TIMEOUT)
         # First response is the current value
@@ -131,17 +139,17 @@ async def test_create_softioc_update_table(
         )
 
         # And check some other columns too
-        curr_val = await caget(TEST_PREFIX + ":SEQ:TABLE:TRIGGER")
+        curr_val = await caget(test_prefix + ":SEQ:TABLE:TRIGGER")
         assert numpy.array_equal(
             curr_val,
             # Numeric values: [0, 0, 0, 9, 12]
             ["Immediate", "Immediate", "Immediate", "POSB>=POSITION", "POSC<=POSITION"],
         )
 
-        curr_val = await caget(TEST_PREFIX + ":SEQ:TABLE:POSITION")
+        curr_val = await caget(test_prefix + ":SEQ:TABLE:POSITION")
         assert numpy.array_equal(curr_val, [-5, 0, 0, 444444, -99])
 
-        curr_val = await caget(TEST_PREFIX + ":SEQ:TABLE:OUTD2")
+        curr_val = await caget(test_prefix + ":SEQ:TABLE:OUTD2")
         assert numpy.array_equal(curr_val, [0, 0, 1, 1, 0])
 
     finally:
@@ -155,6 +163,14 @@ async def test_create_softioc_update_index_drvh(
     """Test that changing the size of the table changes the DRVH value of
     the :INDEX record"""
 
+    (
+        tmp_path,
+        child_conn,
+        response_handler,
+        command_queue,
+        test_prefix,
+    ) = mocked_panda_standard_responses
+
     # Add more GetChanges data. This adds two new rows and changes row 2 (1-indexed)
     # to all zero values. Include some trailing empty changesets to ensure test code has
     # time to run.
@@ -166,7 +182,7 @@ async def test_create_softioc_update_index_drvh(
     try:
         # Set up a monitor to wait for the expected change
         drvh_queue = asyncio.Queue()
-        monitor = camonitor(TEST_PREFIX + ":SEQ:TABLE:INDEX.DRVH", drvh_queue.put)
+        monitor = camonitor(test_prefix + ":SEQ:TABLE:INDEX.DRVH", drvh_queue.put)
 
         curr_val = await asyncio.wait_for(drvh_queue.get(), TIMEOUT)
         # First response is the current value (0-indexed hence -1 )
@@ -190,10 +206,11 @@ async def test_create_softioc_table_update_send_to_panda(
         child_conn,
         response_handler,
         command_queue,
+        test_prefix,
     ) = mocked_panda_standard_responses
     try:
         trig_queue = asyncio.Queue()
-        m1 = camonitor(TEST_PREFIX + ":PCAP:TRIG_EDGE", trig_queue.put, datatype=str)
+        m1 = camonitor(test_prefix + ":PCAP:TRIG_EDGE", trig_queue.put, datatype=str)
 
         # Wait for all the dummy changes to finish
         assert await asyncio.wait_for(trig_queue.get(), TIMEOUT) == "Falling"
@@ -202,13 +219,13 @@ async def test_create_softioc_table_update_send_to_panda(
     finally:
         m1.close()
 
-    await caput(TEST_PREFIX + ":SEQ:TABLE:MODE", "EDIT", wait=True, timeout=TIMEOUT)
+    await caput(test_prefix + ":SEQ:TABLE:MODE", "EDIT", wait=True, timeout=TIMEOUT)
 
     await caput(
-        TEST_PREFIX + ":SEQ:TABLE:REPEATS", [1, 1, 1, 1, 1], wait=True, timeout=TIMEOUT
+        test_prefix + ":SEQ:TABLE:REPEATS", [1, 1, 1, 1, 1], wait=True, timeout=TIMEOUT
     )
 
-    await caput(TEST_PREFIX + ":SEQ:TABLE:MODE", "SUBMIT", wait=True, timeout=TIMEOUT)
+    await caput(test_prefix + ":SEQ:TABLE:MODE", "SUBMIT", wait=True, timeout=TIMEOUT)
 
     command_queue.put(None)
     commands_recieved_by_panda = list(iter(command_queue.get, None))
@@ -249,18 +266,26 @@ async def test_create_softioc_update_table_index(
     table_unpacked_data,
 ):
     """Test that updating the INDEX updates the SCALAR values"""
+    (
+        tmp_path,
+        child_conn,
+        response_handler,
+        command_queue,
+        test_prefix,
+    ) = mocked_panda_standard_responses
+
     try:
         index_val = 0
         # Set up monitors to wait for the expected changes
         repeats_queue = asyncio.Queue()
         repeats_monitor = camonitor(
-            TEST_PREFIX + ":SEQ:TABLE:REPEATS:SCALAR", repeats_queue.put
+            test_prefix + ":SEQ:TABLE:REPEATS:SCALAR", repeats_queue.put
         )
         trigger_queue = asyncio.Queue()
         # TRIGGER is an mbbin so must specify datatype to get its strings, otherwise
         # cothread will return the integer representation
         trigger_monitor = camonitor(
-            TEST_PREFIX + ":SEQ:TABLE:TRIGGER:SCALAR", trigger_queue.put, datatype=str
+            test_prefix + ":SEQ:TABLE:TRIGGER:SCALAR", trigger_queue.put, datatype=str
         )
 
         # Confirm initial values are correct
@@ -271,7 +296,7 @@ async def test_create_softioc_update_table_index(
 
         # Now set a new INDEX
         index_val = 1
-        await caput(TEST_PREFIX + ":SEQ:TABLE:INDEX", index_val)
+        await caput(test_prefix + ":SEQ:TABLE:INDEX", index_val)
 
         # Wait for the new values to appear
         curr_val = await asyncio.wait_for(repeats_queue.get(), TIMEOUT)
@@ -289,12 +314,20 @@ async def test_create_softioc_update_table_scalars_change(
     table_unpacked_data,
 ):
     """Test that updating the data in a waveform updates the associated SCALAR value"""
+    (
+        tmp_path,
+        child_conn,
+        response_handler,
+        command_queue,
+        test_prefix,
+    ) = mocked_panda_standard_responses
+
     try:
         index_val = 0
         # Set up monitors to wait for the expected changes
         repeats_queue = asyncio.Queue()
         repeats_monitor = camonitor(
-            TEST_PREFIX + ":SEQ:TABLE:REPEATS:SCALAR", repeats_queue.put
+            test_prefix + ":SEQ:TABLE:REPEATS:SCALAR", repeats_queue.put
         )
 
         # Confirm initial values are correct
@@ -302,9 +335,9 @@ async def test_create_softioc_update_table_scalars_change(
         assert curr_val == table_unpacked_data["REPEATS"][index_val]
 
         # Now set a new value
-        await caput(TEST_PREFIX + ":SEQ:TABLE:MODE", "EDIT")
+        await caput(test_prefix + ":SEQ:TABLE:MODE", "EDIT")
         new_repeats_vals = [9, 99, 999]
-        await caput(TEST_PREFIX + ":SEQ:TABLE:REPEATS", new_repeats_vals)
+        await caput(test_prefix + ":SEQ:TABLE:REPEATS", new_repeats_vals)
 
         # Wait for the new values to appear
         curr_val = await asyncio.wait_for(repeats_queue.get(), TIMEOUT)
