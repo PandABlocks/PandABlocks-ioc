@@ -57,7 +57,7 @@ def softioc(
     """
 
     if clear_bobfiles and not screens_dir:
-        raise RuntimeError("--clear-bobfiles passed in without a --screens-dir")
+        raise ValueError("--clear-bobfiles passed in without a --screens-dir")
 
     create_softioc(
         client=AsyncioClient(host),

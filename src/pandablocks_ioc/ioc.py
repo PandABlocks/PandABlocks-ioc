@@ -125,14 +125,18 @@ def create_softioc(
     Args:
         client: The asyncio client to be used to read/write to of the PandA
         record_prefix: The string prefix used for creation of all records.
+        screens_dir: The directory to export bobfiles to.
         clear_bobfiles: Can only be true if screens_dir is provided. Clears the
             screens_dir of bobfiles before creating new ones.
     """
     # TODO: This needs to read/take in a YAML configuration file, for various aspects
     # e.g. the update() wait time between calling GetChanges
 
+    if clear_bobfiles and not screens_dir:
+        raise ValueError("recieved clear_bobfiles=True with no screens_dir")
+
     if screens_dir:
-        Pvi.set_screens_dir(screens_dir, clear_bobfiles)
+        Pvi.configure_pvi(screens_dir, clear_bobfiles)
 
     try:
         dispatcher = asyncio_dispatcher.AsyncioDispatcher()

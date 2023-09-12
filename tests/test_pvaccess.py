@@ -1,4 +1,3 @@
-import asyncio
 import collections
 from typing import OrderedDict
 
@@ -25,8 +24,6 @@ async def test_table_column_info(
     ) = mocked_panda_standard_responses
     ctxt = Context("pva", nt=False)
 
-    # Give the ioc some time to start up.
-    await asyncio.sleep(1)
     table_value: Value = ctxt.get(test_prefix + ":SEQ:TABLE")
 
     for (actual_name, actual_value), (expected_name, expected_value) in zip(
