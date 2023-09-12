@@ -154,7 +154,7 @@ class Pvi:
     pvi_info_dict: Dict[str, Dict[PviGroup, List[Component]]] = {}
 
     @staticmethod
-    def set_screens_dir(screens_dir: Optional[str], clear_bobfiles: bool):
+    def configure_pvi(screens_dir: Optional[str], clear_bobfiles: bool):
         if screens_dir:
             Pvi._screens_dir = Path(screens_dir)
             assert Pvi._screens_dir.is_dir(), "Screens directory must exist"
@@ -236,7 +236,7 @@ class Pvi:
             screens_dir_current_bobfiles = [
                 file
                 for file in Pvi._screens_dir.iterdir()
-                if str(file)[-4:] == ".bob" and file.is_file()
+                if file.suffix == ".bob" and file.is_file()
             ]
 
             if screens_dir_current_bobfiles:
@@ -245,9 +245,9 @@ class Pvi:
                         remove(file)
                 else:
                     raise FileExistsError(
-                        "Screens directory is not empty, if you want to run the ioc"
-                        "without generating bobfiles, use --skip-bobfile-gen-if-dir-"
-                        "not-empty"
+                        "Screens directory is not empty, if you want to run the ioc "
+                        "generating bobfiles, use --clear-bobfiles to delete the "
+                        "bobfiles from the existing --screens-dir."
                     )
 
             for device in devices:

@@ -104,13 +104,13 @@ async def test_create_softioc_system(
         test_prefix,
     ) = mocked_panda_standard_responses
 
-    for field_name, expected_array in table_unpacked_data.items():
-        actual_array = await caget(test_prefix + ":SEQ:TABLE:" + field_name)
-        assert numpy.array_equal(actual_array, expected_array)
-
     assert await caget(test_prefix + ":PCAP:TRIG_EDGE") == 1  # == Falling
     assert await caget(test_prefix + ":PCAP:GATE") == "CLOCK1.OUT"
     assert await caget(test_prefix + ":PCAP:GATE:DELAY") == 1
+
+    for field_name, expected_array in table_unpacked_data.items():
+        actual_array = await caget(test_prefix + ":SEQ:TABLE:" + field_name)
+        assert numpy.array_equal(actual_array, expected_array)
 
     pcap1_label = await caget(test_prefix + ":PCAP:LABEL")
     assert numpy.array_equal(
@@ -331,8 +331,12 @@ async def test_bobfiles_created(mocked_panda_standard_responses):
         command_queue,
         test_prefix,
     ) = mocked_panda_standard_responses
-    await asyncio.sleep(1)  # Wait for the files to be created
+
     assert bobfile_temp_dir.exists() and BOBFILE_DIR.exists()
+
+    # Wait for the files to be created in the subprocess.
+    await asyncio.sleep(1)
+
     old_files = os.listdir(BOBFILE_DIR)
     for file in old_files:
         assert (
@@ -351,7 +355,7 @@ async def test_create_bobfiles_fails_if_files_present(tmp_path, new_random_test_
     Path(tmp_path / "PCAP.bob").touch()
 
     with pytest.raises(FileExistsError):
-        Pvi.set_screens_dir(tmp_path, False)
+        Pvi.configure_pvi(tmp_path, False)
         Pvi.create_pvi_records(new_random_test_prefix)
 
 
@@ -369,15 +373,13 @@ async def test_create_bobfiles_deletes_existing_files_with_clear_bobfiles(
     non_generated_bobfile.touch()
     non_bobfile.touch()
 
-    Pvi.set_screens_dir(tmp_path, True)
+    Pvi.configure_pvi(tmp_path, True)
     Pvi.add_pvi_info(
         new_random_test_prefix + ":PCAP:TRIG_EDGE",
         PviGroup.PARAMETERS,
         SignalX("TRIG_EDGE", "Falling"),
     )
     Pvi.create_pvi_records(new_random_test_prefix)
-
-    await asyncio.sleep(1)
 
     assert not non_generated_bobfile.is_file()
     assert non_bobfile.is_file()

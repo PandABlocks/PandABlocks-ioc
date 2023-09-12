@@ -6,7 +6,6 @@ from asyncio import CancelledError
 from multiprocessing.connection import Connection
 from pathlib import Path
 from typing import AsyncGenerator, Generator
-from uuid import uuid4
 
 import h5py
 import numpy
@@ -17,6 +16,7 @@ from fixtures.mocked_panda import (
     TIMEOUT,
     MockedAsyncioClient,
     Rows,
+    append_random_uppercase,
     custom_logger,
     enable_codecov_multiprocess,
     get_multiprocessing_context,
@@ -36,12 +36,12 @@ from softioc import asyncio_dispatcher, builder, softioc
 
 from pandablocks_ioc._hdf_ioc import HDF5RecordController
 
-NAMESPACE_PREFIX = "HDF-RECORD-PREFIX-" + str(uuid4())[:4].upper()
+NAMESPACE_PREFIX = "HDF-RECORD-PREFIX"
 
 
 @pytest.fixture
 def new_random_hdf5_prefix():
-    test_prefix = NAMESPACE_PREFIX + "-" + str(uuid4())[:8].upper()
+    test_prefix = append_random_uppercase(NAMESPACE_PREFIX)
     hdf5_test_prefix = test_prefix + ":HDF5"
     return test_prefix, hdf5_test_prefix
 
@@ -271,7 +271,7 @@ def hdf5_subprocess_ioc_no_logging_check(
         child_conn.close()
         parent_conn.close()
         p.terminate()
-        p.join(10)
+        p.join(timeout=TIMEOUT)
         # Should never take anywhere near 10 seconds to terminate, it's just there
         # to ensure the test doesn't hang indefinitely during cleanup
 
@@ -301,7 +301,7 @@ def hdf5_subprocess_ioc(
                 child_conn.close()
                 parent_conn.close()
                 p.terminate()
-                p.join(10)
+                p.join(timeout=TIMEOUT)
                 # Should never take anywhere near 10 seconds to terminate,
                 # it's just there to ensure the test doesn't hang indefinitely
                 # during cleanup

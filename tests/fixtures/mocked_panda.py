@@ -47,17 +47,23 @@ T = TypeVar("T")
 # If the test is cancelled half way through then the softioc process isn't always killed
 # Use the unique TEST_PREFIX to ensure this isn't a problem for future tests
 BOBFILE_DIR = Path(__file__).parent.parent / "test-bobfiles"
-TIMEOUT = 100000
+TIMEOUT = 10
 TEST_PREFIX = "TEST_PREFIX"
+
+
+def append_random_uppercase(pv: str) -> str:
+    return pv + "-" + str(uuid4())[:8].upper()
 
 
 @pytest.fixture
 def new_random_test_prefix():
-    return TEST_PREFIX + "-" + str(uuid4())[:8].upper()
+    return append_random_uppercase(TEST_PREFIX)
 
 
 @pytest_asyncio.fixture
-def mocked_time_record_updater(new_random_test_prefix):
+def mocked_time_record_updater(
+    new_random_test_prefix,
+) -> Generator[Tuple[_TimeRecordUpdater, str], None, None]:
     """An instance of _TimeRecordUpdater with MagicMocks and some default values"""
     base_record = MagicMock()
     base_record.name = new_random_test_prefix + ":BASE:RECORD"
@@ -66,7 +72,7 @@ def mocked_time_record_updater(new_random_test_prefix):
     client = MagicMock()
     loop = asyncio.BaseEventLoop()
     try:
-        f = asyncio.Future(loop=loop)
+        f: asyncio.Future = asyncio.Future(loop=loop)
         f.set_result("8e-09")
         client.send.return_value = f
 
@@ -366,7 +372,7 @@ def create_subprocess_ioc_and_responses(
                 child_conn.close()
                 parent_conn.close()
                 p.terminate()
-                p.join(10)
+                p.join(timeout=TIMEOUT)
 
                 # Should never take anywhere near 10 seconds to terminate, it's just
                 # there to ensure the test doesn't hang indefinitely during cleanup
