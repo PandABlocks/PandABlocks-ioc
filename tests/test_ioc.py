@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Tuple
 
 import pytest
 from fixtures.mocked_panda import TEST_PREFIX
@@ -638,17 +638,18 @@ def test_create_record_info_value_error(
 @pytest.mark.parametrize("new_val", ["TEST2", 2])
 async def test_time_record_updater_update_egu(
     db_put_field: MagicMock,
-    mocked_time_record_updater: _TimeRecordUpdater,
+    mocked_time_record_updater: Tuple[_TimeRecordUpdater, str],
     new_val,
 ):
-    mocked_time_record_updater.update_egu(new_val)
+    time_record_updater, test_prefix = mocked_time_record_updater
+    time_record_updater.update_egu(new_val)
     db_put_field.assert_called_once()
 
     # Check the expected arguments are passed to db_put_field.
     # Note we don't check the value of `array.ctypes.data` parameter as it's a pointer
     # to a memory address so will always vary
     put_field_args = db_put_field.call_args.args
-    expected_args = [TEST_PREFIX + ":BASE:RECORD.EGU", fields.DBF_STRING, 1]
+    expected_args = [test_prefix + ":BASE:RECORD.EGU", fields.DBF_STRING, 1]
     for arg in expected_args:
         assert arg in put_field_args
     assert isinstance(put_field_args[2], int)
@@ -656,15 +657,16 @@ async def test_time_record_updater_update_egu(
 
 @patch("pandablocks_ioc.ioc.db_put_field")
 async def test_time_record_updater_update_drvl(
-    db_put_field: MagicMock, mocked_time_record_updater: _TimeRecordUpdater
+    db_put_field: MagicMock, mocked_time_record_updater: Tuple[_TimeRecordUpdater, str]
 ):
     """Test that _TimeRecordUpdater.update_drvl works correctly"""
 
-    await mocked_time_record_updater.update_drvl()
+    time_record_updater, test_prefix = mocked_time_record_updater
+    await time_record_updater.update_drvl()
 
     # ...Just to make mypy happy...
-    assert isinstance(mocked_time_record_updater.client, MagicMock)
-    mocked_time_record_updater.client.send.assert_called_once_with(GetLine("TEST.MIN"))
+    assert isinstance(time_record_updater.client, MagicMock)
+    time_record_updater.client.send.assert_called_once_with(GetLine("TEST.MIN"))
 
     db_put_field.assert_called_once()
 
@@ -672,7 +674,7 @@ async def test_time_record_updater_update_drvl(
     # Note we don't check the value of `array.ctypes.data` parameter as it's a pointer
     # to a memory address so will always vary
     put_field_args = db_put_field.call_args.args
-    expected_args = [TEST_PREFIX + ":BASE:RECORD.DRVL", fields.DBF_DOUBLE, 1]
+    expected_args = [test_prefix + ":BASE:RECORD.DRVL", fields.DBF_DOUBLE, 1]
     for arg in expected_args:
         assert arg in put_field_args
     assert isinstance(put_field_args[2], int)

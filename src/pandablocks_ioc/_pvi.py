@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from enum import Enum
+from os import remove
 from pathlib import Path
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Optional
 
 from epicsdbbuilder import RecordName
 from pvi._format.dls import DLSFormatter
@@ -148,13 +149,17 @@ def add_positions_table_row(
 class Pvi:
     """TODO: Docs"""
 
-    _screens_dir: Path = Path()
+    _screens_dir: Optional[Path] = None
+    _clear_bobfiles: bool = False
     pvi_info_dict: Dict[str, Dict[PviGroup, List[Component]]] = {}
 
     @staticmethod
-    def set_screens_dir(screens_dir: str):
-        Pvi._screens_dir = Path(screens_dir)
-        assert Pvi._screens_dir.is_dir(), "Screens directory must exist"
+    def configure_pvi(screens_dir: Optional[str], clear_bobfiles: bool):
+        if screens_dir:
+            Pvi._screens_dir = Path(screens_dir)
+            assert Pvi._screens_dir.is_dir(), "Screens directory must exist"
+
+        Pvi._clear_bobfiles = clear_bobfiles
 
     @staticmethod
     def add_pvi_info(record_name: EpicsName, group: PviGroup, component: Component):
@@ -227,10 +232,24 @@ class Pvi:
         # TODO: label widths need some tweaking - some are pretty long right now
         formatter = DLSFormatter(label_width=250)
 
-        screens_dir_contents = list(Pvi._screens_dir.iterdir())
-        if screens_dir_contents:
-            raise FileExistsError("Screens directory is not empty")
+        if Pvi._screens_dir:
+            screens_dir_current_bobfiles = [
+                file
+                for file in Pvi._screens_dir.iterdir()
+                if file.suffix == ".bob" and file.is_file()
+            ]
 
-        for device in devices:
-            bobfile_path = Pvi._screens_dir / Path(f"{device.label}.bob")
-            formatter.format(device, record_prefix + ":", bobfile_path)
+            if screens_dir_current_bobfiles:
+                if Pvi._clear_bobfiles:
+                    for file in screens_dir_current_bobfiles:
+                        remove(file)
+                else:
+                    raise FileExistsError(
+                        "Screens directory is not empty, if you want to run the ioc "
+                        "generating bobfiles, use --clear-bobfiles to delete the "
+                        "bobfiles from the existing --screens-dir."
+                    )
+
+            for device in devices:
+                bobfile_path = Pvi._screens_dir / Path(f"{device.label}.bob")
+                formatter.format(device, record_prefix + ":", bobfile_path)

@@ -6,7 +6,6 @@ from asyncio import CancelledError
 from multiprocessing.connection import Connection
 from pathlib import Path
 from typing import AsyncGenerator, Generator
-from uuid import uuid4
 
 import h5py
 import numpy
@@ -17,6 +16,7 @@ from fixtures.mocked_panda import (
     TIMEOUT,
     MockedAsyncioClient,
     Rows,
+    append_random_uppercase,
     custom_logger,
     enable_codecov_multiprocess,
     get_multiprocessing_context,
@@ -36,8 +36,14 @@ from softioc import asyncio_dispatcher, builder, softioc
 
 from pandablocks_ioc._hdf_ioc import HDF5RecordController
 
-NAMESPACE_PREFIX = "HDF-RECORD-PREFIX-" + str(uuid4())[:4].upper()
-HDF5_PREFIX = NAMESPACE_PREFIX + ":HDF5"
+NAMESPACE_PREFIX = "HDF-RECORD-PREFIX"
+
+
+@pytest.fixture
+def new_random_hdf5_prefix():
+    test_prefix = append_random_uppercase(NAMESPACE_PREFIX)
+    hdf5_test_prefix = test_prefix + ":HDF5"
+    return test_prefix, hdf5_test_prefix
 
 
 DUMP_FIELDS = [
@@ -206,12 +212,16 @@ def fast_dump_expected():
 
 
 @pytest_asyncio.fixture
-async def hdf5_controller(clear_records: None, standard_responses) -> AsyncGenerator:
+async def hdf5_controller(
+    clear_records: None, standard_responses, new_random_hdf5_prefix
+) -> AsyncGenerator:
     """Construct an HDF5 controller, ensuring we delete all records before
     and after the test runs, as well as ensuring the sockets opened in the HDF5
     controller are closed"""
 
-    hdf5_controller = HDF5RecordController(AsyncioClient("localhost"), NAMESPACE_PREFIX)
+    test_prefix, hdf5_test_prefix = new_random_hdf5_prefix
+
+    hdf5_controller = HDF5RecordController(AsyncioClient("localhost"), test_prefix)
     yield hdf5_controller
     # Give time for asyncio to fully close its connections
     await asyncio.sleep(0)
@@ -241,49 +251,57 @@ def subprocess_func(
 
 @pytest_asyncio.fixture
 def hdf5_subprocess_ioc_no_logging_check(
-    caplog, caplog_workaround, standard_responses
+    caplog, caplog_workaround, standard_responses, new_random_hdf5_prefix, clear_records
 ) -> Generator:
     """Create an instance of HDF5 class in its own subprocess, then start the IOC.
     Note you probably want to use `hdf5_subprocess_ioc` instead."""
+
+    test_prefix, hdf5_test_prefix = new_random_hdf5_prefix
+
     ctx = get_multiprocessing_context()
     parent_conn, child_conn = ctx.Pipe()
     p = ctx.Process(
-        target=subprocess_func, args=(NAMESPACE_PREFIX, standard_responses, child_conn)
+        target=subprocess_func, args=(test_prefix, standard_responses, child_conn)
     )
     try:
         p.start()
         select_and_recv(parent_conn)  # Wait for IOC to start up
-        yield
+        yield test_prefix, hdf5_test_prefix
     finally:
         child_conn.close()
         parent_conn.close()
         p.terminate()
-        p.join(10)
+        p.join(timeout=TIMEOUT)
         # Should never take anywhere near 10 seconds to terminate, it's just there
         # to ensure the test doesn't hang indefinitely during cleanup
 
 
 @pytest_asyncio.fixture
-def hdf5_subprocess_ioc(caplog, caplog_workaround, standard_responses) -> Generator:
+def hdf5_subprocess_ioc(
+    caplog, caplog_workaround, standard_responses, new_random_hdf5_prefix, clear_records
+) -> Generator:
     """Create an instance of HDF5 class in its own subprocess, then start the IOC.
     When finished check logging logged no messages of WARNING or higher level."""
+
+    test_prefix, hdf5_test_prefix = new_random_hdf5_prefix
+
     with caplog.at_level(logging.WARNING):
         with caplog_workaround():
             ctx = get_multiprocessing_context()
             parent_conn, child_conn = ctx.Pipe()
             p = ctx.Process(
                 target=subprocess_func,
-                args=(NAMESPACE_PREFIX, standard_responses, child_conn),
+                args=(test_prefix, standard_responses, child_conn),
             )
             try:
                 p.start()
                 select_and_recv(parent_conn)  # Wait for IOC to start up
-                yield
+                yield test_prefix, hdf5_test_prefix
             finally:
                 child_conn.close()
                 parent_conn.close()
                 p.terminate()
-                p.join(10)
+                p.join(timeout=TIMEOUT)
                 # Should never take anywhere near 10 seconds to terminate,
                 # it's just there to ensure the test doesn't hang indefinitely
                 # during cleanup
@@ -297,28 +315,31 @@ def hdf5_subprocess_ioc(caplog, caplog_workaround, standard_responses) -> Genera
 async def test_hdf5_ioc(hdf5_subprocess_ioc):
     """Run the HDF5 module as its own IOC and check the expected records are created,
     with some default values checked"""
-    val = await caget(HDF5_PREFIX + ":FilePath")
+
+    test_prefix, hdf5_test_prefix = hdf5_subprocess_ioc
+
+    val = await caget(hdf5_test_prefix + ":FilePath")
 
     # Default value of longStringOut is an array of a single NULL byte
     assert val.size == 1
 
     # Mix and match between CamelCase and UPPERCASE to check aliases work
-    val = await caget(HDF5_PREFIX + ":FILENAME")
+    val = await caget(hdf5_test_prefix + ":FILENAME")
     assert val.size == 1  # As above for longStringOut
 
-    val = await caget(HDF5_PREFIX + ":NumCapture")
+    val = await caget(hdf5_test_prefix + ":NumCapture")
     assert val == 0
 
-    val = await caget(HDF5_PREFIX + ":FlushPeriod")
+    val = await caget(hdf5_test_prefix + ":FlushPeriod")
     assert val == 1.0
 
-    val = await caget(HDF5_PREFIX + ":CAPTURE")
+    val = await caget(hdf5_test_prefix + ":CAPTURE")
     assert val == 0
 
-    val = await caget(HDF5_PREFIX + ":Status")
+    val = await caget(hdf5_test_prefix + ":Status")
     assert val == "OK"
 
-    val = await caget(HDF5_PREFIX + ":Capturing")
+    val = await caget(hdf5_test_prefix + ":Capturing")
     assert val == 0
 
 
@@ -332,20 +353,26 @@ async def test_hdf5_ioc_parameter_validate_works(hdf5_subprocess_ioc_no_logging_
     """Run the HDF5 module as its own IOC and check the _parameter_validate method
     does not stop updates, then stops when capture record is changed"""
 
+    test_prefix, hdf5_test_prefix = hdf5_subprocess_ioc_no_logging_check
+
     # EPICS bug means caputs always appear to succeed, so do a caget to prove it worked
-    await caput(HDF5_PREFIX + ":FilePath", _string_to_buffer("/new/path"), wait=True)
-    val = await caget(HDF5_PREFIX + ":FilePath")
+    await caput(
+        hdf5_test_prefix + ":FilePath", _string_to_buffer("/new/path"), wait=True
+    )
+    val = await caget(hdf5_test_prefix + ":FilePath")
     assert val.tobytes().decode() == "/new/path"
 
-    await caput(HDF5_PREFIX + ":FileName", _string_to_buffer("name.h5"), wait=True)
-    val = await caget(HDF5_PREFIX + ":FileName")
+    await caput(hdf5_test_prefix + ":FileName", _string_to_buffer("name.h5"), wait=True)
+    val = await caget(hdf5_test_prefix + ":FileName")
     assert val.tobytes().decode() == "name.h5"
 
-    await caput(HDF5_PREFIX + ":Capture", 1, wait=True)
-    assert await caget(HDF5_PREFIX + ":Capture") == 1
+    await caput(hdf5_test_prefix + ":Capture", 1, wait=True)
+    assert await caget(hdf5_test_prefix + ":Capture") == 1
 
-    await caput(HDF5_PREFIX + ":FilePath", _string_to_buffer("/second/path"), wait=True)
-    val = await caget(HDF5_PREFIX + ":FilePath")
+    await caput(
+        hdf5_test_prefix + ":FilePath", _string_to_buffer("/second/path"), wait=True
+    )
+    val = await caget(hdf5_test_prefix + ":FilePath")
     assert val.tobytes().decode() == "/new/path"  # put should have been stopped
 
 
@@ -354,44 +381,48 @@ async def test_hdf5_file_writing(
     hdf5_subprocess_ioc, tmp_path: Path, caplog, num_capture
 ):
     """Test that an HDF5 file is written when Capture is enabled"""
+
+    test_prefix, hdf5_test_prefix = hdf5_subprocess_ioc
     test_dir = str(tmp_path) + "\0"
     test_filename = "test.h5\0"
-    # HDF5_PREFIX = TEST_PREFIX + ":HDF5"
 
     await caput(
-        HDF5_PREFIX + ":FilePath",
+        hdf5_test_prefix + ":FilePath",
         _string_to_buffer(str(test_dir)),
         wait=True,
         timeout=TIMEOUT,
     )
-    val = await caget(HDF5_PREFIX + ":FilePath")
+    val = await caget(hdf5_test_prefix + ":FilePath")
     assert val.tobytes().decode() == test_dir
 
     await caput(
-        HDF5_PREFIX + ":FileName",
+        hdf5_test_prefix + ":FileName",
         _string_to_buffer(test_filename),
         wait=True,
         timeout=TIMEOUT,
     )
-    val = await caget(HDF5_PREFIX + ":FileName")
+    val = await caget(hdf5_test_prefix + ":FileName")
     assert val.tobytes().decode() == test_filename
 
-    assert await caget(HDF5_PREFIX + ":NumCapture") == 0
-    await caput(HDF5_PREFIX + ":NumCapture", num_capture, wait=True, timeout=TIMEOUT)
-    assert await caget(HDF5_PREFIX + ":NumCapture") == num_capture
+    # Only a single FrameData in the example data
+    assert await caget(hdf5_test_prefix + ":NumCapture") == 0
+    await caput(
+        hdf5_test_prefix + ":NumCapture", num_capture, wait=True, timeout=TIMEOUT
+    )
+    assert await caget(hdf5_test_prefix + ":NumCapture") == num_capture
 
     # The queue expects to see Capturing go 0 -> 1 -> 0 as Capture is enabled
     # and subsequently finishes
     capturing_queue: asyncio.Queue = asyncio.Queue()
     m = camonitor(
-        HDF5_PREFIX + ":Capturing",
+        hdf5_test_prefix + ":Capturing",
         capturing_queue.put,
     )
 
     # Initially Capturing should be 0
     assert await capturing_queue.get() == 0
 
-    await caput(HDF5_PREFIX + ":Capture", 1, wait=True, timeout=TIMEOUT)
+    await caput(hdf5_test_prefix + ":Capture", 1, wait=True, timeout=TIMEOUT)
 
     assert await capturing_queue.get() == 1
 
@@ -401,8 +432,8 @@ async def test_hdf5_file_writing(
     m.close()
 
     # Close capture, thus closing hdf5 file
-    await caput(HDF5_PREFIX + ":Capture", 0, wait=True)
-    assert await caget(HDF5_PREFIX + ":Capture") == 0
+    await caput(hdf5_test_prefix + ":Capture", 0, wait=True)
+    assert await caget(hdf5_test_prefix + ":Capture") == 0
 
     # Confirm file contains data we expect
     hdf_file = h5py.File(tmp_path / test_filename[:-1], "r")

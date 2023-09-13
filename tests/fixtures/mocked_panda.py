@@ -35,8 +35,7 @@ from pandablocks.responses import (
     EnumFieldInfo,
     TimeFieldInfo,
 )
-from softioc.builder import ClearRecords
-from softioc.device_core import RecordLookup
+from softioc import builder
 
 from pandablocks_ioc import create_softioc
 from pandablocks_ioc._types import EpicsName
@@ -47,37 +46,51 @@ T = TypeVar("T")
 
 # If the test is cancelled half way through then the softioc process isn't always killed
 # Use the unique TEST_PREFIX to ensure this isn't a problem for future tests
-TEST_PREFIX = "TEST-PREFIX-" + str(uuid4())[:4].upper()
 BOBFILE_DIR = Path(__file__).parent.parent / "test-bobfiles"
 TIMEOUT = 10
+TEST_PREFIX = "TEST_PREFIX"
+
+
+def append_random_uppercase(pv: str) -> str:
+    return pv + "-" + str(uuid4())[:8].upper()
+
+
+@pytest.fixture
+def new_random_test_prefix():
+    return append_random_uppercase(TEST_PREFIX)
 
 
 @pytest_asyncio.fixture
-def mocked_time_record_updater():
+def mocked_time_record_updater(
+    new_random_test_prefix,
+) -> Generator[Tuple[_TimeRecordUpdater, str], None, None]:
     """An instance of _TimeRecordUpdater with MagicMocks and some default values"""
     base_record = MagicMock()
-    base_record.name = TEST_PREFIX + ":BASE:RECORD"
+    base_record.name = new_random_test_prefix + ":BASE:RECORD"
 
     # We don't have AsyncMock in Python3.7, so do it ourselves
     client = MagicMock()
     loop = asyncio.BaseEventLoop()
     try:
-        f = asyncio.Future(loop=loop)
+        f: asyncio.Future = asyncio.Future(loop=loop)
         f.set_result("8e-09")
         client.send.return_value = f
 
         mocked_record_info = MagicMock()
         mocked_record_info.record = MagicMock()
-        mocked_record_info.record.name = EpicsName(TEST_PREFIX + ":TEST:STR")
+        mocked_record_info.record.name = EpicsName(new_random_test_prefix + ":TEST:STR")
 
-        yield _TimeRecordUpdater(
-            mocked_record_info,
-            client,
-            {},
-            ["TEST1", "TEST2", "TEST3"],
-            base_record,
-            TEST_PREFIX,
-            True,
+        yield (
+            _TimeRecordUpdater(
+                mocked_record_info,
+                client,
+                {},
+                ["TEST1", "TEST2", "TEST3"],
+                base_record,
+                new_random_test_prefix,
+                True,
+            ),
+            new_random_test_prefix,
         )
     finally:
         loop.close()
@@ -86,11 +99,7 @@ def mocked_time_record_updater():
 @pytest.fixture
 def clear_records():
     # Remove any records created at epicsdbbuilder layer
-    ClearRecords()
-    # And at pythonSoftIoc level
-    # TODO: Remove this hack and use use whatever comes out of
-    # https://github.com/dls-controls/pythonSoftIOC/issues/56
-    RecordLookup._RecordDirectory.clear()
+    builder.ClearRecords()
 
 
 def custom_logger():
@@ -270,6 +279,7 @@ def ioc_wrapper(
     table_field_info,
     table_fields,
     test_prefix: str,
+    clear_bobfiles,
     mocked_interactive_ioc: MagicMock,
 ):
     enable_codecov_multiprocess()
@@ -280,7 +290,8 @@ def ioc_wrapper(
                 response_handler, child_conn=child_conn, command_queue=command_queue
             ),
             test_prefix,
-            bobfile_dir,
+            screens_dir=bobfile_dir,
+            clear_bobfiles=clear_bobfiles,
         )
 
         # Leave this process running until its torn down by pytest
@@ -324,11 +335,13 @@ def caplog_workaround():
 def create_subprocess_ioc_and_responses(
     response_handler: ResponseHandler,
     tmp_path: Path,
+    test_prefix: str,
     caplog,
     caplog_workaround,
     table_field_info,
     table_fields,
-) -> Generator[Tuple[Path, Connection, ResponseHandler, Queue], None, None]:
+    clear_bobfiles=False,
+) -> Generator[Tuple[Path, Connection, ResponseHandler, Queue, str], None, None]:
     """Run the IOC in its own subprocess. When finished check logging logged no
     messages of WARNING or higher level."""
 
@@ -346,19 +359,20 @@ def create_subprocess_ioc_and_responses(
                     command_queue,
                     table_fields,
                     table_field_info,
-                    TEST_PREFIX,
+                    test_prefix,
+                    clear_bobfiles,
                 ),
             )
             try:
                 p.start()
                 select_and_recv(parent_conn)  # Wait for IOC to start up
-                yield tmp_path, child_conn, response_handler, command_queue
+                yield tmp_path, child_conn, response_handler, command_queue, test_prefix
             finally:
                 command_queue.close()
                 child_conn.close()
                 parent_conn.close()
                 p.terminate()
-                p.join(10)
+                p.join(timeout=TIMEOUT)
 
                 # Should never take anywhere near 10 seconds to terminate, it's just
                 # there to ensure the test doesn't hang indefinitely during cleanup
@@ -744,17 +758,20 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
 @pytest.fixture
 def mocked_panda_multiple_seq_responses(
     multiple_seq_responses,
+    new_random_test_prefix,
     tmp_path: Path,
     caplog,
     caplog_workaround,
     table_field_info,
     table_fields,
-) -> Generator[Tuple[Path, Connection, ResponseHandler, Queue], None, None]:
+    clear_records,
+) -> Generator[Tuple[Path, Connection, ResponseHandler, Queue, str], None, None]:
     response_handler = ResponseHandler(multiple_seq_responses)
 
     yield from create_subprocess_ioc_and_responses(
         response_handler,
         tmp_path,
+        new_random_test_prefix,
         caplog,
         caplog_workaround,
         table_field_info,
@@ -765,17 +782,20 @@ def mocked_panda_multiple_seq_responses(
 @pytest.fixture
 def mocked_panda_standard_responses(
     standard_responses,
+    new_random_test_prefix,
     tmp_path: Path,
     caplog,
     caplog_workaround,
     table_field_info,
     table_fields,
-) -> Generator[Tuple[Path, Connection, ResponseHandler, Queue], None, None]:
+    clear_records,
+) -> Generator[Tuple[Path, Connection, ResponseHandler, Queue, str], None, None]:
     response_handler = ResponseHandler(standard_responses)
 
     yield from create_subprocess_ioc_and_responses(
         response_handler,
         tmp_path,
+        new_random_test_prefix,
         caplog,
         caplog_workaround,
         table_field_info,
