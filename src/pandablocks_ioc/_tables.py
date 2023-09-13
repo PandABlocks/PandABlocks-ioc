@@ -14,6 +14,7 @@ from epicsdbbuilder.recordbase import PP
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import GetMultiline, Put
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
+from pandablocks.utils import table_to_words, words_to_table
 from pvi.device import ComboBox, SignalRW, TableWrite, TextWrite
 from softioc import alarm, builder, fields
 from softioc.imports import db_put_field
@@ -300,11 +301,7 @@ class TableUpdater:
         # updater are also in the same bit order.
         value = all_values_dict[table_name]
         assert isinstance(value, list)
-        field_data = TablePacking.unpack(
-            self.field_info.row_words,
-            self.table_fields_records,
-            value,
-        )
+        field_data = words_to_table(value, field_info)
 
         for i, (field_name, field_record_container) in enumerate(
             self.table_fields_records.items()
@@ -315,16 +312,12 @@ class TableUpdater:
             full_name = EpicsName(full_name)
             description = trim_description(field_details.description, full_name)
 
-            waveform_val = self._construct_waveform_val(
-                field_data, field_name, field_details
-            )
-
             field_record: RecordWrapper = builder.WaveformOut(
                 full_name,
                 DESC=description,
                 validate=self.validate_waveform,
                 on_update_name=self.update_waveform,
-                initial_value=waveform_val,
+                initial_value=field_data[field_name],
                 length=field_info.max_length,
             )
 
@@ -362,7 +355,7 @@ class TableUpdater:
             # PythonSoftIOC issue #53 may alleviate this.
             initial_value = (
                 field_data[field_name][DEFAULT_INDEX]
-                if field_data[field_name].size > 0
+                if len(field_data[field_name]) > 0
                 else 0
             )
 
@@ -391,7 +384,7 @@ class TableUpdater:
                 scalar_record = builder.mbbIn(
                     scalar_record_name,
                     *field_details.labels,
-                    initial_value=initial_value,
+                    initial_value=field_details.labels.index(initial_value),
                     DESC=scalar_record_desc,
                 )
 
@@ -486,21 +479,6 @@ class TableUpdater:
             SignalRW(index_record_name, index_record_name, TextWrite()),
         )
 
-    def _construct_waveform_val(
-        self,
-        field_data: Dict[str, UnpackedArray],
-        field_name: str,
-        field_details: TableFieldDetails,
-    ):
-        """Convert the values into the right form. For enums this means converting
-        the numeric values PandA sends us into the string representation. For all other
-        types the numeric representation is used."""
-        return (
-            [field_details.labels[x] for x in field_data[field_name]]
-            if field_details.labels
-            else field_data[field_name]
-        )
-
     def validate_waveform(self, record: RecordWrapper, new_val) -> bool:
         """Controls whether updates to the waveform records are processed, based on the
         value of the MODE record.
@@ -566,9 +544,14 @@ class TableUpdater:
             try:
                 # Send all EPICS data to PandA
                 logging.info(f"Sending table data for {self.table_name} to PandA")
-                packed_data = TablePacking.pack(
-                    self.field_info.row_words, self.table_fields_records
-                )
+
+                table = {}
+                for x in self.table_fields_records:
+                    record_info = self.table_fields_records[x].record_info
+                    if record_info:
+                        table[x] = record_info.record.get()
+
+                packed_data = table_to_words(table, self.field_info)
 
                 panda_field_name = epics_to_panda_name(self.table_name)
                 await self.client.send(Put(panda_field_name, packed_data))
@@ -593,9 +576,7 @@ class TableUpdater:
                     return
 
                 assert isinstance(old_val, list)
-                field_data = TablePacking.unpack(
-                    self.field_info.row_words, self.table_fields_records, old_val
-                )
+                field_data = words_to_table(old_val, self.field_info)
                 for field_name, field_record in self.table_fields_records.items():
                     assert field_record.record_info
                     # Table records are never In type, so can always disable processing
@@ -615,9 +596,7 @@ class TableUpdater:
             panda_field_name = epics_to_panda_name(self.table_name)
             panda_vals = await self.client.send(GetMultiline(f"{panda_field_name}"))
 
-            field_data = TablePacking.unpack(
-                self.field_info.row_words, self.table_fields_records, panda_vals
-            )
+            field_data = words_to_table(panda_vals, self.field_info)
 
             for field_name, field_record in self.table_fields_records.items():
                 assert field_record.record_info
@@ -641,17 +620,15 @@ class TableUpdater:
         curr_mode = TableModeEnum(self.mode_record_info.record.get())
 
         if curr_mode == TableModeEnum.VIEW:
-            field_data = TablePacking.unpack(
-                self.field_info.row_words, self.table_fields_records, list(new_values)
-            )
+            field_data = words_to_table(new_values, self.field_info)
 
             for field_name, field_record in self.table_fields_records.items():
                 assert field_record.record_info
-                waveform_val = self._construct_waveform_val(
-                    field_data, field_name, field_record.field
-                )
+
                 # Must skip processing as the validate method would reject the update
-                field_record.record_info.record.set(waveform_val, process=False)
+                field_record.record_info.record.set(
+                    field_data[field_name], process=False
+                )
                 self._update_scalar(field_record.record_info.record.name)
 
             # All items in field_data have the same length, so just use 0th.
