@@ -384,7 +384,9 @@ class TableUpdater:
                 scalar_record = builder.mbbIn(
                     scalar_record_name,
                     *field_details.labels,
-                    initial_value=field_details.labels.index(initial_value),
+                    initial_value=field_details.labels.index(initial_value)
+                    if isinstance(initial_value, str)
+                    else initial_value,
                     DESC=scalar_record_desc,
                 )
 
