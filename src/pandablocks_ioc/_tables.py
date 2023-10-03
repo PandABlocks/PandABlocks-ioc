@@ -358,6 +358,8 @@ class TableUpdater:
                 if len(field_data[field_name]) > 0
                 else 0
             )
+            if field_details.labels and isinstance(initial_value, str):
+                initial_value = field_details.labels.index(initial_value)
 
             # Three possible field types, do per-type config
             if field_details.subtype == "int":
@@ -380,11 +382,12 @@ class TableUpdater:
 
             elif field_details.subtype == "enum":
                 assert field_details.labels
+
                 check_num_labels(field_details.labels, scalar_record_name)
                 scalar_record = builder.mbbIn(
                     scalar_record_name,
                     *field_details.labels,
-                    initial_value=field_details.labels.index(initial_value),
+                    initial_value=initial_value,
                     DESC=scalar_record_desc,
                 )
 
