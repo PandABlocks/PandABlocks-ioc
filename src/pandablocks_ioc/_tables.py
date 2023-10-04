@@ -358,8 +358,6 @@ class TableUpdater:
                 if len(field_data[field_name]) > 0
                 else 0
             )
-            if field_details.labels and isinstance(initial_value, str):
-                initial_value = field_details.labels.index(initial_value)
 
             # Three possible field types, do per-type config
             if field_details.subtype == "int":
@@ -679,7 +677,8 @@ class TableUpdater:
             scalar_val = waveform_data[index]
             if labels:
                 # mbbi/o records must use the numeric index
-                scalar_val = labels.index(scalar_val)
+                if isinstance(scalar_val, str):
+                    scalar_val = labels.index(scalar_val)
             sev = alarm.NO_ALARM
         except IndexError as e:
             logging.warning(

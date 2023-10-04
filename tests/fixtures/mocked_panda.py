@@ -470,7 +470,7 @@ def multiple_seq_responses(table_field_info, table_data_1, table_data_2):
         ),
         command_to_key(GetBlockInfo(skip_description=False)): repeat(
             {
-                "SEQ": BlockInfo(number=2, description="SEQ Desc"),
+                "SEQ": BlockInfo(number=3, description="SEQ Desc"),
             }
         ),
         command_to_key(
@@ -485,10 +485,19 @@ def multiple_seq_responses(table_field_info, table_data_1, table_data_2):
                 values={
                     "*METADATA.LABEL_SEQ1": "SeqMetadataLabel",
                     "*METADATA.LABEL_SEQ2": "SeqMetadataLabel",
+                    "*METADATA.LABEL_SEQ3": "SeqMetadataLabel",
                 },
                 multiline_values={
                     "SEQ1.TABLE": table_data_1,
                     "SEQ2.TABLE": table_data_2,
+                    "SEQ3.TABLE": [],
+                },
+            ),
+            respond_with_no_changes(number_of_iterations=10),
+            changes_iterator_wrapper(
+                values={},
+                multiline_values={
+                    "SEQ3.TABLE": table_data_1,
                 },
             ),
             # Keep the panda active with no changes until pytest tears it down

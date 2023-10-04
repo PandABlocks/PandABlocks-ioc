@@ -138,11 +138,8 @@ async def test_create_softioc_update_table(
 
         # And check some other columns too
         curr_val = await caget(test_prefix + ":SEQ:TABLE:TRIGGER")
-        assert numpy.array_equal(
-            curr_val,
-            # Numeric values: [0, 0, 0, 9, 12]
-            ["Immediate", "Immediate", "Immediate", "POSB>=POSITION", "POSC<=POSITION"],
-        )
+        # ["Immediate", "Immediate", "Immediate", "POSB>=POSITION", "POSC<=POSITION"],
+        assert numpy.array_equal(curr_val, [0, 0, 0, 9, 12])
 
         curr_val = await caget(test_prefix + ":SEQ:TABLE:POSITION")
         assert numpy.array_equal(curr_val, [-5, 0, 0, 444444, -99])
@@ -260,8 +257,7 @@ async def test_create_softioc_table_update_send_to_panda(
 
 
 async def test_create_softioc_update_table_index(
-    mocked_panda_standard_responses,
-    table_unpacked_data,
+    mocked_panda_standard_responses, table_unpacked_data, table_fields
 ):
     """Test that updating the INDEX updates the SCALAR values"""
     (
@@ -290,7 +286,10 @@ async def test_create_softioc_update_table_index(
         curr_val = await asyncio.wait_for(repeats_queue.get(), TIMEOUT)
         assert curr_val == table_unpacked_data["REPEATS"][index_val]
         curr_val = await asyncio.wait_for(trigger_queue.get(), TIMEOUT)
-        assert curr_val == table_unpacked_data["TRIGGER"][index_val]
+        assert (
+            curr_val
+            == table_fields["TRIGGER"].labels[table_unpacked_data["TRIGGER"][index_val]]
+        )
 
         # Now set a new INDEX
         index_val = 1
@@ -300,7 +299,10 @@ async def test_create_softioc_update_table_index(
         curr_val = await asyncio.wait_for(repeats_queue.get(), TIMEOUT)
         assert curr_val == table_unpacked_data["REPEATS"][index_val]
         curr_val = await asyncio.wait_for(trigger_queue.get(), TIMEOUT)
-        assert curr_val == table_unpacked_data["TRIGGER"][index_val]
+        assert (
+            curr_val
+            == table_fields["TRIGGER"].labels[table_unpacked_data["TRIGGER"][index_val]]
+        )
 
     finally:
         repeats_monitor.close()

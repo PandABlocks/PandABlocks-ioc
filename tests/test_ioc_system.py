@@ -603,6 +603,34 @@ async def test_metadata_parses_into_multiple_pvs_caput_single_pv(
     ) in multiprocessing_queue_to_list(command_queue)
 
 
+async def test_non_defined_seq_table_can_be_added_to(
+    mocked_panda_multiple_seq_responses,
+):
+    (
+        tmp_path,
+        child_conn,
+        response_handler,
+        command_queue,
+        test_prefix,
+    ) = mocked_panda_multiple_seq_responses
+
+    initial_table_outd2 = await caget(
+        test_prefix + ":SEQ3:TABLE:OUTD2", timeout=TIMEOUT
+    )
+
+    assert list(initial_table_outd2) == []
+    try:
+        capturing_queue = asyncio.Queue()
+
+        # The mocked panda adds SEQ3 values after some time
+        monitor = camonitor(test_prefix + ":SEQ3:TABLE:OUTD2", capturing_queue.put)
+        curr_val = await asyncio.wait_for(capturing_queue.get(), TIMEOUT)
+        assert list(curr_val) == [0, 0, 1]
+
+    finally:
+        monitor.close()
+
+
 async def test_not_including_number_in_metadata_throws_error(
     no_numbered_suffix_to_metadata_responses,
 ):
