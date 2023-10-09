@@ -5,7 +5,7 @@ ARG BASE=7.0.7ec2
 ARG REGISTRY=ghcr.io/epics-containers
 
 FROM  ${REGISTRY}/epics-base-linux-developer:${BASE} AS developer
-ARG PIP_OPTIONS
+ARG PIP_OPTIONS=.
 
 # Copy any required context for the pip install over
 COPY . /context
