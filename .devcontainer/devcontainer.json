@@ -10,7 +10,8 @@
         }
     },
     "remoteEnv": {
-        "DISPLAY": "${localEnv:DISPLAY}"
+        "DISPLAY": "${localEnv:DISPLAY}",
+        "PIP_OPTIONS": "--upgrade pip"
     },
     "customizations": {
         "vscode": {
