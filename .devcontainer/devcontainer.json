@@ -6,11 +6,13 @@
         "context": "..",
         "target": "developer",
         "args": {
-            "TARGET_ARCHITECTURE": "linux"
+            "TARGET_ARCHITECTURE": "linux",
+            "PIP_OPTIONS": "--upgrade pip"
         }
     },
     "remoteEnv": {
-        "DISPLAY": "${localEnv:DISPLAY}"
+        "DISPLAY": "${localEnv:DISPLAY}",
+        "PIP_OPTIONS": "--upgrade pip"
     },
     "customizations": {
         "vscode": {

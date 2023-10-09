@@ -7,4 +7,4 @@
 # Commented out because compilation failures stop the devcontainer from starting
 # best to let the user do this manually once inside the container
 
-# ibek ioc compile
+
