@@ -153,6 +153,7 @@ class ResponseHandler:
         key = command_to_key(command)
 
         if key not in self.responses:
+            print("aeoifuhzdlisgnszknf")
             raise RuntimeError(
                 f"Error in mocked panda, command {command} was passed in, "
                 f"the mocked responses defined for are: {[self.responses.keys()]}"
@@ -470,7 +471,7 @@ def multiple_seq_responses(table_field_info, table_data_1, table_data_2):
         ),
         command_to_key(GetBlockInfo(skip_description=False)): repeat(
             {
-                "SEQ": BlockInfo(number=3, description="SEQ Desc"),
+                "SEQ": BlockInfo(number=4, description="SEQ Desc"),
             }
         ),
         command_to_key(
@@ -486,11 +487,13 @@ def multiple_seq_responses(table_field_info, table_data_1, table_data_2):
                     "*METADATA.LABEL_SEQ1": "SeqMetadataLabel",
                     "*METADATA.LABEL_SEQ2": "SeqMetadataLabel",
                     "*METADATA.LABEL_SEQ3": "SeqMetadataLabel",
+                    "*METADATA.LABEL_SEQ4": "SeqMetadataLabel",
                 },
                 multiline_values={
                     "SEQ1.TABLE": table_data_1,
                     "SEQ2.TABLE": table_data_2,
                     "SEQ3.TABLE": [],
+                    "SEQ4.TABLE": [],
                 },
             ),
             respond_with_no_changes(number_of_iterations=10),

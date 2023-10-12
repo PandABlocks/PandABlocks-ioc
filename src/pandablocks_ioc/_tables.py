@@ -675,10 +675,6 @@ class TableUpdater:
 
         try:
             scalar_val = waveform_data[index]
-            if labels:
-                # mbbi/o records must use the numeric index
-                if isinstance(scalar_val, str):
-                    scalar_val = labels.index(scalar_val)
             sev = alarm.NO_ALARM
         except IndexError as e:
             logging.warning(

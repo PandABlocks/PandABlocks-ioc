@@ -603,7 +603,7 @@ async def test_metadata_parses_into_multiple_pvs_caput_single_pv(
     ) in multiprocessing_queue_to_list(command_queue)
 
 
-async def test_non_defined_seq_table_can_be_added_to(
+async def test_non_defined_seq_table_can_be_added_to_panda_side(
     mocked_panda_multiple_seq_responses,
 ):
     (
@@ -629,6 +629,48 @@ async def test_non_defined_seq_table_can_be_added_to(
 
     finally:
         monitor.close()
+
+
+async def test_non_defined_seq_table_can_be_added_to_ioc_side(
+    mocked_panda_multiple_seq_responses,
+):
+    """
+    TDDO
+
+    This test currently doesn't work. The ioc can accept the values, but the waveform
+    enum values aren't accepted by the panda. This will be handled by an upcoming PR.
+    """
+    (
+        tmp_path,
+        child_conn,
+        response_handler,
+        command_queue,
+        test_prefix,
+    ) = mocked_panda_multiple_seq_responses
+
+    initial_table_repeats = await caget(
+        test_prefix + ":SEQ4:TABLE:REPEATS", timeout=TIMEOUT
+    )
+    assert list(initial_table_repeats) == []
+
+    initial_table_mode = await caget(test_prefix + ":SEQ4:TABLE:MODE", timeout=TIMEOUT)
+    assert initial_table_mode == 0  # TableModeEnum.VIEW
+
+    await caput(test_prefix + ":SEQ4:TABLE:MODE", 1, wait=True)  # TableModeEnum.EDIT
+    table_mode = await caget(test_prefix + ":SEQ4:TABLE:MODE", timeout=TIMEOUT)
+    assert table_mode == 1
+
+    await caput(
+        test_prefix + ":SEQ4:TABLE:REPEATS",
+        numpy.array([0, 1, 0]),
+        wait=True,
+    )
+    curr_val = await caget(test_prefix + ":SEQ4:TABLE:REPEATS", timeout=TIMEOUT)
+
+    assert list(curr_val) == [0, 1, 0]
+
+    # TODO Test that the ioc can update the panda values for the enums.
+    # await caput(test_prefix + ":SEQ4:TABLE:MODE", 2, wait=True)  # TableModeEnum.SUBMIT
 
 
 async def test_not_including_number_in_metadata_throws_error(
