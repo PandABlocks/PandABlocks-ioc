@@ -643,7 +643,7 @@ async def test_non_defined_seq_table_can_be_added_to_panda_side(
 
 
 async def test_non_defined_seq_table_can_be_added_to_ioc_side(
-    mocked_panda_multiple_seq_responses,
+    mocked_panda_multiple_seq_responses, table_unpacked_data
 ):
     (
         tmp_path,
@@ -653,10 +653,11 @@ async def test_non_defined_seq_table_can_be_added_to_ioc_side(
         test_prefix,
     ) = mocked_panda_multiple_seq_responses
 
-    initial_table_repeats = await caget(
-        test_prefix + ":SEQ4:TABLE:REPEATS", timeout=TIMEOUT
-    )
-    assert list(initial_table_repeats) == []
+    for field in table_unpacked_data:
+        initial_table_field = await caget(
+            test_prefix + ":SEQ4:TABLE:" + field, timeout=TIMEOUT
+        )
+        assert list(initial_table_field) == []
 
     initial_table_mode = await caget(test_prefix + ":SEQ4:TABLE:MODE", timeout=TIMEOUT)
     assert initial_table_mode == 0  # TableModeEnum.VIEW
@@ -665,16 +666,39 @@ async def test_non_defined_seq_table_can_be_added_to_ioc_side(
     table_mode = await caget(test_prefix + ":SEQ4:TABLE:MODE", timeout=TIMEOUT)
     assert table_mode == 1
 
-    await caput(
-        test_prefix + ":SEQ4:TABLE:REPEATS",
-        numpy.array([0, 1, 0]),
-        wait=True,
-    )
-    curr_val = await caget(test_prefix + ":SEQ4:TABLE:REPEATS", timeout=TIMEOUT)
-
-    assert list(curr_val) == [0, 1, 0]
+    for field, data in table_unpacked_data.items():
+        await caput(
+            test_prefix + ":SEQ4:TABLE:" + field,
+            data,
+            wait=True,
+        )
 
     await caput(test_prefix + ":SEQ4:TABLE:MODE", 2, wait=True)  # TableModeEnum.SUBMIT
+
+    await asyncio.sleep(0.1)
+    commands_received = multiprocessing_queue_to_list(command_queue)
+    assert (
+        command_to_key(
+            Put(
+                field="SEQ4.TABLE",
+                value=[
+                    "2457862149",
+                    "4294967291",
+                    "100",
+                    "0",
+                    "269877248",
+                    "678",
+                    "0",
+                    "55",
+                    "4293968720",
+                    "0",
+                    "9",
+                    "9999",
+                ],
+            )
+        )
+        in commands_received
+    )
 
 
 async def test_not_including_number_in_metadata_throws_error(

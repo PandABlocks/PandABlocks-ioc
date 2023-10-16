@@ -472,7 +472,20 @@ def multiple_seq_responses(table_field_info, table_data_1, table_data_2):
         command_to_key(
             Put(
                 field="SEQ4.TABLE",
-                value=["0", "0", "0", "0", "1", "0", "0", "0", "0", "0", "0", "0"],
+                value=[
+                    "2457862149",
+                    "4294967291",
+                    "100",
+                    "0",
+                    "269877248",
+                    "678",
+                    "0",
+                    "55",
+                    "4293968720",
+                    "0",
+                    "9",
+                    "9999",
+                ],
             )
         ): repeat(None),
         command_to_key(
