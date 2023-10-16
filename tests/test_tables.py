@@ -15,6 +15,8 @@ from pandablocks.commands import GetMultiline, Put
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
 from softioc import alarm, fields
 
+from fixtures.mocked_panda import multiprocessing_queue_to_list
+
 from pandablocks_ioc._tables import (
     TableFieldRecordContainer,
     TableModeEnum,
@@ -138,8 +140,19 @@ async def test_create_softioc_update_table(
 
         # And check some other columns too
         curr_val = await caget(test_prefix + ":SEQ:TABLE:TRIGGER")
-        # ["Immediate", "Immediate", "Immediate", "POSB>=POSITION", "POSC<=POSITION"],
-        assert numpy.array_equal(curr_val, [0, 0, 0, 9, 12])
+        #
+        assert numpy.array_equal(
+            curr_val,
+            numpy.array(
+                [
+                    "Immediate",
+                    "Immediate",
+                    "Immediate",
+                    "POSB>=POSITION",
+                    "POSC<=POSITION",
+                ],
+            ),
+        )
 
         curr_val = await caget(test_prefix + ":SEQ:TABLE:POSITION")
         assert numpy.array_equal(curr_val, [-5, 0, 0, 444444, -99])
@@ -222,8 +235,11 @@ async def test_create_softioc_table_update_send_to_panda(
 
     await caput(test_prefix + ":SEQ:TABLE:MODE", "SUBMIT", wait=True, timeout=TIMEOUT)
 
-    command_queue.put(None)
-    commands_recieved_by_panda = list(iter(command_queue.get, None))
+    # Give the queue time to be put to
+    await asyncio.sleep(0.1)
+
+    commands_recieved_by_panda = multiprocessing_queue_to_list(command_queue)
+
     assert (
         command_to_key(
             Put(
@@ -286,10 +302,7 @@ async def test_create_softioc_update_table_index(
         curr_val = await asyncio.wait_for(repeats_queue.get(), TIMEOUT)
         assert curr_val == table_unpacked_data["REPEATS"][index_val]
         curr_val = await asyncio.wait_for(trigger_queue.get(), TIMEOUT)
-        assert (
-            curr_val
-            == table_fields["TRIGGER"].labels[table_unpacked_data["TRIGGER"][index_val]]
-        )
+        assert curr_val == table_unpacked_data["TRIGGER"][index_val]
 
         # Now set a new INDEX
         index_val = 1
@@ -299,10 +312,7 @@ async def test_create_softioc_update_table_index(
         curr_val = await asyncio.wait_for(repeats_queue.get(), TIMEOUT)
         assert curr_val == table_unpacked_data["REPEATS"][index_val]
         curr_val = await asyncio.wait_for(trigger_queue.get(), TIMEOUT)
-        assert (
-            curr_val
-            == table_fields["TRIGGER"].labels[table_unpacked_data["TRIGGER"][index_val]]
-        )
+        assert curr_val == table_unpacked_data["TRIGGER"][index_val]
 
     finally:
         repeats_monitor.close()
@@ -439,6 +449,7 @@ async def test_table_updater_update_mode_submit_exception(
     table_updater: TableUpdater,
     table_data_1: List[str],
     table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
+    table_fields: Dict[str, TableFieldDetails],
 ):
     """Test that update_mode with new value of SUBMIT handles an exception from Put
     correctly"""
@@ -462,6 +473,10 @@ async def test_table_updater_update_mode_submit_exception(
         called_args = record_info.record.set.call_args
 
         expected = called_args[0][0]
+
+        if table_fields[field_name].labels:
+            labels = table_fields[field_name].labels
+            expected = numpy.array([labels[x] for x in expected])
 
         numpy.testing.assert_array_equal(data, expected)
 
@@ -498,6 +513,7 @@ async def test_table_updater_update_mode_discard(
     table_updater: TableUpdater,
     table_data_1: List[str],
     table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
+    table_fields: Dict[str, TableFieldDetails],
 ):
     """Test that update_mode with new value of DISCARD resets record data"""
     assert isinstance(table_updater.client.send, AsyncMock)
@@ -519,6 +535,10 @@ async def test_table_updater_update_mode_discard(
         called_args = record_info.record.set.call_args
 
         expected = called_args[0][0]
+
+        if table_fields[field_name].labels:
+            labels = table_fields[field_name].labels
+            expected = numpy.array([labels[x] for x in expected])
 
         numpy.testing.assert_array_equal(data, expected)
 

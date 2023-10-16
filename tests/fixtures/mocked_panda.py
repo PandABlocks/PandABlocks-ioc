@@ -60,6 +60,11 @@ def new_random_test_prefix():
     return append_random_uppercase(TEST_PREFIX)
 
 
+def multiprocessing_queue_to_list(queue: Queue):
+    queue.put(None)
+    return list(iter(queue.get, None))
+
+
 @pytest_asyncio.fixture
 def mocked_time_record_updater(
     new_random_test_prefix,
@@ -153,7 +158,6 @@ class ResponseHandler:
         key = command_to_key(command)
 
         if key not in self.responses:
-            print("aeoifuhzdlisgnszknf")
             raise RuntimeError(
                 f"Error in mocked panda, command {command} was passed in, "
                 f"the mocked responses defined for are: {[self.responses.keys()]}"
@@ -459,6 +463,31 @@ def multiple_seq_responses(table_field_info, table_data_1, table_data_2):
                     "0",
                     "55",
                     "4293918721",
+                    "0",
+                    "9",
+                    "9999",
+                ],
+            )
+        ): repeat(None),
+        command_to_key(
+            Put(
+                field="SEQ4.TABLE",
+                value=["0", "0", "0", "0", "1", "0", "0", "0", "0", "0", "0", "0"],
+            )
+        ): repeat(None),
+        command_to_key(
+            Put(
+                field="SEQ3.TABLE",
+                value=[
+                    "2457862144",
+                    "4294967291",
+                    "100",
+                    "0",
+                    "269877249",
+                    "678",
+                    "0",
+                    "55",
+                    "4293918720",
                     "0",
                     "9",
                     "9999",

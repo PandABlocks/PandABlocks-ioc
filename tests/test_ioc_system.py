@@ -1,6 +1,5 @@
 import asyncio
 import os
-from multiprocessing import Queue
 from pathlib import Path
 from typing import List, OrderedDict
 
@@ -13,6 +12,7 @@ from fixtures.mocked_panda import (
     MockedAsyncioClient,
     ResponseHandler,
     command_to_key,
+    multiprocessing_queue_to_list,
 )
 from numpy import ndarray
 from pandablocks.commands import Arm, Disarm, Put
@@ -387,11 +387,6 @@ async def test_create_bobfiles_deletes_existing_files_with_clear_bobfiles(
     assert generated_bobfile.read_text() != ""
 
 
-def multiprocessing_queue_to_list(queue: Queue):
-    queue.put(None)
-    return list(iter(queue.get, None))
-
-
 async def test_create_softioc_record_update_send_to_panda(
     mocked_panda_standard_responses,
 ):
@@ -630,16 +625,26 @@ async def test_non_defined_seq_table_can_be_added_to_panda_side(
     finally:
         monitor.close()
 
+    await caput(test_prefix + ":SEQ3:TABLE:MODE", 1, wait=True)  # TableModeEnum.EDIT
+    table_mode = await caget(test_prefix + ":SEQ3:TABLE:MODE", timeout=TIMEOUT)
+    assert table_mode == 1
+
+    await caput(
+        test_prefix + ":SEQ3:TABLE:REPEATS",
+        numpy.array([0, 1, 0]),
+        wait=True,
+    )
+    curr_val = await caget(test_prefix + ":SEQ3:TABLE:REPEATS", timeout=TIMEOUT)
+
+    assert list(curr_val) == [0, 1, 0]
+
+    # TODO Test that the ioc can update the panda values for the enums.
+    await caput(test_prefix + ":SEQ3:TABLE:MODE", 2, wait=True)  # TableModeEnum.SUBMIT
+
 
 async def test_non_defined_seq_table_can_be_added_to_ioc_side(
     mocked_panda_multiple_seq_responses,
 ):
-    """
-    TDDO
-
-    This test currently doesn't work. The ioc can accept the values, but the waveform
-    enum values aren't accepted by the panda. This will be handled by an upcoming PR.
-    """
     (
         tmp_path,
         child_conn,
@@ -669,8 +674,7 @@ async def test_non_defined_seq_table_can_be_added_to_ioc_side(
 
     assert list(curr_val) == [0, 1, 0]
 
-    # TODO Test that the ioc can update the panda values for the enums.
-    # await caput(test_prefix + ":SEQ4:TABLE:MODE", 2, wait=True)  # TableModeEnum.SUBMIT
+    await caput(test_prefix + ":SEQ4:TABLE:MODE", 2, wait=True)  # TableModeEnum.SUBMIT
 
 
 async def test_not_including_number_in_metadata_throws_error(

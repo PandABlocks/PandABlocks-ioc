@@ -312,12 +312,16 @@ class TableUpdater:
             full_name = EpicsName(full_name)
             description = trim_description(field_details.description, full_name)
 
+            waveform_val = self._construct_waveform_val(
+                field_data, field_name, field_details
+            )
+
             field_record: RecordWrapper = builder.WaveformOut(
                 full_name,
                 DESC=description,
                 validate=self.validate_waveform,
                 on_update_name=self.update_waveform,
-                initial_value=field_data[field_name],
+                initial_value=waveform_val,
                 length=field_info.max_length,
             )
 
@@ -577,6 +581,7 @@ class TableUpdater:
                     return
 
                 assert isinstance(old_val, list)
+
                 field_data = words_to_table(old_val, self.field_info)
                 for field_name, field_record in self.table_fields_records.items():
                     assert field_record.record_info
@@ -609,6 +614,23 @@ class TableUpdater:
             # avoid recursion
             self.mode_record_info.record.set(TableModeEnum.VIEW.value, process=False)
 
+    def _construct_waveform_val(
+        self,
+        field_data: Dict[str, UnpackedArray],
+        field_name: str,
+        field_details: TableFieldDetails,
+    ):
+        """Convert the values into the right form. For enums this means converting
+        the numeric values PandA sends us into the string representation. For all other
+        types the numeric representation is used."""
+        if field_details.labels:
+            max_length = max([len(x) for x in field_details.labels])
+            return np.array(
+                [field_details.labels[x] for x in field_data[field_name]],
+                dtype=f"<U{max_length + 1}",
+            )
+        return field_data[field_name]
+
     def update_table(self, new_values: List[str]) -> None:
         """Update the waveform records with the given values from the PandA, depending
         on the value of the table's MODE record.
@@ -626,10 +648,12 @@ class TableUpdater:
             for field_name, field_record in self.table_fields_records.items():
                 assert field_record.record_info
 
-                # Must skip processing as the validate method would reject the update
-                field_record.record_info.record.set(
-                    field_data[field_name], process=False
+                waveform_val = self._construct_waveform_val(
+                    field_data, field_name, field_record.field
                 )
+
+                # Must skip processing as the validate method would reject the update
+                field_record.record_info.record.set(waveform_val, process=False)
                 self._update_scalar(field_record.record_info.record.name)
 
             # All items in field_data have the same length, so just use 0th.
@@ -675,6 +699,9 @@ class TableUpdater:
 
         try:
             scalar_val = waveform_data[index]
+            if labels:
+                # mbbi/o records must use the numeric index
+                scalar_val = labels.index(scalar_val)
             sev = alarm.NO_ALARM
         except IndexError as e:
             logging.warning(
@@ -694,7 +721,10 @@ class TableUpdater:
 
         # alarm value is ignored if severity = NO_ALARM. Softioc also defaults
         # alarm value to UDF_ALARM, but I'm specifying it for clarity.
-        scalar_record.set(scalar_val, severity=sev, alarm=alarm.UDF_ALARM)
+        if labels:
+            scalar_record.set(scalar_val, severity=sev, alarm=alarm.UDF_ALARM)
+        else:
+            scalar_record.set(scalar_val, severity=sev, alarm=alarm.UDF_ALARM)
 
     def _update_index_drvh(self, data: UnpackedArray):
         """Set the DRVH value of the index record based on the newly set data length"""
