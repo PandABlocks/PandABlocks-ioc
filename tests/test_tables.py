@@ -6,7 +6,7 @@ import numpy
 import numpy.testing
 import pytest
 from aioca import caget, camonitor, caput
-from fixtures.mocked_panda import TIMEOUT, command_to_key
+from fixtures.mocked_panda import TIMEOUT, command_to_key, multiprocessing_queue_to_list
 from mock import AsyncMock, patch
 from mock.mock import MagicMock, PropertyMock, call
 from numpy import ndarray
@@ -14,8 +14,6 @@ from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import GetMultiline, Put
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
 from softioc import alarm, fields
-
-from fixtures.mocked_panda import multiprocessing_queue_to_list
 
 from pandablocks_ioc._tables import (
     TableFieldRecordContainer,

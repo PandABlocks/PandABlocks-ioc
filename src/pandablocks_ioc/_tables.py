@@ -721,10 +721,7 @@ class TableUpdater:
 
         # alarm value is ignored if severity = NO_ALARM. Softioc also defaults
         # alarm value to UDF_ALARM, but I'm specifying it for clarity.
-        if labels:
-            scalar_record.set(scalar_val, severity=sev, alarm=alarm.UDF_ALARM)
-        else:
-            scalar_record.set(scalar_val, severity=sev, alarm=alarm.UDF_ALARM)
+        scalar_record.set(scalar_val, severity=sev, alarm=alarm.UDF_ALARM)
 
     def _update_index_drvh(self, data: UnpackedArray):
         """Set the DRVH value of the index record based on the newly set data length"""
