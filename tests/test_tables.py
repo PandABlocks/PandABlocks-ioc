@@ -6,7 +6,7 @@ import numpy
 import numpy.testing
 import pytest
 from aioca import caget, camonitor, caput
-from fixtures.mocked_panda import TIMEOUT, command_to_key
+from fixtures.mocked_panda import TIMEOUT, command_to_key, multiprocessing_queue_to_list
 from mock import AsyncMock, patch
 from mock.mock import MagicMock, PropertyMock, call
 from numpy import ndarray
@@ -138,10 +138,18 @@ async def test_create_softioc_update_table(
 
         # And check some other columns too
         curr_val = await caget(test_prefix + ":SEQ:TABLE:TRIGGER")
+        #
         assert numpy.array_equal(
             curr_val,
-            # Numeric values: [0, 0, 0, 9, 12]
-            ["Immediate", "Immediate", "Immediate", "POSB>=POSITION", "POSC<=POSITION"],
+            numpy.array(
+                [
+                    "Immediate",
+                    "Immediate",
+                    "Immediate",
+                    "POSB>=POSITION",
+                    "POSC<=POSITION",
+                ],
+            ),
         )
 
         curr_val = await caget(test_prefix + ":SEQ:TABLE:POSITION")
@@ -225,8 +233,11 @@ async def test_create_softioc_table_update_send_to_panda(
 
     await caput(test_prefix + ":SEQ:TABLE:MODE", "SUBMIT", wait=True, timeout=TIMEOUT)
 
-    command_queue.put(None)
-    commands_recieved_by_panda = list(iter(command_queue.get, None))
+    # Give the queue time to be put to
+    await asyncio.sleep(0.1)
+
+    commands_recieved_by_panda = multiprocessing_queue_to_list(command_queue)
+
     assert (
         command_to_key(
             Put(
@@ -260,8 +271,7 @@ async def test_create_softioc_table_update_send_to_panda(
 
 
 async def test_create_softioc_update_table_index(
-    mocked_panda_standard_responses,
-    table_unpacked_data,
+    mocked_panda_standard_responses, table_unpacked_data, table_fields
 ):
     """Test that updating the INDEX updates the SCALAR values"""
     (
@@ -437,6 +447,7 @@ async def test_table_updater_update_mode_submit_exception(
     table_updater: TableUpdater,
     table_data_1: List[str],
     table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
+    table_fields: Dict[str, TableFieldDetails],
 ):
     """Test that update_mode with new value of SUBMIT handles an exception from Put
     correctly"""
@@ -460,6 +471,10 @@ async def test_table_updater_update_mode_submit_exception(
         called_args = record_info.record.set.call_args
 
         expected = called_args[0][0]
+
+        if table_fields[field_name].labels:
+            labels = table_fields[field_name].labels
+            expected = numpy.array([labels[x] for x in expected])
 
         numpy.testing.assert_array_equal(data, expected)
 
@@ -496,6 +511,7 @@ async def test_table_updater_update_mode_discard(
     table_updater: TableUpdater,
     table_data_1: List[str],
     table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
+    table_fields: Dict[str, TableFieldDetails],
 ):
     """Test that update_mode with new value of DISCARD resets record data"""
     assert isinstance(table_updater.client.send, AsyncMock)
@@ -517,6 +533,10 @@ async def test_table_updater_update_mode_discard(
         called_args = record_info.record.set.call_args
 
         expected = called_args[0][0]
+
+        if table_fields[field_name].labels:
+            labels = table_fields[field_name].labels
+            expected = numpy.array([labels[x] for x in expected])
 
         numpy.testing.assert_array_equal(data, expected)
 

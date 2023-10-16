@@ -312,12 +312,16 @@ class TableUpdater:
             full_name = EpicsName(full_name)
             description = trim_description(field_details.description, full_name)
 
+            waveform_val = self._construct_waveform_val(
+                field_data, field_name, field_details
+            )
+
             field_record: RecordWrapper = builder.WaveformOut(
                 full_name,
                 DESC=description,
                 validate=self.validate_waveform,
                 on_update_name=self.update_waveform,
-                initial_value=field_data[field_name],
+                initial_value=waveform_val,
                 length=field_info.max_length,
             )
 
@@ -358,8 +362,6 @@ class TableUpdater:
                 if len(field_data[field_name]) > 0
                 else 0
             )
-            if field_details.labels and isinstance(initial_value, str):
-                initial_value = field_details.labels.index(initial_value)
 
             # Three possible field types, do per-type config
             if field_details.subtype == "int":
@@ -579,6 +581,7 @@ class TableUpdater:
                     return
 
                 assert isinstance(old_val, list)
+
                 field_data = words_to_table(old_val, self.field_info)
                 for field_name, field_record in self.table_fields_records.items():
                     assert field_record.record_info
@@ -611,6 +614,23 @@ class TableUpdater:
             # avoid recursion
             self.mode_record_info.record.set(TableModeEnum.VIEW.value, process=False)
 
+    def _construct_waveform_val(
+        self,
+        field_data: Dict[str, UnpackedArray],
+        field_name: str,
+        field_details: TableFieldDetails,
+    ):
+        """Convert the values into the right form. For enums this means converting
+        the numeric values PandA sends us into the string representation. For all other
+        types the numeric representation is used."""
+        if field_details.labels:
+            max_length = max([len(x) for x in field_details.labels])
+            return np.array(
+                [field_details.labels[x] for x in field_data[field_name]],
+                dtype=f"<U{max_length + 1}",
+            )
+        return field_data[field_name]
+
     def update_table(self, new_values: List[str]) -> None:
         """Update the waveform records with the given values from the PandA, depending
         on the value of the table's MODE record.
@@ -628,10 +648,12 @@ class TableUpdater:
             for field_name, field_record in self.table_fields_records.items():
                 assert field_record.record_info
 
-                # Must skip processing as the validate method would reject the update
-                field_record.record_info.record.set(
-                    field_data[field_name], process=False
+                waveform_val = self._construct_waveform_val(
+                    field_data, field_name, field_record.field
                 )
+
+                # Must skip processing as the validate method would reject the update
+                field_record.record_info.record.set(waveform_val, process=False)
                 self._update_scalar(field_record.record_info.record.name)
 
             # All items in field_data have the same length, so just use 0th.

@@ -212,8 +212,7 @@ def table_unpacked_data(
     """The unpacked equivalent of table_data"""
     array_values: List[ndarray] = [
         array([5, 0, 50000], dtype=uint16),
-        # Below labels correspond to numeric values [0, 6, 0]
-        array(["Immediate", "BITC=1", "Immediate"], dtype="<U9"),
+        array(["Immediate", "BITC=1", "Immediate"]),
         array([-5, 678, 0], dtype=int32),
         array([100, 0, 9], dtype=uint32),
         array([0, 1, 1], dtype=uint8),

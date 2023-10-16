@@ -60,6 +60,11 @@ def new_random_test_prefix():
     return append_random_uppercase(TEST_PREFIX)
 
 
+def multiprocessing_queue_to_list(queue: Queue):
+    queue.put(None)
+    return list(iter(queue.get, None))
+
+
 @pytest_asyncio.fixture
 def mocked_time_record_updater(
     new_random_test_prefix,
@@ -464,13 +469,51 @@ def multiple_seq_responses(table_field_info, table_data_1, table_data_2):
                 ],
             )
         ): repeat(None),
+        command_to_key(
+            Put(
+                field="SEQ4.TABLE",
+                value=[
+                    "2457862149",
+                    "4294967291",
+                    "100",
+                    "0",
+                    "269877248",
+                    "678",
+                    "0",
+                    "55",
+                    "4293968720",
+                    "0",
+                    "9",
+                    "9999",
+                ],
+            )
+        ): repeat(None),
+        command_to_key(
+            Put(
+                field="SEQ3.TABLE",
+                value=[
+                    "2457862144",
+                    "4294967291",
+                    "100",
+                    "0",
+                    "269877249",
+                    "678",
+                    "0",
+                    "55",
+                    "4293918720",
+                    "0",
+                    "9",
+                    "9999",
+                ],
+            )
+        ): repeat(None),
         # DRVL changing from 8e-06 ms to minutes
         command_to_key(GetFieldInfo(block="SEQ", extended_metadata=True)): repeat(
             {"TABLE": table_field_info}
         ),
         command_to_key(GetBlockInfo(skip_description=False)): repeat(
             {
-                "SEQ": BlockInfo(number=2, description="SEQ Desc"),
+                "SEQ": BlockInfo(number=4, description="SEQ Desc"),
             }
         ),
         command_to_key(
@@ -485,10 +528,21 @@ def multiple_seq_responses(table_field_info, table_data_1, table_data_2):
                 values={
                     "*METADATA.LABEL_SEQ1": "SeqMetadataLabel",
                     "*METADATA.LABEL_SEQ2": "SeqMetadataLabel",
+                    "*METADATA.LABEL_SEQ3": "SeqMetadataLabel",
+                    "*METADATA.LABEL_SEQ4": "SeqMetadataLabel",
                 },
                 multiline_values={
                     "SEQ1.TABLE": table_data_1,
                     "SEQ2.TABLE": table_data_2,
+                    "SEQ3.TABLE": [],
+                    "SEQ4.TABLE": [],
+                },
+            ),
+            respond_with_no_changes(number_of_iterations=10),
+            changes_iterator_wrapper(
+                values={},
+                multiline_values={
+                    "SEQ3.TABLE": table_data_1,
                 },
             ),
             # Keep the panda active with no changes until pytest tears it down
