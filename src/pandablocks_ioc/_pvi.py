@@ -86,13 +86,15 @@ def add_pvi_info(
         component = SignalR(record_name, record_name, TextRead())
         access = "r"
     block, field = record_name.split(":", maxsplit=1)
+    block_name_suffixed = f"pvi.{field.lower().replace(':', '_')}.{access}"
     record.add_info(
         "Q:group",
         {
             RecordName(f"{block}:PVI"): {
-                f"pvi.{field.lower().replace(':', '_')}.{access}": {
+                block_name_suffixed: {
                     "+channel": "NAME",
                     "+type": "plain",
+                    "+trigger": block_name_suffixed,
                 }
             }
         },
@@ -202,13 +204,15 @@ class Pvi:
                 pvi_record_name + "_PV",
                 initial_value=RecordName(pvi_record_name),
             )
+            block_name_suffixed = f"pvi.{block_name.lower()}.d"
             block_pvi.add_info(
                 "Q:group",
                 {
                     RecordName("PVI"): {
-                        f"pvi.{block_name.lower()}.d": {
+                        block_name_suffixed: {
                             "+channel": "VAL",
                             "+type": "plain",
+                            "+trigger": block_name_suffixed,
                         }
                     }
                 },
