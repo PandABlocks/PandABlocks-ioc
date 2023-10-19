@@ -19,6 +19,7 @@ from pvi.device import (
     SignalR,
     SignalRW,
     SignalX,
+    TextFormat,
     TextRead,
     TextWrite,
     Tree,
@@ -37,6 +38,7 @@ class PviGroup(Enum):
     PARAMETERS = "Parameters"
     READBACKS = "Readbacks"
     OUTPUTS = "Outputs"
+    CAPTURE = "Capture"
     TABLE = "Table"  # TODO: May not need this anymore
 
 
@@ -79,7 +81,11 @@ def add_pvi_info(
         if useComboBox:
             widget = ComboBox()
         else:
-            widget = TextWrite()
+            if record_creation_func in (builder.longStringOut, builder.stringOut):
+                widget = TextWrite(format=TextFormat.string)
+            else:
+                widget = TextWrite(format=None)
+
         component = SignalRW(record_name, record_name, widget)
         access = "rw"
     else:
@@ -103,21 +109,13 @@ def add_pvi_info(
 
 
 _positions_table_group = Group("POSITIONS_TABLE", Grid(labelled=True), children=[])
-_positions_columns_defs = [
-    # TODO: To exactly copy the PandA Table web GUI, we'll need a new widget
-    # type that displays a static string in the same space as a PV
-    # ("NAME", record_name),
-    ("VALUE", SignalR),
-    ("UNITS", SignalRW),
-    ("SCALE", SignalRW),
-    ("OFFSET", SignalRW),
-    ("CAPTURE", SignalRW),
-]
+_positions_table_headers = ["VALUE", "UNITS", "SCALE", "OFFSET", "CAPTURE"]
 
 
 # TODO: Replicate this for the BITS table
 def add_positions_table_row(
     record_name: str,
+    value_record_name: str,
     units_record_name: str,
     scale_record_name: str,
     offset_record_name: str,
@@ -128,7 +126,7 @@ def add_positions_table_row(
     # create the children, which will make it more obvious which
     # component is for which column
     children = [
-        SignalR(record_name, record_name, TextRead()),
+        SignalR(value_record_name, value_record_name, TextWrite()),
         SignalRW(units_record_name, units_record_name, TextWrite()),
         SignalRW(scale_record_name, scale_record_name, TextWrite()),
         SignalRW(offset_record_name, offset_record_name, TextWrite()),
@@ -137,10 +135,10 @@ def add_positions_table_row(
 
     row = Row()
     if len(_positions_table_group.children) == 0:
-        row.header = [k[0] for k in _positions_columns_defs]
+        row.header = _positions_table_headers
 
     row_group = Group(
-        record_name + "_row",
+        record_name,
         row,
         children,
     )
@@ -153,6 +151,17 @@ class Pvi:
 
     _screens_dir: Optional[Path] = None
     _clear_bobfiles: bool = False
+
+    # We may want general device refs, e.g every CAPTURE group having a reference
+    # to the positions table
+    _general_device_refs = {
+        "CAPTURE": DeviceRef(
+            "AllPostionCaptureParameters",
+            "CAPTURE",
+            "PandA_POSITIONS_TABLE",
+        )
+    }
+
     pvi_info_dict: Dict[str, Dict[PviGroup, List[Component]]] = {}
 
     @staticmethod
@@ -176,6 +185,12 @@ class Pvi:
                 Pvi.pvi_info_dict[record_base][group] = [component]
         else:
             Pvi.pvi_info_dict[record_base] = {group: [component]}
+
+    @staticmethod
+    def add_general_device_refs_to_groups(device: Device):
+        for group in device.children:
+            if group.name in Pvi._general_device_refs:
+                group.children.append(Pvi._general_device_refs[group.name])
 
     @staticmethod
     def create_pvi_records(record_prefix: str):
@@ -227,10 +242,12 @@ class Pvi:
         devices.append(top_device)
 
         # Create top level Device, with references to all child Devices
-        device_refs = [DeviceRef(x, x) for x in pvi_records]
+        index_device_refs = [
+            DeviceRef(x, x, x.replace(":PVI", "")) for x in pvi_records
+        ]
 
         # # TODO: What should the label be?
-        device = Device("TOP", children=device_refs)
+        device = Device("index", children=index_device_refs)
         devices.append(device)
 
         # TODO: label widths need some tweaking - some are pretty long right now
@@ -256,4 +273,7 @@ class Pvi:
 
             for device in devices:
                 bobfile_path = Pvi._screens_dir / Path(f"{device.label}.bob")
+
+                Pvi.add_general_device_refs_to_groups(device)
+
                 formatter.format(device, record_prefix + ":", bobfile_path)

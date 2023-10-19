@@ -596,7 +596,6 @@ class IocRecordFactory:
                 updating the record.
         """
         extra_kwargs: Dict[str, Any] = {}
-
         assert (
             record_creation_func in self._builder_methods
         ), "Unrecognised record creation function passed to _create_record_info"
@@ -824,7 +823,6 @@ class IocRecordFactory:
         record_dict: Dict[EpicsName, RecordInfo] = {}
 
         units_record_name = EpicsName(record_name + ":UNITS")
-
         record_dict[record_name] = self._create_record_info(
             record_name,
             field_info.description,
@@ -844,7 +842,7 @@ class IocRecordFactory:
             "Capture options",
             builder.mbbOut,
             int,
-            PviGroup.PARAMETERS,
+            PviGroup.CAPTURE,
             labels=labels,
             initial_value=capture_index,
         )
@@ -855,7 +853,7 @@ class IocRecordFactory:
             "Offset",
             builder.aOut,
             float,
-            PviGroup.PARAMETERS,
+            PviGroup.CAPTURE,
             initial_value=values[offset_record_name],
         )
 
@@ -865,7 +863,7 @@ class IocRecordFactory:
             "Scale factor",
             builder.aOut,
             float,
-            PviGroup.PARAMETERS,
+            PviGroup.CAPTURE,
             initial_value=values[scale_record_name],
         )
 
@@ -874,7 +872,7 @@ class IocRecordFactory:
             "Units string",
             builder.stringOut,
             str,
-            PviGroup.PARAMETERS,
+            PviGroup.CAPTURE,
             initial_value=values[units_record_name],
         )
 
@@ -899,9 +897,8 @@ class IocRecordFactory:
             DESC="Table of configured positional outputs",
         )
 
-        scaled_calc_record.add_alias(
-            self._record_prefix + ":" + positions_record_name + ":VAL"
-        )
+        value_record_name = EpicsName(positions_record_name + ":VAL")
+        scaled_calc_record.add_alias(self._record_prefix + ":" + value_record_name)
 
         record_dict[capture_record_name].record.add_alias(
             self._record_prefix
@@ -935,6 +932,7 @@ class IocRecordFactory:
         self._pos_out_row_counter += 1
         add_positions_table_row(
             record_name,
+            value_record_name,
             units_record_name,
             scale_record_name,
             offset_record_name,
@@ -1809,6 +1807,7 @@ async def create_records(
                 # unrelated fields. e.g. for record_name "INENC1:CLK",
                 # values for keys "INENC1:CLK" "INENC1:CLK:DELAY" should match
                 # but "INENC1:CLK_PERIOD" should not
+
                 field_values = {
                     field: value
                     for field, value in values.items()
