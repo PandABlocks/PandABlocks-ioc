@@ -375,7 +375,7 @@ async def test_create_bobfiles_deletes_existing_files_with_clear_bobfiles(
     new_random_test_prefix,
     clear_records,
 ):
-    generated_bobfile = Path(tmp_path / "TOP.bob")
+    generated_bobfile = Path(tmp_path / "index.bob")
     non_generated_bobfile = Path(tmp_path / "Blahblah.bob")
     non_bobfile = Path(tmp_path / "Blahblah.txt")
 

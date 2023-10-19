@@ -48,6 +48,7 @@
       <width>60</width>
       <height>20</height>
       <horizontal_alignment>1</horizontal_alignment>
+      <format>6</format>
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
@@ -58,13 +59,13 @@
       <height>20</height>
     </widget>
     <widget type="action_button" version="3.0.0">
-      <name>ActionButton</name>
+      <name>WritePV</name>
       <pv_name>TEST_PREFIX:PCAP:ARM</pv_name>
       <actions>
         <action type="write_pv">
           <pv_name>$(pv_name)</pv_name>
           <value>1</value>
-          <description>WritePV</description>
+          <description>$(name)</description>
         </action>
       </actions>
       <text>Arm</text>
@@ -75,13 +76,13 @@
       <tooltip>$(actions)</tooltip>
     </widget>
     <widget type="action_button" version="3.0.0">
-      <name>ActionButton</name>
+      <name>WritePV</name>
       <pv_name>TEST_PREFIX:PCAP:ARM</pv_name>
       <actions>
         <action type="write_pv">
           <pv_name>$(pv_name)</pv_name>
           <value>0</value>
-          <description>WritePV</description>
+          <description>$(name)</description>
         </action>
       </actions>
       <text>Disarm</text>
@@ -115,6 +116,7 @@
       <width>60</width>
       <height>20</height>
       <horizontal_alignment>1</horizontal_alignment>
+      <format>6</format>
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
