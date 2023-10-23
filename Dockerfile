@@ -11,9 +11,15 @@ ARG PIP_OPTIONS=.
 COPY . /context
 WORKDIR /context
 
+# TEMPORARY use of alpha dependencies
 # install python package into /venv
-RUN pip install ${PIP_OPTIONS} epicscorelibs==7.0.7.99.1.0a1 pvxslibs==1.2.4a3
-RUN pip install softioc -- no-binary :all:
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-dev
+RUN pip install ${PIP_OPTIONS}
+RUN pip install epicscorelibs==7.0.7.99.1.0a1 pvxslibs==1.2.4a3
+RUN pip install git+https://github.com/dls-controls/pythonSoftIOC.git --no-dependencies
+# END TEMPORARY
+# RUN pip install ${PIP_OPTIONS}
 
 ##### runtime preparation stage ################################################
 
