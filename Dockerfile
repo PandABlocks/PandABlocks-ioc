@@ -1,21 +1,11 @@
-# This file is for use as a devcontainer and a runtime container
-#
-# The devcontainer should use the build target and run as root with podman
-# or docker with user namespaces.
-#
-FROM python:3.10 as build
+##### build stage ##############################################################
 
+ARG TARGET_ARCHITECTURE
+ARG BASE=7.0.7ec2
+ARG REGISTRY=ghcr.io/epics-containers
+
+FROM  ${REGISTRY}/epics-base-linux-developer:${BASE} AS developer
 ARG PIP_OPTIONS=.
-
-# Add any system dependencies for the developer/build environment here e.g.
-# RUN apt-get update && apt-get upgrade -y && \
-#     apt-get install -y --no-install-recommends \
-#     desired-packages \
-#     && rm -rf /var/lib/apt/lists/*
-
-# set up a virtual environment and put it in PATH
-RUN python -m venv /venv
-ENV PATH=/venv/bin:$PATH
 
 # Copy any required context for the pip install over
 COPY . /context
@@ -24,14 +14,20 @@ WORKDIR /context
 # install python package into /venv
 RUN pip install ${PIP_OPTIONS}
 
-FROM python:3.10-slim as runtime
+##### runtime preparation stage ################################################
 
-# Add apt-get system dependecies for runtime here if needed
+FROM developer AS runtime_prep
 
-# copy the virtual environment from the build stage and put it in PATH
-COPY --from=build /venv/ /venv/
-ENV PATH=/venv/bin:$PATH
+# get the products from the build stage and reduce to runtime assets only
+RUN ibek ioc extract-runtime-assets /assets --no-defaults --extras /venv
 
-# change this entrypoint if it is not the same as the repo
-ENTRYPOINT ["pandablocks-ioc"]
-CMD ["--version"]
+##### runtime stage ############################################################
+
+FROM ${REGISTRY}/epics-base-linux-runtime:${BASE} AS runtime
+
+# get runtime assets from the preparation stage
+COPY --from=runtime_prep /assets /
+
+ENV TARGET_ARCHITECTURE linux
+
+ENTRYPOINT ["/bin/bash"]
