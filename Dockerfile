@@ -12,7 +12,8 @@ COPY . /context
 WORKDIR /context
 
 # install python package into /venv
-RUN pip install ${PIP_OPTIONS}
+RUN pip install ${PIP_OPTIONS} epicscorelibs==7.0.7.99.1.0a1 pvxslibs==1.2.4a3
+RUN pip install softioc -- no-binary :all:
 
 ##### runtime preparation stage ################################################
 
