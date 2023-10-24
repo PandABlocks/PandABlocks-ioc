@@ -89,7 +89,7 @@ async def test_introspect_panda(
 
 
 async def test_create_softioc_system(
-    mocked_panda_standard_responses,
+    mocked_panda_standard_responses_no_panda_update,
     table_unpacked_data: OrderedDict[EpicsName, ndarray],
 ):
     """Top-level system test of the entire program, using some pre-canned data. Tests
@@ -102,7 +102,7 @@ async def test_create_softioc_system(
         response_handler,
         command_queue,
         test_prefix,
-    ) = mocked_panda_standard_responses
+    ) = mocked_panda_standard_responses_no_panda_update
 
     for field_name, expected_array in table_unpacked_data.items():
         actual_array = await caget(test_prefix + ":SEQ:TABLE:" + field_name)
