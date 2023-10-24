@@ -795,7 +795,7 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
             ),
             # 0.5 seconds of no changes in case the ioc setup completes
             # before the test starts
-            respond_with_no_changes(number_of_iterations=10),
+            respond_with_no_changes(number_of_iterations=15),
             changes_iterator_wrapper(
                 values={
                     "PCAP.TRIG_EDGE": "Either",

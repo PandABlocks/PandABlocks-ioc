@@ -104,13 +104,13 @@ async def test_create_softioc_system(
         test_prefix,
     ) = mocked_panda_standard_responses
 
-    assert await caget(test_prefix + ":PCAP:TRIG_EDGE") == 1  # == Falling
-    assert await caget(test_prefix + ":PCAP:GATE") == "CLOCK1.OUT"
-    assert await caget(test_prefix + ":PCAP:GATE:DELAY") == 1
-
     for field_name, expected_array in table_unpacked_data.items():
         actual_array = await caget(test_prefix + ":SEQ:TABLE:" + field_name)
         assert numpy.array_equal(actual_array, expected_array)
+
+    assert await caget(test_prefix + ":PCAP:TRIG_EDGE") == 1  # == Falling
+    assert await caget(test_prefix + ":PCAP:GATE") == "CLOCK1.OUT"
+    assert await caget(test_prefix + ":PCAP:GATE:DELAY") == 1
 
     pcap1_label = await caget(test_prefix + ":PCAP:LABEL")
     assert numpy.array_equal(
