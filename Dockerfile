@@ -18,6 +18,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip install ${PIP_OPTIONS}
 RUN pip install epicscorelibs==7.0.7.99.1.0a1 pvxslibs==1.2.4a3
 RUN pip install git+https://github.com/dls-controls/pythonSoftIOC.git --no-dependencies
+RUN ln -fs /venv/lib/python3.10/site-packages/epicscorelibs/lib/libdbCore.so.7.0.7.99.1 \
+    /venv/lib/python3.10/site-packages/epicscorelibs/lib/libdbCore.so.7.0.7.99.0
+RUN ln -fs /venv/lib/python3.10/site-packages/epicscorelibs/lib/libCom.so.7.0.7.99.1 \
+    /venv/lib/python3.10/site-packages/epicscorelibs/lib/libCom.so.7.0.7.99.0
+
 # END TEMPORARY
 # RUN pip install ${PIP_OPTIONS}
 

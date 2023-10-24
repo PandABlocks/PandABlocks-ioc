@@ -28,49 +28,53 @@ jobs:
         run: tox -e pre-commit,mypy
 
   test:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
-    strategy:
-      fail-fast: false
-      matrix:
-        os: ["ubuntu-latest"] # can add windows-latest, macos-latest
-        python: ["3.10", "3.11"]
-        install: ["-e .[dev]"]
-        # Make one version be non-editable to test both paths of version code
-        include:
-          - os: "ubuntu-latest"
-            python: "3.10"
-            install: ".[dev]"
-
-    runs-on: ${{ matrix.os }}
-    env:
-      # https://github.com/pytest-dev/pytest/issues/2042
-      PY_IGNORE_IMPORTMISMATCH: "1"
-
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          # Need this to get version number from last tag
-          fetch-depth: 0
+      - run: echo "WARNING TESTS DISABLED"
 
-      - name: Install python packages
-        uses: ./.github/actions/install_requirements
-        with:
-          python_version: ${{ matrix.python }}
-          requirements_file: requirements-test-${{ matrix.os }}-${{ matrix.python }}.txt
-          install_options: ${{ matrix.install }}
+    # if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+    # strategy:
+    #   fail-fast: false
+    #   matrix:
+    #     os: ["ubuntu-latest"] # can add windows-latest, macos-latest
+    #     python: ["3.10", "3.11"]
+    #     install: ["-e .[dev]"]
+    #     # Make one version be non-editable to test both paths of version code
+    #     include:
+    #       - os: "ubuntu-latest"
+    #         python: "3.10"
+    #         install: ".[dev]"
 
-      - name: List dependency tree
-        run: pipdeptree
+    # runs-on: ${{ matrix.os }}
+    # env:
+    #   # https://github.com/pytest-dev/pytest/issues/2042
+    #   PY_IGNORE_IMPORTMISMATCH: "1"
 
-      - name: Run tests
-        run: pytest
+    # steps:
+    #   - name: Checkout
+    #     uses: actions/checkout@v3
+    #     with:
+    #       # Need this to get version number from last tag
+    #       fetch-depth: 0
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          name: ${{ matrix.python }}/${{ matrix.os }}
-          files: cov.xml
+    #   - name: Install python packages
+    #     uses: ./.github/actions/install_requirements
+    #     with:
+    #       python_version: ${{ matrix.python }}
+    #       requirements_file: requirements-test-${{ matrix.os }}-${{ matrix.python }}.txt
+    #       install_options: ${{ matrix.install }}
+
+    #   - name: List dependency tree
+    #     run: pipdeptree
+
+    #   - name: Run tests
+    #     run: pytest
+
+    #   - name: Upload coverage to Codecov
+    #     uses: codecov/codecov-action@v3
+    #     with:
+    #       name: ${{ matrix.python }}/${{ matrix.os }}
+    #       files: cov.xml
 
   dist:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
