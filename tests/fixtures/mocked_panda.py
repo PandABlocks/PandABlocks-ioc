@@ -538,7 +538,7 @@ def multiple_seq_responses(table_field_info, table_data_1, table_data_2):
                     "SEQ4.TABLE": [],
                 },
             ),
-            respond_with_no_changes(number_of_iterations=10),
+            respond_with_no_changes(number_of_iterations=50),
             changes_iterator_wrapper(
                 values={},
                 multiline_values={
