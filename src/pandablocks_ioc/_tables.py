@@ -5,16 +5,15 @@ import typing
 from collections import OrderedDict
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 import numpy as np
-import numpy.typing as npt
 from epicsdbbuilder import RecordName
 from epicsdbbuilder.recordbase import PP
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import GetMultiline, Put
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
-from pandablocks.utils import table_to_words, words_to_table
+from pandablocks.utils import UnpackedArray, table_to_words, words_to_table
 from pvi.device import ComboBox, SignalRW, TableWrite, TextWrite
 from softioc import alarm, builder, fields
 from softioc.imports import db_put_field
@@ -30,10 +29,6 @@ from ._types import (
     epics_to_panda_name,
     trim_description,
 )
-
-UnpackedArray = Union[
-    npt.NDArray[np.int32], npt.NDArray[np.uint8], npt.NDArray[np.uint16]
-]
 
 
 @dataclass
