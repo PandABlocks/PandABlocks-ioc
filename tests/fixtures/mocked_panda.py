@@ -538,7 +538,7 @@ def multiple_seq_responses(table_field_info, table_data_1, table_data_2):
                     "SEQ4.TABLE": [],
                 },
             ),
-            respond_with_no_changes(number_of_iterations=10),
+            respond_with_no_changes(number_of_iterations=50),
             changes_iterator_wrapper(
                 values={},
                 multiline_values={
@@ -671,6 +671,57 @@ def faulty_multiple_pcap_responses():
 
 
 @pytest.fixture
+def standard_responses_no_panda_update(table_field_info, table_data_1):
+    """
+    Used to test if the softioc can be started.
+    """
+    return {
+        command_to_key(GetFieldInfo(block="PCAP", extended_metadata=True)): repeat(
+            {
+                "TRIG_EDGE": EnumFieldInfo(
+                    type="param",
+                    subtype="enum",
+                    description="Trig Edge Desc",
+                    labels=["Rising", "Falling", "Either"],
+                ),
+                "GATE": BitMuxFieldInfo(
+                    type="bit_mux",
+                    subtype=None,
+                    description="Gate Desc",
+                    max_delay=100,
+                    labels=["TTLIN1.VAL", "INENC1.A", "CLOCK1.OUT"],
+                ),
+            }
+        ),
+        command_to_key(GetFieldInfo(block="SEQ", extended_metadata=True)): repeat(
+            {"TABLE": table_field_info}
+        ),
+        command_to_key(GetBlockInfo(skip_description=False)): repeat(
+            {
+                "PCAP": BlockInfo(number=1, description="PCAP Desc"),
+                "SEQ": BlockInfo(number=1, description="SEQ Desc"),
+            }
+        ),
+        # Changes are given at 10Hz, the changes provided are used for many
+        # different tests
+        command_to_key(GetChanges(group=ChangeGroup.ALL, get_multiline=True)): chain(
+            # Initial value of every field
+            changes_iterator_wrapper(
+                values={
+                    "PCAP.TRIG_EDGE": "Falling",
+                    "PCAP.GATE": "CLOCK1.OUT",
+                    "PCAP.GATE.DELAY": "1",
+                    "PCAP.ARM": "0",
+                    "*METADATA.LABEL_PCAP1": "PcapMetadataLabel",
+                },
+                multiline_values={"SEQ.TABLE": table_data_1},
+            ),
+            respond_with_no_changes(),
+        ),
+    }
+
+
+@pytest.fixture
 def standard_responses(table_field_info, table_data_1, table_data_2):
     """
     Used by MockedAsyncioClient to generate panda responses to the ioc's commands.
@@ -795,7 +846,7 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
             ),
             # 0.5 seconds of no changes in case the ioc setup completes
             # before the test starts
-            respond_with_no_changes(number_of_iterations=10),
+            respond_with_no_changes(number_of_iterations=15),
             changes_iterator_wrapper(
                 values={
                     "PCAP.TRIG_EDGE": "Either",
@@ -845,6 +896,30 @@ def mocked_panda_standard_responses(
     clear_records,
 ) -> Generator[Tuple[Path, Connection, ResponseHandler, Queue, str], None, None]:
     response_handler = ResponseHandler(standard_responses)
+
+    yield from create_subprocess_ioc_and_responses(
+        response_handler,
+        tmp_path,
+        new_random_test_prefix,
+        caplog,
+        caplog_workaround,
+        table_field_info,
+        table_fields,
+    )
+
+
+@pytest.fixture
+def mocked_panda_standard_responses_no_panda_update(
+    standard_responses_no_panda_update,
+    new_random_test_prefix,
+    tmp_path: Path,
+    caplog,
+    caplog_workaround,
+    table_field_info,
+    table_fields,
+    clear_records,
+) -> Generator[Tuple[Path, Connection, ResponseHandler, Queue, str], None, None]:
+    response_handler = ResponseHandler(standard_responses_no_panda_update)
 
     yield from create_subprocess_ioc_and_responses(
         response_handler,

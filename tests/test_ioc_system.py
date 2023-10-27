@@ -89,7 +89,7 @@ async def test_introspect_panda(
 
 
 async def test_create_softioc_system(
-    mocked_panda_standard_responses,
+    mocked_panda_standard_responses_no_panda_update,
     table_unpacked_data: OrderedDict[EpicsName, ndarray],
 ):
     """Top-level system test of the entire program, using some pre-canned data. Tests
@@ -102,15 +102,15 @@ async def test_create_softioc_system(
         response_handler,
         command_queue,
         test_prefix,
-    ) = mocked_panda_standard_responses
-
-    assert await caget(test_prefix + ":PCAP:TRIG_EDGE") == 1  # == Falling
-    assert await caget(test_prefix + ":PCAP:GATE") == "CLOCK1.OUT"
-    assert await caget(test_prefix + ":PCAP:GATE:DELAY") == 1
+    ) = mocked_panda_standard_responses_no_panda_update
 
     for field_name, expected_array in table_unpacked_data.items():
         actual_array = await caget(test_prefix + ":SEQ:TABLE:" + field_name)
         assert numpy.array_equal(actual_array, expected_array)
+
+    assert await caget(test_prefix + ":PCAP:TRIG_EDGE") == 1  # == Falling
+    assert await caget(test_prefix + ":PCAP:GATE") == "CLOCK1.OUT"
+    assert await caget(test_prefix + ":PCAP:GATE:DELAY") == 1
 
     pcap1_label = await caget(test_prefix + ":PCAP:LABEL")
     assert numpy.array_equal(

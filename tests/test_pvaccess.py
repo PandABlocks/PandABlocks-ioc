@@ -1,16 +1,17 @@
+import asyncio
 import collections
 from typing import OrderedDict
 
 import numpy
+from fixtures.mocked_panda import TIMEOUT
 from numpy import ndarray
-from p4p import Value
-from p4p.client.thread import Context
+from p4p.client.asyncio import Context
 
 from pandablocks_ioc._types import EpicsName
 
 
 async def test_table_column_info(
-    mocked_panda_standard_responses,
+    mocked_panda_multiple_seq_responses,
     table_unpacked_data: OrderedDict[EpicsName, ndarray],
 ):
     """Test that the table columns have the expected PVAccess information in the
@@ -21,10 +22,16 @@ async def test_table_column_info(
         response_handler,
         command_queue,
         test_prefix,
-    ) = mocked_panda_standard_responses
+    ) = mocked_panda_multiple_seq_responses
+
     ctxt = Context("pva", nt=False)
 
-    table_value: Value = ctxt.get(test_prefix + ":SEQ:TABLE")
+    try:
+        capturing_queue: asyncio.Queue = asyncio.Queue()
+        monitor = ctxt.monitor(test_prefix + ":SEQ1:TABLE", capturing_queue.put)
+        table_value = await asyncio.wait_for(capturing_queue.get(), timeout=TIMEOUT)
+    finally:
+        monitor.close()
 
     for (actual_name, actual_value), (expected_name, expected_value) in zip(
         table_value.todict(wrapper=collections.OrderedDict)["value"].items(),
