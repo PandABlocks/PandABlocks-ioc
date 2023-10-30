@@ -4,15 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 dependencies = [
-    "setuptools>=64",
     "numpy",
     "click",
     "h5py",
     "softioc>=4.4.0",
     "pandablocks>=0.5.3",
     "pvi>=0.5",
-    "typing-extensions;python_version<'3.8'",
-] # Add project dependencies here, e.g. ["click", "numpy"]name = "pandablocks-ioc"
+] # Add project dependencies here, e.g. ["click", "numpy"]
+name = "pandablocks-ioc"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "License :: OSI Approved :: Apache Software License",
@@ -23,7 +22,7 @@ description = "One line description of your module"
 dynamic = ["version"]
 license.file = "LICENSE"
 readme = "README.rst"
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 
 [project.optional-dependencies]
 dev = [
