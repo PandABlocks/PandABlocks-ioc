@@ -3,7 +3,7 @@
   <x>0</x>
   <y>0</y>
   <width>361</width>
-  <height>746</height>
+  <height>296</height>
   <grid_step_x>4</grid_step_x>
   <grid_step_y>4</grid_step_y>
   <widget type="label" version="2.0.0">
@@ -30,7 +30,7 @@
     <x>5</x>
     <y>30</y>
     <width>351</width>
-    <height>711</height>
+    <height>261</height>
     <transparent>true</transparent>
     <widget type="table" version="2.0.0">
       <name>Table</name>
@@ -42,298 +42,9 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>SEQ: TABLE: REPEATS: SCALAR</text>
-      <x>0</x>
-      <y>205</y>
-      <width>250</width>
-      <height>20</height>
-    </widget>
-    <widget type="textentry" version="3.0.0">
-      <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:SEQ:TABLE:REPEATS:SCALAR</pv_name>
-      <x>255</x>
-      <y>205</y>
-      <width>60</width>
-      <height>20</height>
-      <horizontal_alignment>1</horizontal_alignment>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <name>Label</name>
-      <text>SEQ: TABLE: TRIGGER: SCALAR</text>
-      <x>0</x>
-      <y>230</y>
-      <width>250</width>
-      <height>20</height>
-    </widget>
-    <widget type="textentry" version="3.0.0">
-      <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:SEQ:TABLE:TRIGGER:SCALAR</pv_name>
-      <x>255</x>
-      <y>230</y>
-      <width>60</width>
-      <height>20</height>
-      <horizontal_alignment>1</horizontal_alignment>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <name>Label</name>
-      <text>SEQ: TABLE: POSITION: SCALAR</text>
-      <x>0</x>
-      <y>255</y>
-      <width>250</width>
-      <height>20</height>
-    </widget>
-    <widget type="textentry" version="3.0.0">
-      <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:SEQ:TABLE:POSITION:SCALAR</pv_name>
-      <x>255</x>
-      <y>255</y>
-      <width>60</width>
-      <height>20</height>
-      <horizontal_alignment>1</horizontal_alignment>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <name>Label</name>
-      <text>SEQ: TABLE: TIME1: SCALAR</text>
-      <x>0</x>
-      <y>280</y>
-      <width>250</width>
-      <height>20</height>
-    </widget>
-    <widget type="textentry" version="3.0.0">
-      <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:SEQ:TABLE:TIME1:SCALAR</pv_name>
-      <x>255</x>
-      <y>280</y>
-      <width>60</width>
-      <height>20</height>
-      <horizontal_alignment>1</horizontal_alignment>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <name>Label</name>
-      <text>SEQ: TABLE: OUTA1: SCALAR</text>
-      <x>0</x>
-      <y>305</y>
-      <width>250</width>
-      <height>20</height>
-    </widget>
-    <widget type="textentry" version="3.0.0">
-      <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:SEQ:TABLE:OUTA1:SCALAR</pv_name>
-      <x>255</x>
-      <y>305</y>
-      <width>60</width>
-      <height>20</height>
-      <horizontal_alignment>1</horizontal_alignment>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <name>Label</name>
-      <text>SEQ: TABLE: OUTB1: SCALAR</text>
-      <x>0</x>
-      <y>330</y>
-      <width>250</width>
-      <height>20</height>
-    </widget>
-    <widget type="textentry" version="3.0.0">
-      <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:SEQ:TABLE:OUTB1:SCALAR</pv_name>
-      <x>255</x>
-      <y>330</y>
-      <width>60</width>
-      <height>20</height>
-      <horizontal_alignment>1</horizontal_alignment>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <name>Label</name>
-      <text>SEQ: TABLE: OUTC1: SCALAR</text>
-      <x>0</x>
-      <y>355</y>
-      <width>250</width>
-      <height>20</height>
-    </widget>
-    <widget type="textentry" version="3.0.0">
-      <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:SEQ:TABLE:OUTC1:SCALAR</pv_name>
-      <x>255</x>
-      <y>355</y>
-      <width>60</width>
-      <height>20</height>
-      <horizontal_alignment>1</horizontal_alignment>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <name>Label</name>
-      <text>SEQ: TABLE: OUTD1: SCALAR</text>
-      <x>0</x>
-      <y>380</y>
-      <width>250</width>
-      <height>20</height>
-    </widget>
-    <widget type="textentry" version="3.0.0">
-      <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:SEQ:TABLE:OUTD1:SCALAR</pv_name>
-      <x>255</x>
-      <y>380</y>
-      <width>60</width>
-      <height>20</height>
-      <horizontal_alignment>1</horizontal_alignment>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <name>Label</name>
-      <text>SEQ: TABLE: OUTE1: SCALAR</text>
-      <x>0</x>
-      <y>405</y>
-      <width>250</width>
-      <height>20</height>
-    </widget>
-    <widget type="textentry" version="3.0.0">
-      <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:SEQ:TABLE:OUTE1:SCALAR</pv_name>
-      <x>255</x>
-      <y>405</y>
-      <width>60</width>
-      <height>20</height>
-      <horizontal_alignment>1</horizontal_alignment>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <name>Label</name>
-      <text>SEQ: TABLE: OUTF1: SCALAR</text>
-      <x>0</x>
-      <y>430</y>
-      <width>250</width>
-      <height>20</height>
-    </widget>
-    <widget type="textentry" version="3.0.0">
-      <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:SEQ:TABLE:OUTF1:SCALAR</pv_name>
-      <x>255</x>
-      <y>430</y>
-      <width>60</width>
-      <height>20</height>
-      <horizontal_alignment>1</horizontal_alignment>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <name>Label</name>
-      <text>SEQ: TABLE: TIME2: SCALAR</text>
-      <x>0</x>
-      <y>455</y>
-      <width>250</width>
-      <height>20</height>
-    </widget>
-    <widget type="textentry" version="3.0.0">
-      <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:SEQ:TABLE:TIME2:SCALAR</pv_name>
-      <x>255</x>
-      <y>455</y>
-      <width>60</width>
-      <height>20</height>
-      <horizontal_alignment>1</horizontal_alignment>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <name>Label</name>
-      <text>SEQ: TABLE: OUTA2: SCALAR</text>
-      <x>0</x>
-      <y>480</y>
-      <width>250</width>
-      <height>20</height>
-    </widget>
-    <widget type="textentry" version="3.0.0">
-      <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:SEQ:TABLE:OUTA2:SCALAR</pv_name>
-      <x>255</x>
-      <y>480</y>
-      <width>60</width>
-      <height>20</height>
-      <horizontal_alignment>1</horizontal_alignment>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <name>Label</name>
-      <text>SEQ: TABLE: OUTB2: SCALAR</text>
-      <x>0</x>
-      <y>505</y>
-      <width>250</width>
-      <height>20</height>
-    </widget>
-    <widget type="textentry" version="3.0.0">
-      <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:SEQ:TABLE:OUTB2:SCALAR</pv_name>
-      <x>255</x>
-      <y>505</y>
-      <width>60</width>
-      <height>20</height>
-      <horizontal_alignment>1</horizontal_alignment>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <name>Label</name>
-      <text>SEQ: TABLE: OUTC2: SCALAR</text>
-      <x>0</x>
-      <y>530</y>
-      <width>250</width>
-      <height>20</height>
-    </widget>
-    <widget type="textentry" version="3.0.0">
-      <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:SEQ:TABLE:OUTC2:SCALAR</pv_name>
-      <x>255</x>
-      <y>530</y>
-      <width>60</width>
-      <height>20</height>
-      <horizontal_alignment>1</horizontal_alignment>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <name>Label</name>
-      <text>SEQ: TABLE: OUTD2: SCALAR</text>
-      <x>0</x>
-      <y>555</y>
-      <width>250</width>
-      <height>20</height>
-    </widget>
-    <widget type="textentry" version="3.0.0">
-      <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:SEQ:TABLE:OUTD2:SCALAR</pv_name>
-      <x>255</x>
-      <y>555</y>
-      <width>60</width>
-      <height>20</height>
-      <horizontal_alignment>1</horizontal_alignment>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <name>Label</name>
-      <text>SEQ: TABLE: OUTE2: SCALAR</text>
-      <x>0</x>
-      <y>580</y>
-      <width>250</width>
-      <height>20</height>
-    </widget>
-    <widget type="textentry" version="3.0.0">
-      <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:SEQ:TABLE:OUTE2:SCALAR</pv_name>
-      <x>255</x>
-      <y>580</y>
-      <width>60</width>
-      <height>20</height>
-      <horizontal_alignment>1</horizontal_alignment>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <name>Label</name>
-      <text>SEQ: TABLE: OUTF2: SCALAR</text>
-      <x>0</x>
-      <y>605</y>
-      <width>250</width>
-      <height>20</height>
-    </widget>
-    <widget type="textentry" version="3.0.0">
-      <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:SEQ:TABLE:OUTF2:SCALAR</pv_name>
-      <x>255</x>
-      <y>605</y>
-      <width>60</width>
-      <height>20</height>
-      <horizontal_alignment>1</horizontal_alignment>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <name>Label</name>
       <text>SEQ: TABLE: MODE</text>
       <x>0</x>
-      <y>630</y>
+      <y>205</y>
       <width>250</width>
       <height>20</height>
     </widget>
@@ -341,26 +52,9 @@
       <name>ComboBox</name>
       <pv_name>TEST-PREFIX:SEQ:TABLE:MODE</pv_name>
       <x>255</x>
-      <y>630</y>
+      <y>205</y>
       <width>60</width>
       <height>20</height>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <name>Label</name>
-      <text>SEQ: TABLE: INDEX</text>
-      <x>0</x>
-      <y>655</y>
-      <width>250</width>
-      <height>20</height>
-    </widget>
-    <widget type="textentry" version="3.0.0">
-      <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:SEQ:TABLE:INDEX</pv_name>
-      <x>255</x>
-      <y>655</y>
-      <width>60</width>
-      <height>20</height>
-      <horizontal_alignment>1</horizontal_alignment>
     </widget>
   </widget>
 </display>

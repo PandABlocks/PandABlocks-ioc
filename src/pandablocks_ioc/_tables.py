@@ -156,9 +156,6 @@ class TableUpdater:
             SignalRW(table_name, table_name, TableWrite([])),
         )
 
-        # The INDEX record's starting value
-        DEFAULT_INDEX = 0
-
         # Note that the table_updater's table_fields are guaranteed sorted in bit order,
         # unlike field_info's fields. This means the record dict inside the table
         # updater are also in the same bit order.
@@ -183,7 +180,6 @@ class TableUpdater:
                 full_name,
                 DESC=description,
                 validate=self.validate_waveform,
-                on_update_name=self.update_waveform,
                 initial_value=waveform_val,
                 length=field_info.max_length,
             )
@@ -212,72 +208,6 @@ class TableUpdater:
             field_record_container.record_info = RecordInfo(lambda x: x, None, False)
 
             field_record_container.record_info.add_record(field_record)
-
-            # Scalar record gives access to individual cell in a column,
-            # in combination with the INDEX record defined below
-            scalar_record_name = EpicsName(full_name + ":SCALAR")
-
-            scalar_record_desc = "Scalar val (set by INDEX rec) of column"
-            # No better default than zero, despite the fact it could be a valid value
-            # PythonSoftIOC issue #53 may alleviate this.
-            initial_value = (
-                field_data[field_name][DEFAULT_INDEX]
-                if len(field_data[field_name]) > 0
-                else 0
-            )
-
-            # Three possible field types, do per-type config
-            if field_details.subtype == "int":
-                scalar_record: RecordWrapper = builder.longIn(
-                    scalar_record_name,
-                    initial_value=initial_value,
-                    DESC=scalar_record_desc,
-                )
-
-            elif field_details.subtype == "uint":
-                assert initial_value >= 0, (
-                    f"initial value {initial_value} for uint record "
-                    f"{scalar_record_name} was negative"
-                )
-                scalar_record = builder.longIn(
-                    scalar_record_name,
-                    initial_value=initial_value,
-                    DESC=scalar_record_desc,
-                )
-
-            elif field_details.subtype == "enum":
-                assert field_details.labels
-
-                check_num_labels(field_details.labels, scalar_record_name)
-                scalar_record = builder.mbbIn(
-                    scalar_record_name,
-                    *field_details.labels,
-                    initial_value=initial_value,
-                    DESC=scalar_record_desc,
-                )
-
-            else:
-                logging.error(
-                    f"Unknown table field subtype {field_details.subtype} detected "
-                    f"on table {table_name} field {field_name}. Using defaults."
-                )
-                scalar_record = builder.longIn(
-                    scalar_record_name,
-                    initial_value=initial_value,
-                    DESC=scalar_record_desc,
-                )
-
-            Pvi.add_pvi_info(
-                scalar_record_name,
-                pvi_group,
-                SignalRW(scalar_record_name, scalar_record_name, TextWrite()),
-            )
-
-            self.table_scalar_records[scalar_record_name] = RecordInfo(
-                lambda x: x, None, False
-            )
-
-            self.table_scalar_records[scalar_record_name].add_record(scalar_record)
 
         # Create the mode record that controls when to Put back to PandA
         labels = [x.name for x in TableModeEnum]
@@ -330,23 +260,6 @@ class TableUpdater:
                 },
             )
 
-        # Index record specifies which element the scalar records should access
-        index_record_name = EpicsName(table_name + ":INDEX")
-        self.index_record = builder.longOut(
-            index_record_name,
-            DESC="Index for all SCALAR records on table",
-            initial_value=DEFAULT_INDEX,
-            on_update=self.update_index,
-            DRVL=0,
-            DRVH=field_data[field_name].size - 1,
-        )
-
-        Pvi.add_pvi_info(
-            index_record_name,
-            pvi_group,
-            SignalRW(index_record_name, index_record_name, TextWrite()),
-        )
-
     def validate_waveform(self, record: RecordWrapper, new_val) -> bool:
         """Controls whether updates to the waveform records are processed, based on the
         value of the MODE record.
@@ -392,11 +305,6 @@ class TableUpdater:
             # In case it isn't already, set an alarm state on the record
             self.mode_record_info.record.set_alarm(alarm.INVALID_ALARM, alarm.UDF_ALARM)
             return False
-
-    async def update_waveform(self, new_val: int, record_name: str) -> None:
-        """Handles updates to a specific waveform record to update its associated
-        scalar value record"""
-        self._update_scalar(record_name)
 
     async def update_mode(self, new_val: int):
         """Controls the behaviour when the MODE record is updated.
@@ -517,82 +425,10 @@ class TableUpdater:
 
                 # Must skip processing as the validate method would reject the update
                 field_record.record_info.record.set(waveform_val, process=False)
-                self._update_scalar(field_record.record_info.record.name)
 
-            # All items in field_data have the same length, so just use 0th.
-            self._update_index_drvh(list(field_data.values())[0])
         else:
             # No other mode allows PandA updates to EPICS records
             logging.warning(
                 f"Update of table {self.table_name} attempted when MODE "
                 "was not VIEW. New value will be discarded"
             )
-
-    async def update_index(self, new_val) -> None:
-        """Update the SCALAR record for every column in the table based on the new
-        index and/or new waveform data."""
-        for field_record in self.table_fields_records.values():
-            assert field_record.record_info
-            self._update_scalar(field_record.record_info.record.name)
-
-    def _update_scalar(self, waveform_record_name: str) -> None:
-        """Update the column's SCALAR record based on the new index and/or new waveform
-        data.
-
-        Args:
-            waveform_record_name: The name of the column record including leading
-            namespace, e.g. "<namespace>:SEQ1:TABLE:POSITION"
-        """
-
-        # Remove namespace from record name
-        _, waveform_record_name = waveform_record_name.split(":", maxsplit=1)
-        _, field_name = waveform_record_name.rsplit(":", maxsplit=1)
-
-        record_info = self.table_fields_records[field_name].record_info
-        assert record_info
-        waveform_data = record_info.record.get()
-
-        scalar_record = self.table_scalar_records[
-            EpicsName(waveform_record_name + ":SCALAR")
-        ].record
-
-        index = self.index_record.get()
-
-        labels = self.table_fields_records[field_name].field.labels
-
-        try:
-            scalar_val = waveform_data[index]
-            if labels:
-                # mbbi/o records must use the numeric index
-                scalar_val = labels.index(scalar_val)
-            sev = alarm.NO_ALARM
-        except IndexError as e:
-            logging.warning(
-                f"Index {index} of record {waveform_record_name} is out of bounds.",
-                exc_info=e,
-            )
-            scalar_val = 0
-            sev = alarm.INVALID_ALARM
-        except ValueError as e:
-            logging.warning(
-                f"Value {scalar_val} of record {waveform_record_name} is not "
-                "a recognised value.",
-                exc_info=e,
-            )
-            scalar_val = 0
-            sev = alarm.INVALID_ALARM
-
-        # alarm value is ignored if severity = NO_ALARM. Softioc also defaults
-        # alarm value to UDF_ALARM, but I'm specifying it for clarity.
-        scalar_record.set(scalar_val, severity=sev, alarm=alarm.UDF_ALARM)
-
-    def _update_index_drvh(self, data: UnpackedArray):
-        """Set the DRVH value of the index record based on the newly set data length"""
-        # Note the -1 to account for zero indexing
-        c_data = np.require(data.size - 1, dtype=np.int32)
-        db_put_field(
-            f"{self.index_record.name}.DRVH",
-            fields.DBF_LONG,
-            c_data.ctypes.data,
-            1,
-        )
