@@ -5,16 +5,15 @@ import typing
 from collections import OrderedDict
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 import numpy as np
-import numpy.typing as npt
 from epicsdbbuilder import RecordName
 from epicsdbbuilder.recordbase import PP
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import GetMultiline, Put
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
-from pandablocks.utils import table_to_words, words_to_table
+from pandablocks.utils import UnpackedArray, table_to_words, words_to_table
 from pvi.device import ComboBox, SignalRW, TableWrite, TextWrite
 from softioc import alarm, builder, fields
 from softioc.imports import db_put_field
@@ -30,10 +29,6 @@ from ._types import (
     epics_to_panda_name,
     trim_description,
 )
-
-UnpackedArray = Union[
-    npt.NDArray[np.int32], npt.NDArray[np.uint8], npt.NDArray[np.uint16]
-]
 
 
 @dataclass
@@ -68,138 +63,6 @@ def make_bit_order(
     return dict(
         sorted(table_field_records.items(), key=lambda item: item[1].field.bit_low)
     )
-
-
-class TablePacking:
-    """Class to handle packing and unpacking Table data to and from a PandA"""
-
-    @staticmethod
-    def unpack(
-        row_words: int,
-        table_fields_records: Dict[str, TableFieldRecordContainer],
-        table_data: List[str],
-    ) -> Dict[str, UnpackedArray]:
-        """Unpacks the given `packed` data based on the fields provided.
-        Returns the unpacked data in {column_name: column_data} column-indexed format
-
-        Args:
-            row_words: The number of 32-bit words per row
-            table_fields: The list of fields present in the packed data.
-            table_data: The list of data for this table, from PandA. Each item is
-                expected to be the string representation of a uint32.
-
-        Returns:
-            List of numpy arrays: A list of 1-D numpy arrays, one item per field.
-            Each item will have length equal to the PandA table's number of rows.
-        """
-
-        data = np.array(table_data, dtype=np.uint32)
-        # Convert 1-D array into 2-D, one row element per row in the PandA table
-        data = data.reshape(len(data) // row_words, row_words)
-        packed = data.T
-
-        # Ensure fields are in bit-order
-        table_fields_records = make_bit_order(table_fields_records)
-
-        unpacked: Dict[str, UnpackedArray] = {}
-        for field_name, field_record in table_fields_records.items():
-            field_details = field_record.field
-            offset = field_details.bit_low
-            bit_len = field_details.bit_high - field_details.bit_low + 1
-
-            # The word offset indicates which column this field is in
-            # (column is exactly one 32-bit word)
-            word_offset = offset // 32
-
-            # bit offset is location of field inside the word
-            bit_offset = offset & 0x1F
-
-            # Mask to remove every bit that isn't in the range we want
-            mask = (1 << bit_len) - 1
-
-            val: UnpackedArray
-            val = (packed[word_offset] >> bit_offset) & mask
-
-            if field_details.subtype == "int":
-                # First convert from 2's complement to offset, then add in offset.
-                # TODO: Test this with extreme values - int_max, int_min, etc.
-                val = (val ^ (1 << (bit_len - 1))) + (-1 << (bit_len - 1))
-                val = val.astype(np.int32)
-            else:
-                # Use shorter types, as these are used in waveform creation
-                if bit_len <= 8:
-                    val = val.astype(np.uint8)
-                elif bit_len <= 16:
-                    val = val.astype(np.uint16)
-
-            unpacked.update({field_name: val})
-
-        return unpacked
-
-    @staticmethod
-    def pack(
-        row_words: int, table_fields_records: Dict[str, TableFieldRecordContainer]
-    ) -> List[str]:
-        """Pack the records based on the field definitions into the format PandA expects
-        for table writes.
-
-        Args:
-            row_words: The number of 32-bit words per row
-            table_fields_records: The list of fields and their associated RecordInfo
-                structure, used to access the value of each record.
-
-        Returns:
-            List[str]: The list of data ready to be sent to PandA
-        """
-
-        packed = None
-
-        # Ensure fields are in bit-order
-        table_fields_records = make_bit_order(table_fields_records)
-
-        # Iterate over the zipped fields and their associated records to construct the
-        # packed array.
-        for field_container in table_fields_records.values():
-            field_details = field_container.field
-            record_info = field_container.record_info
-            assert record_info
-
-            curr_val = record_info.record.get()
-
-            if field_details.labels:
-                # Must convert the list of strings into integers
-                curr_val = [field_details.labels.index(x) for x in curr_val]
-                curr_val = np.array(curr_val)
-
-            assert isinstance(curr_val, np.ndarray)  # Check no SCALAR records here
-            # PandA always handles tables in uint32 format
-            curr_val = np.uint32(curr_val)
-
-            if packed is None:
-                # Create 1-D array sufficiently long to exactly hold the entire table
-                packed = np.zeros((len(curr_val), row_words), dtype=np.uint32)
-            else:
-                assert len(packed) == len(curr_val), (
-                    f"Table record {record_info.record.name} has mismatched length "
-                    "compared to other records, cannot pack data"
-                )
-
-            offset = field_details.bit_low
-
-            # The word offset indicates which column this field is in
-            # (each column is one 32-bit word)
-            word_offset = offset // 32
-            # bit offset is location of field inside the word
-            bit_offset = offset & 0x1F
-
-            # Slice to get the column to apply the values to.
-            # bit shift the value to the relevant bits of the word
-            packed[:, word_offset] |= curr_val << bit_offset
-
-        assert isinstance(packed, np.ndarray)  # Squash mypy warning
-
-        # 2-D array -> 1-D array -> list[int] -> list[str]
-        return [str(x) for x in packed.flatten().tolist()]
 
 
 class TableModeEnum(Enum):
