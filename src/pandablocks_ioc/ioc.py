@@ -425,7 +425,7 @@ class _TimeRecordUpdater(_RecordUpdater):
         # on_update and the other is from *CHANGES?.
         # In the EPICS context, the value is an integer (from an mbbi/o record)
         # In the *CHANGES? context the value is a string
-        if type(new_val) is str:
+        if isinstance(new_val, str):
             assert new_val in self.labels
             new_egu = new_val
         else:
@@ -897,7 +897,7 @@ class IocRecordFactory:
             positions_record_name + ":NAME",
             VAL=record_name,
             DESC="Table of configured positional outputs",
-        ),
+        )
 
         scaled_calc_record.add_alias(
             self._record_prefix + ":" + positions_record_name + ":VAL"
