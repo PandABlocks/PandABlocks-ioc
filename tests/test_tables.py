@@ -7,19 +7,20 @@ import numpy.testing
 import pytest
 from aioca import caget, camonitor, caput
 from fixtures.mocked_panda import TIMEOUT, command_to_key, multiprocessing_queue_to_list
-from mock import AsyncMock, patch
-from mock.mock import MagicMock, PropertyMock, call
+from mock import AsyncMock
+from mock.mock import MagicMock, PropertyMock
 from numpy import ndarray
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import GetMultiline, Put
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
+from softioc import alarm
+
 from pandablocks_ioc._tables import (
     TableFieldRecordContainer,
     TableModeEnum,
     TableUpdater,
 )
 from pandablocks_ioc._types import EpicsName, InErrorException, RecordInfo, RecordValue
-from softioc import alarm, fields
 
 PANDA_FORMAT_TABLE_NAME = "SEQ1.TABLE"
 EPICS_FORMAT_TABLE_NAME = "SEQ1:TABLE"
