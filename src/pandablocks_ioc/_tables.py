@@ -81,7 +81,6 @@ class TableUpdater:
     # Collection of the records that comprise the table's fields.
     # Order is exactly that which PandA sent.
     table_fields_records: typing.OrderedDict[str, TableFieldRecordContainer]
-    # Collection of the records that comprise the SCALAR records for each field
     all_values_dict: Dict[EpicsName, RecordValue]
 
     def __init__(
