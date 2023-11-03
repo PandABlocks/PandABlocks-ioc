@@ -88,9 +88,6 @@ def table_updater(
 
     # Put mocks into TableUpdater
     updater.mode_record_info = mode_record_info
-    updater.index_record = MagicMock()
-    updater.index_record.name = "SEQ1:TABLE:INDEX"
-    updater.table_scalar_records[EpicsName("SEQ1:TABLE:POSITION:SCALAR")] = MagicMock()
     for field_name, table_record_container in updater.table_fields_records.items():
         assert table_record_container.record_info
         table_record_container.record_info.record = MagicMock()
@@ -473,9 +470,6 @@ def test_table_updater_update_table_not_view(
     table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
 ):
     """Test that update_table does nothing when mode is not VIEW"""
-
-    # update_scalar is too complex to test as well, so mock it out
-    table_updater._update_scalar = MagicMock()  # type: ignore
 
     table_updater.mode_record_info.record.get.return_value = TableModeEnum.EDIT
 

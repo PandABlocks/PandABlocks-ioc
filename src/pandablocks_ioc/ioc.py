@@ -893,12 +893,10 @@ class IocRecordFactory:
         # Create the POSITIONS "table" of records. Most are aliases of the records
         # created above.
         positions_record_name = f"POSITIONS:{self._pos_out_row_counter}"
-        (
-            builder.records.stringin(
-                positions_record_name + ":NAME",
-                VAL=record_name,
-                DESC="Table of configured positional outputs",
-            ),
+        builder.records.stringin(
+            positions_record_name + ":NAME",
+            VAL=record_name,
+            DESC="Table of configured positional outputs",
         )
 
         scaled_calc_record.add_alias(
