@@ -485,7 +485,7 @@ async def test_handle_data(
 ):
     """Test that _handle_hdf5_data can process a normal stream of Data"""
 
-    async def mock_data(scaled, flush_period):
+    async def mock_data(*args, **kwargs):
         for item in slow_dump_expected:
             yield item
 
@@ -523,7 +523,7 @@ async def test_handle_data_two_start_data(
 ):
     """Test that _handle_hdf5_data works correctly over multiple datasets"""
 
-    async def mock_data(scaled, flush_period):
+    async def mock_data(*args, **kwargs):
         doubled_list = list(slow_dump_expected)[:-1]  # cut off EndData
         doubled_list.extend(doubled_list)
         for item in doubled_list:
@@ -564,7 +564,7 @@ async def test_handle_data_mismatching_start_data(
     """Test that _handle_hdf5_data stops capturing when different StartData items
     received"""
 
-    async def mock_data(scaled, flush_period):
+    async def mock_data(*args, **kwargs):
         """Return a pair of data captures, with differing StartData items"""
         list = [
             ReadyData(),
@@ -634,7 +634,7 @@ async def test_handle_data_cancelled_error(
 ):
     """Test that _handle_hdf5_data stops capturing when it receives a CancelledError"""
 
-    async def mock_data(scaled, flush_period):
+    async def mock_data(*args, **kwargs):
         """Return the start of data capture, then raise a CancelledError.
         This mimics the task being cancelled."""
         list = [
@@ -690,7 +690,7 @@ async def test_handle_data_unexpected_exception(
     """Test that _handle_hdf5_data stops capturing when it receives an unexpected
     exception"""
 
-    async def mock_data(scaled, flush_period):
+    async def mock_data(*args, **kwargs):
         """Return the start of data capture, then raise an Exception."""
         list = [
             ReadyData(),

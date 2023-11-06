@@ -75,7 +75,7 @@ def add_pvi_info(
             access = "rw"
 
         else:
-            component = SignalX(record_name, record_name, value="")
+            component = SignalX(record_name, record_name, value=1)
             access = "x"
     elif writeable:
         if useComboBox:
