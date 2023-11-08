@@ -19,6 +19,15 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 description = "One line description of your module"
+dependencies = [
+    "setuptools>=64",
+    "numpy",
+    "click",
+    "h5py",
+    "softioc>=4.4.0",
+    "pandablocks>=0.5.3",
+    "pvi==0.5",
+] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"
 readme = "README.rst"
