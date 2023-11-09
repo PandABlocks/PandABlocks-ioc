@@ -7,13 +7,13 @@ import numpy.testing
 import pytest
 from aioca import caget, camonitor, caput
 from fixtures.mocked_panda import TIMEOUT, command_to_key, multiprocessing_queue_to_list
-from mock import AsyncMock, patch
-from mock.mock import MagicMock, PropertyMock, call
+from mock import AsyncMock
+from mock.mock import MagicMock, PropertyMock
 from numpy import ndarray
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import GetMultiline, Put
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
-from softioc import alarm, fields
+from softioc import alarm
 
 from pandablocks_ioc._tables import (
     TableFieldRecordContainer,
@@ -89,9 +89,6 @@ def table_updater(
 
     # Put mocks into TableUpdater
     updater.mode_record_info = mode_record_info
-    updater.index_record = MagicMock()
-    updater.index_record.name = "SEQ1:TABLE:INDEX"
-    updater.table_scalar_records[EpicsName("SEQ1:TABLE:POSITION:SCALAR")] = MagicMock()
     for field_name, table_record_container in updater.table_fields_records.items():
         assert table_record_container.record_info
         table_record_container.record_info.record = MagicMock()
@@ -157,46 +154,6 @@ async def test_create_softioc_update_table(
 
         curr_val = await caget(test_prefix + ":SEQ:TABLE:OUTD2")
         assert numpy.array_equal(curr_val, [0, 0, 1, 1, 0])
-
-    finally:
-        monitor.close()
-
-
-async def test_create_softioc_update_index_drvh(
-    mocked_panda_standard_responses,
-    table_unpacked_data,
-):
-    """Test that changing the size of the table changes the DRVH value of
-    the :INDEX record"""
-
-    (
-        tmp_path,
-        child_conn,
-        response_handler,
-        command_queue,
-        test_prefix,
-    ) = mocked_panda_standard_responses
-
-    # Add more GetChanges data. This adds two new rows and changes row 2 (1-indexed)
-    # to all zero values. Include some trailing empty changesets to ensure test code has
-    # time to run.
-
-    # All elements in the table_unpacked_data are the same length, so just take the
-    # length of the first one
-    table_length = len(next(iter(table_unpacked_data.values())))
-
-    try:
-        # Set up a monitor to wait for the expected change
-        drvh_queue = asyncio.Queue()
-        monitor = camonitor(test_prefix + ":SEQ:TABLE:INDEX.DRVH", drvh_queue.put)
-
-        curr_val = await asyncio.wait_for(drvh_queue.get(), TIMEOUT)
-        # First response is the current value (0-indexed hence -1 )
-        assert curr_val == table_length - 1
-
-        # Wait for the new value to appear
-        curr_val = await asyncio.wait_for(drvh_queue.get(), TIMEOUT)
-        assert curr_val == table_length + 2 - 1
 
     finally:
         monitor.close()
@@ -268,91 +225,6 @@ async def test_create_softioc_table_update_send_to_panda(
         )
         in commands_recieved_by_panda
     )
-
-
-async def test_create_softioc_update_table_index(
-    mocked_panda_standard_responses, table_unpacked_data, table_fields
-):
-    """Test that updating the INDEX updates the SCALAR values"""
-    (
-        tmp_path,
-        child_conn,
-        response_handler,
-        command_queue,
-        test_prefix,
-    ) = mocked_panda_standard_responses
-
-    try:
-        index_val = 0
-        # Set up monitors to wait for the expected changes
-        repeats_queue = asyncio.Queue()
-        repeats_monitor = camonitor(
-            test_prefix + ":SEQ:TABLE:REPEATS:SCALAR", repeats_queue.put
-        )
-        trigger_queue = asyncio.Queue()
-        # TRIGGER is an mbbin so must specify datatype to get its strings, otherwise
-        # cothread will return the integer representation
-        trigger_monitor = camonitor(
-            test_prefix + ":SEQ:TABLE:TRIGGER:SCALAR", trigger_queue.put, datatype=str
-        )
-
-        # Confirm initial values are correct
-        curr_val = await asyncio.wait_for(repeats_queue.get(), TIMEOUT)
-        assert curr_val == table_unpacked_data["REPEATS"][index_val]
-        curr_val = await asyncio.wait_for(trigger_queue.get(), TIMEOUT)
-        assert curr_val == table_unpacked_data["TRIGGER"][index_val]
-
-        # Now set a new INDEX
-        index_val = 1
-        await caput(test_prefix + ":SEQ:TABLE:INDEX", index_val)
-
-        # Wait for the new values to appear
-        curr_val = await asyncio.wait_for(repeats_queue.get(), TIMEOUT)
-        assert curr_val == table_unpacked_data["REPEATS"][index_val]
-        curr_val = await asyncio.wait_for(trigger_queue.get(), TIMEOUT)
-        assert curr_val == table_unpacked_data["TRIGGER"][index_val]
-
-    finally:
-        repeats_monitor.close()
-        trigger_monitor.close()
-
-
-async def test_create_softioc_update_table_scalars_change(
-    mocked_panda_standard_responses,
-    table_unpacked_data,
-):
-    """Test that updating the data in a waveform updates the associated SCALAR value"""
-    (
-        tmp_path,
-        child_conn,
-        response_handler,
-        command_queue,
-        test_prefix,
-    ) = mocked_panda_standard_responses
-
-    try:
-        index_val = 0
-        # Set up monitors to wait for the expected changes
-        repeats_queue = asyncio.Queue()
-        repeats_monitor = camonitor(
-            test_prefix + ":SEQ:TABLE:REPEATS:SCALAR", repeats_queue.put
-        )
-
-        # Confirm initial values are correct
-        curr_val = await asyncio.wait_for(repeats_queue.get(), TIMEOUT)
-        assert curr_val == table_unpacked_data["REPEATS"][index_val]
-
-        # Now set a new value
-        await caput(test_prefix + ":SEQ:TABLE:MODE", "EDIT")
-        new_repeats_vals = [9, 99, 999]
-        await caput(test_prefix + ":SEQ:TABLE:REPEATS", new_repeats_vals)
-
-        # Wait for the new values to appear
-        curr_val = await asyncio.wait_for(repeats_queue.get(), TIMEOUT)
-        assert curr_val == new_repeats_vals[index_val]
-
-    finally:
-        repeats_monitor.close()
 
 
 def test_table_updater_validate_mode_view(table_updater: TableUpdater):
@@ -570,17 +442,12 @@ async def test_table_updater_update_mode_other(
     table_updater.mode_record_info.record.set.assert_not_called()
 
 
-@patch("pandablocks_ioc._tables.db_put_field")
 def test_table_updater_update_table(
-    db_put_field: MagicMock,
     table_updater: TableUpdater,
     table_data_1: List[str],
     table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
 ):
     """Test that update_table updates records with the new values"""
-
-    # update_scalar is too complex to test as well, so mock it out
-    table_updater._update_scalar = MagicMock()  # type: ignore
 
     table_updater.update_table(table_data_1)
 
@@ -597,19 +464,6 @@ def test_table_updater_update_table(
 
         numpy.testing.assert_array_equal(data, called_args[0][0])
 
-    table_updater._update_scalar.assert_called()
-
-    db_put_field.assert_called_once()
-
-    # Check the expected arguments are passed to db_put_field.
-    # Note we don't check the value of `array.ctypes.data` parameter as it's a pointer
-    # to a memory address so will always vary
-    put_field_args = db_put_field.call_args.args
-    expected_args = ["SEQ1:TABLE:INDEX.DRVH", fields.DBF_LONG, 1]
-    for arg in expected_args:
-        assert arg in put_field_args
-    assert isinstance(put_field_args[2], int)
-
 
 def test_table_updater_update_table_not_view(
     table_updater: TableUpdater,
@@ -617,9 +471,6 @@ def test_table_updater_update_table_not_view(
     table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
 ):
     """Test that update_table does nothing when mode is not VIEW"""
-
-    # update_scalar is too complex to test as well, so mock it out
-    table_updater._update_scalar = MagicMock()  # type: ignore
 
     table_updater.mode_record_info.record.get.return_value = TableModeEnum.EDIT
 
@@ -634,53 +485,3 @@ def test_table_updater_update_table_not_view(
         record_info = table_updater.table_fields_records[field_name].record_info
         assert record_info
         record_info.record.set.assert_not_called()
-
-
-async def test_table_updater_update_index(
-    table_updater: TableUpdater,
-    table_fields: Dict[str, TableFieldDetails],
-):
-    """Test that update_index passes the full list of records to _update_scalar"""
-
-    # Just need to prove it was called, not that it ran
-    table_updater._update_scalar = MagicMock()  # type: ignore
-
-    await table_updater.update_index(None)
-
-    calls = []
-    for field in table_fields.keys():
-        calls.append(call(EPICS_FORMAT_TABLE_NAME + ":" + field))
-
-    table_updater._update_scalar.assert_has_calls(calls, any_order=True)
-
-
-def test_table_updater_update_scalar(
-    table_updater: TableUpdater,
-):
-    """Test that update_scalar correctly updates the scalar record for a waveform"""
-    scalar_record_name = EpicsName("SEQ1:TABLE:POSITION:SCALAR")
-    scalar_record = table_updater.table_scalar_records[scalar_record_name].record
-
-    table_updater.index_record.get.return_value = 1
-
-    table_updater._update_scalar("ABC:SEQ1:TABLE:POSITION")
-
-    scalar_record.set.assert_called_once_with(
-        678, severity=alarm.NO_ALARM, alarm=alarm.UDF_ALARM
-    )
-
-
-def test_table_updater_update_scalar_index_out_of_bounds(
-    table_updater: TableUpdater,
-):
-    """Test that update_scalar handles an invalid index"""
-    scalar_record_name = EpicsName("SEQ1:TABLE:POSITION:SCALAR")
-    scalar_record = table_updater.table_scalar_records[scalar_record_name].record
-
-    table_updater.index_record.get.return_value = 99
-
-    table_updater._update_scalar("ABC:SEQ1:TABLE:POSITION")
-
-    scalar_record.set.assert_called_once_with(
-        0, severity=alarm.INVALID_ALARM, alarm=alarm.UDF_ALARM
-    )

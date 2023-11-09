@@ -5,19 +5,17 @@ import typing
 from collections import OrderedDict
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 import numpy as np
-import numpy.typing as npt
 from epicsdbbuilder import RecordName
 from epicsdbbuilder.recordbase import PP
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import GetMultiline, Put
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
-from pandablocks.utils import table_to_words, words_to_table
-from pvi.device import ComboBox, SignalRW, TableWrite, TextWrite
-from softioc import alarm, builder, fields
-from softioc.imports import db_put_field
+from pandablocks.utils import UnpackedArray, table_to_words, words_to_table
+from pvi.device import ComboBox, SignalRW, TableWrite
+from softioc import alarm, builder
 from softioc.pythonSoftIoc import RecordWrapper
 
 from ._pvi import Pvi, PviGroup
@@ -26,14 +24,9 @@ from ._types import (
     InErrorException,
     RecordInfo,
     RecordValue,
-    check_num_labels,
     epics_to_panda_name,
     trim_description,
 )
-
-UnpackedArray = Union[
-    npt.NDArray[np.int32], npt.NDArray[np.uint8], npt.NDArray[np.uint16]
-]
 
 
 @dataclass
@@ -70,138 +63,6 @@ def make_bit_order(
     )
 
 
-class TablePacking:
-    """Class to handle packing and unpacking Table data to and from a PandA"""
-
-    @staticmethod
-    def unpack(
-        row_words: int,
-        table_fields_records: Dict[str, TableFieldRecordContainer],
-        table_data: List[str],
-    ) -> Dict[str, UnpackedArray]:
-        """Unpacks the given `packed` data based on the fields provided.
-        Returns the unpacked data in {column_name: column_data} column-indexed format
-
-        Args:
-            row_words: The number of 32-bit words per row
-            table_fields: The list of fields present in the packed data.
-            table_data: The list of data for this table, from PandA. Each item is
-                expected to be the string representation of a uint32.
-
-        Returns:
-            List of numpy arrays: A list of 1-D numpy arrays, one item per field.
-            Each item will have length equal to the PandA table's number of rows.
-        """
-
-        data = np.array(table_data, dtype=np.uint32)
-        # Convert 1-D array into 2-D, one row element per row in the PandA table
-        data = data.reshape(len(data) // row_words, row_words)
-        packed = data.T
-
-        # Ensure fields are in bit-order
-        table_fields_records = make_bit_order(table_fields_records)
-
-        unpacked: Dict[str, UnpackedArray] = {}
-        for field_name, field_record in table_fields_records.items():
-            field_details = field_record.field
-            offset = field_details.bit_low
-            bit_len = field_details.bit_high - field_details.bit_low + 1
-
-            # The word offset indicates which column this field is in
-            # (column is exactly one 32-bit word)
-            word_offset = offset // 32
-
-            # bit offset is location of field inside the word
-            bit_offset = offset & 0x1F
-
-            # Mask to remove every bit that isn't in the range we want
-            mask = (1 << bit_len) - 1
-
-            val: UnpackedArray
-            val = (packed[word_offset] >> bit_offset) & mask
-
-            if field_details.subtype == "int":
-                # First convert from 2's complement to offset, then add in offset.
-                # TODO: Test this with extreme values - int_max, int_min, etc.
-                val = (val ^ (1 << (bit_len - 1))) + (-1 << (bit_len - 1))
-                val = val.astype(np.int32)
-            else:
-                # Use shorter types, as these are used in waveform creation
-                if bit_len <= 8:
-                    val = val.astype(np.uint8)
-                elif bit_len <= 16:
-                    val = val.astype(np.uint16)
-
-            unpacked.update({field_name: val})
-
-        return unpacked
-
-    @staticmethod
-    def pack(
-        row_words: int, table_fields_records: Dict[str, TableFieldRecordContainer]
-    ) -> List[str]:
-        """Pack the records based on the field definitions into the format PandA expects
-        for table writes.
-
-        Args:
-            row_words: The number of 32-bit words per row
-            table_fields_records: The list of fields and their associated RecordInfo
-                structure, used to access the value of each record.
-
-        Returns:
-            List[str]: The list of data ready to be sent to PandA
-        """
-
-        packed = None
-
-        # Ensure fields are in bit-order
-        table_fields_records = make_bit_order(table_fields_records)
-
-        # Iterate over the zipped fields and their associated records to construct the
-        # packed array.
-        for field_container in table_fields_records.values():
-            field_details = field_container.field
-            record_info = field_container.record_info
-            assert record_info
-
-            curr_val = record_info.record.get()
-
-            if field_details.labels:
-                # Must convert the list of strings into integers
-                curr_val = [field_details.labels.index(x) for x in curr_val]
-                curr_val = np.array(curr_val)
-
-            assert isinstance(curr_val, np.ndarray)  # Check no SCALAR records here
-            # PandA always handles tables in uint32 format
-            curr_val = np.uint32(curr_val)
-
-            if packed is None:
-                # Create 1-D array sufficiently long to exactly hold the entire table
-                packed = np.zeros((len(curr_val), row_words), dtype=np.uint32)
-            else:
-                assert len(packed) == len(curr_val), (
-                    f"Table record {record_info.record.name} has mismatched length "
-                    "compared to other records, cannot pack data"
-                )
-
-            offset = field_details.bit_low
-
-            # The word offset indicates which column this field is in
-            # (each column is one 32-bit word)
-            word_offset = offset // 32
-            # bit offset is location of field inside the word
-            bit_offset = offset & 0x1F
-
-            # Slice to get the column to apply the values to.
-            # bit shift the value to the relevant bits of the word
-            packed[:, word_offset] |= curr_val << bit_offset
-
-        assert isinstance(packed, np.ndarray)  # Squash mypy warning
-
-        # 2-D array -> 1-D array -> list[int] -> list[str]
-        return [str(x) for x in packed.flatten().tolist()]
-
-
 class TableModeEnum(Enum):
     """Operation modes for the MODES record on PandA table fields"""
 
@@ -220,8 +81,6 @@ class TableUpdater:
     # Collection of the records that comprise the table's fields.
     # Order is exactly that which PandA sent.
     table_fields_records: typing.OrderedDict[str, TableFieldRecordContainer]
-    # Collection of the records that comprise the SCALAR records for each field
-    table_scalar_records: Dict[EpicsName, RecordInfo] = {}
     all_values_dict: Dict[EpicsName, RecordValue]
 
     def __init__(
@@ -293,9 +152,6 @@ class TableUpdater:
             SignalRW(table_name, table_name, TableWrite([])),
         )
 
-        # The INDEX record's starting value
-        DEFAULT_INDEX = 0
-
         # Note that the table_updater's table_fields are guaranteed sorted in bit order,
         # unlike field_info's fields. This means the record dict inside the table
         # updater are also in the same bit order.
@@ -320,7 +176,6 @@ class TableUpdater:
                 full_name,
                 DESC=description,
                 validate=self.validate_waveform,
-                on_update_name=self.update_waveform,
                 initial_value=waveform_val,
                 length=field_info.max_length,
             )
@@ -349,72 +204,6 @@ class TableUpdater:
             field_record_container.record_info = RecordInfo(lambda x: x, None, False)
 
             field_record_container.record_info.add_record(field_record)
-
-            # Scalar record gives access to individual cell in a column,
-            # in combination with the INDEX record defined below
-            scalar_record_name = EpicsName(full_name + ":SCALAR")
-
-            scalar_record_desc = "Scalar val (set by INDEX rec) of column"
-            # No better default than zero, despite the fact it could be a valid value
-            # PythonSoftIOC issue #53 may alleviate this.
-            initial_value = (
-                field_data[field_name][DEFAULT_INDEX]
-                if len(field_data[field_name]) > 0
-                else 0
-            )
-
-            # Three possible field types, do per-type config
-            if field_details.subtype == "int":
-                scalar_record: RecordWrapper = builder.longIn(
-                    scalar_record_name,
-                    initial_value=initial_value,
-                    DESC=scalar_record_desc,
-                )
-
-            elif field_details.subtype == "uint":
-                assert initial_value >= 0, (
-                    f"initial value {initial_value} for uint record "
-                    f"{scalar_record_name} was negative"
-                )
-                scalar_record = builder.longIn(
-                    scalar_record_name,
-                    initial_value=initial_value,
-                    DESC=scalar_record_desc,
-                )
-
-            elif field_details.subtype == "enum":
-                assert field_details.labels
-
-                check_num_labels(field_details.labels, scalar_record_name)
-                scalar_record = builder.mbbIn(
-                    scalar_record_name,
-                    *field_details.labels,
-                    initial_value=initial_value,
-                    DESC=scalar_record_desc,
-                )
-
-            else:
-                logging.error(
-                    f"Unknown table field subtype {field_details.subtype} detected "
-                    f"on table {table_name} field {field_name}. Using defaults."
-                )
-                scalar_record = builder.longIn(
-                    scalar_record_name,
-                    initial_value=initial_value,
-                    DESC=scalar_record_desc,
-                )
-
-            Pvi.add_pvi_info(
-                scalar_record_name,
-                pvi_group,
-                SignalRW(scalar_record_name, scalar_record_name, TextWrite()),
-            )
-
-            self.table_scalar_records[scalar_record_name] = RecordInfo(
-                lambda x: x, None, False
-            )
-
-            self.table_scalar_records[scalar_record_name].add_record(scalar_record)
 
         # Create the mode record that controls when to Put back to PandA
         labels = [x.name for x in TableModeEnum]
@@ -467,23 +256,6 @@ class TableUpdater:
                 },
             )
 
-        # Index record specifies which element the scalar records should access
-        index_record_name = EpicsName(table_name + ":INDEX")
-        self.index_record = builder.longOut(
-            index_record_name,
-            DESC="Index for all SCALAR records on table",
-            initial_value=DEFAULT_INDEX,
-            on_update=self.update_index,
-            DRVL=0,
-            DRVH=field_data[field_name].size - 1,
-        )
-
-        Pvi.add_pvi_info(
-            index_record_name,
-            pvi_group,
-            SignalRW(index_record_name, index_record_name, TextWrite()),
-        )
-
     def validate_waveform(self, record: RecordWrapper, new_val) -> bool:
         """Controls whether updates to the waveform records are processed, based on the
         value of the MODE record.
@@ -529,11 +301,6 @@ class TableUpdater:
             # In case it isn't already, set an alarm state on the record
             self.mode_record_info.record.set_alarm(alarm.INVALID_ALARM, alarm.UDF_ALARM)
             return False
-
-    async def update_waveform(self, new_val: int, record_name: str) -> None:
-        """Handles updates to a specific waveform record to update its associated
-        scalar value record"""
-        self._update_scalar(record_name)
 
     async def update_mode(self, new_val: int):
         """Controls the behaviour when the MODE record is updated.
@@ -654,82 +421,10 @@ class TableUpdater:
 
                 # Must skip processing as the validate method would reject the update
                 field_record.record_info.record.set(waveform_val, process=False)
-                self._update_scalar(field_record.record_info.record.name)
 
-            # All items in field_data have the same length, so just use 0th.
-            self._update_index_drvh(list(field_data.values())[0])
         else:
             # No other mode allows PandA updates to EPICS records
             logging.warning(
                 f"Update of table {self.table_name} attempted when MODE "
                 "was not VIEW. New value will be discarded"
             )
-
-    async def update_index(self, new_val) -> None:
-        """Update the SCALAR record for every column in the table based on the new
-        index and/or new waveform data."""
-        for field_record in self.table_fields_records.values():
-            assert field_record.record_info
-            self._update_scalar(field_record.record_info.record.name)
-
-    def _update_scalar(self, waveform_record_name: str) -> None:
-        """Update the column's SCALAR record based on the new index and/or new waveform
-        data.
-
-        Args:
-            waveform_record_name: The name of the column record including leading
-            namespace, e.g. "<namespace>:SEQ1:TABLE:POSITION"
-        """
-
-        # Remove namespace from record name
-        _, waveform_record_name = waveform_record_name.split(":", maxsplit=1)
-        _, field_name = waveform_record_name.rsplit(":", maxsplit=1)
-
-        record_info = self.table_fields_records[field_name].record_info
-        assert record_info
-        waveform_data = record_info.record.get()
-
-        scalar_record = self.table_scalar_records[
-            EpicsName(waveform_record_name + ":SCALAR")
-        ].record
-
-        index = self.index_record.get()
-
-        labels = self.table_fields_records[field_name].field.labels
-
-        try:
-            scalar_val = waveform_data[index]
-            if labels:
-                # mbbi/o records must use the numeric index
-                scalar_val = labels.index(scalar_val)
-            sev = alarm.NO_ALARM
-        except IndexError as e:
-            logging.warning(
-                f"Index {index} of record {waveform_record_name} is out of bounds.",
-                exc_info=e,
-            )
-            scalar_val = 0
-            sev = alarm.INVALID_ALARM
-        except ValueError as e:
-            logging.warning(
-                f"Value {scalar_val} of record {waveform_record_name} is not "
-                "a recognised value.",
-                exc_info=e,
-            )
-            scalar_val = 0
-            sev = alarm.INVALID_ALARM
-
-        # alarm value is ignored if severity = NO_ALARM. Softioc also defaults
-        # alarm value to UDF_ALARM, but I'm specifying it for clarity.
-        scalar_record.set(scalar_val, severity=sev, alarm=alarm.UDF_ALARM)
-
-    def _update_index_drvh(self, data: UnpackedArray):
-        """Set the DRVH value of the index record based on the newly set data length"""
-        # Note the -1 to account for zero indexing
-        c_data = np.require(data.size - 1, dtype=np.int32)
-        db_put_field(
-            f"{self.index_record.name}.DRVH",
-            fields.DBF_LONG,
-            c_data.ctypes.data,
-            1,
-        )
