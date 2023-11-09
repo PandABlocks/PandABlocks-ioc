@@ -9,7 +9,7 @@
   <widget type="label" version="2.0.0">
     <name>Title</name>
     <class>TITLE</class>
-    <text>HDF5 - TEST-PREFIX:</text>
+    <text>HDF5 - TEST_PREFIX:</text>
     <x use_class="true">0</x>
     <y use_class="true">0</y>
     <width>426</width>
@@ -42,7 +42,7 @@
     </widget>
     <widget type="textentry" version="3.0.0">
       <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:HDF5:FilePath</pv_name>
+      <pv_name>TEST_PREFIX:HDF5:FilePath</pv_name>
       <x>255</x>
       <y>0</y>
       <width>60</width>
@@ -59,7 +59,7 @@
     </widget>
     <widget type="textentry" version="3.0.0">
       <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:HDF5:FileName</pv_name>
+      <pv_name>TEST_PREFIX:HDF5:FileName</pv_name>
       <x>255</x>
       <y>25</y>
       <width>60</width>
@@ -76,7 +76,7 @@
     </widget>
     <widget type="textentry" version="3.0.0">
       <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:HDF5:NumCapture</pv_name>
+      <pv_name>TEST_PREFIX:HDF5:NumCapture</pv_name>
       <x>255</x>
       <y>50</y>
       <width>60</width>
@@ -93,7 +93,7 @@
     </widget>
     <widget type="textentry" version="3.0.0">
       <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:HDF5:FlushPeriod</pv_name>
+      <pv_name>TEST_PREFIX:HDF5:FlushPeriod</pv_name>
       <x>255</x>
       <y>75</y>
       <width>60</width>
@@ -110,7 +110,7 @@
     </widget>
     <widget type="textentry" version="3.0.0">
       <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:HDF5:Capture</pv_name>
+      <pv_name>TEST_PREFIX:HDF5:Capture</pv_name>
       <x>255</x>
       <y>100</y>
       <width>60</width>
@@ -135,7 +135,7 @@
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>TextUpdate</name>
-      <pv_name>TEST-PREFIX:HDF5:Status</pv_name>
+      <pv_name>TEST_PREFIX:HDF5:Status</pv_name>
       <x>255</x>
       <y>0</y>
       <width>125</width>
@@ -156,7 +156,7 @@
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>TextUpdate</name>
-      <pv_name>TEST-PREFIX:HDF5:Capturing</pv_name>
+      <pv_name>TEST_PREFIX:HDF5:Capturing</pv_name>
       <x>255</x>
       <y>25</y>
       <width>125</width>

@@ -1,5 +1,4 @@
 import asyncio
-import os
 from pathlib import Path
 from typing import List, OrderedDict
 
@@ -8,6 +7,7 @@ import pytest
 from aioca import DBR_CHAR_STR, CANothing, caget, camonitor, caput
 from fixtures.mocked_panda import (
     BOBFILE_DIR,
+    TEST_PREFIX,
     TIMEOUT,
     MockedAsyncioClient,
     ResponseHandler,
@@ -334,21 +334,32 @@ async def test_bobfiles_created(mocked_panda_standard_responses):
 
     assert bobfile_temp_dir.exists() and BOBFILE_DIR.exists()
 
+    MISMATCHED_OUTPUT_MESSAGE = (
+        "Generated test bobfiles do not match `tests/test-bobfiles`. "
+        "If changes have been made that would result in different bobfiles "
+        "generated then regenerate the `test-bobfiles` with "
+        "`tests/regenerate_test_bobfiles.sh`."
+    )
+
     # Wait for the files to be created in the subprocess.
     await asyncio.sleep(1)
 
-    old_files = os.listdir(BOBFILE_DIR)
-    for file in old_files:
+    old_files = [
+        file_path
+        for file_path in Path.iterdir(BOBFILE_DIR)
+        if file_path.suffix == ".bob"
+    ]
+    for file_path in old_files:
         assert (
-            Path(bobfile_temp_dir / file)
+            Path(bobfile_temp_dir / file_path.name)
             .read_text()
-            .replace(test_prefix, "TEST-PREFIX")
-            == (BOBFILE_DIR / file).read_text()
-        )
+            .replace(test_prefix, TEST_PREFIX)
+            == file_path.read_text()
+        ), MISMATCHED_OUTPUT_MESSAGE
 
     # And check that the same number of files are created
-    new_files = os.listdir(bobfile_temp_dir)
-    assert len(old_files) == len(new_files)
+    new_files = list(Path.iterdir(bobfile_temp_dir))
+    assert len(old_files) == len(new_files), MISMATCHED_OUTPUT_MESSAGE
 
 
 async def test_create_bobfiles_fails_if_files_present(tmp_path, new_random_test_prefix):
