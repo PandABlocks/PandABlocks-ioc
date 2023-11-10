@@ -9,7 +9,7 @@
   <widget type="label" version="2.0.0">
     <name>Title</name>
     <class>TITLE</class>
-    <text>TOP - TEST-PREFIX:</text>
+    <text>TOP - TEST_PREFIX:</text>
     <x use_class="true">0</x>
     <y use_class="true">0</y>
     <width>278</width>

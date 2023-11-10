@@ -9,7 +9,7 @@
   <widget type="label" version="2.0.0">
     <name>Title</name>
     <class>TITLE</class>
-    <text>PULSE - TEST-PREFIX:</text>
+    <text>PULSE - TEST_PREFIX:</text>
     <x use_class="true">0</x>
     <y use_class="true">0</y>
     <width>361</width>
@@ -42,7 +42,7 @@
     </widget>
     <widget type="textentry" version="3.0.0">
       <name>TextEntry</name>
-      <pv_name>TEST-PREFIX:PULSE:DELAY</pv_name>
+      <pv_name>TEST_PREFIX:PULSE:DELAY</pv_name>
       <x>255</x>
       <y>0</y>
       <width>60</width>
@@ -59,7 +59,7 @@
     </widget>
     <widget type="combo" version="2.0.0">
       <name>ComboBox</name>
-      <pv_name>TEST-PREFIX:PULSE:DELAY:UNITS</pv_name>
+      <pv_name>TEST_PREFIX:PULSE:DELAY:UNITS</pv_name>
       <x>255</x>
       <y>25</y>
       <width>60</width>
