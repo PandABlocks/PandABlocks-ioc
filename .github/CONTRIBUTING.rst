@@ -9,14 +9,6 @@ your time coding something that might not fit the scope of the project.
 
 .. _GitHub: https://github.com/PandABlocks/PandABlocks-ioc/issues
 
-Issue or Discussion?
---------------------
-
-Github also offers discussions_ as a place to ask questions and share ideas. If
-your issue is open ended and it is not obvious when it can be "closed", please
-raise it as a discussion instead.
-
-.. _discussions: https://github.com/PandABlocks/PandABlocks-ioc/discussions
 
 Code coverage
 -------------
@@ -32,4 +24,4 @@ The `Developer Guide`_ contains information on setting up a development
 environment, running the tests and what standards the code and documentation
 should follow.
 
-.. _Developer Guide: https://diamondlightsource.github.io/PandABlocks-ioc/main/developer/how-to/contribute.html
+.. _Developer Guide: https://pandablocks.github.io/PandABlocks-ioc/main/developer/how-to/contribute.html
