@@ -59,6 +59,7 @@ class HDF5RecordController:
             length=path_length,
             DESC="File path for HDF5 files",
             validate=self._parameter_validate,
+            on_update=self._update_full_file_name,
         )
         add_pvi_info(
             PviGroup.INPUTS,
@@ -76,6 +77,7 @@ class HDF5RecordController:
             length=filename_length,
             DESC="File name prefix for HDF5 files",
             validate=self._parameter_validate,
+            on_update=self._update_full_file_name
         )
         add_pvi_info(
             PviGroup.INPUTS,
@@ -85,6 +87,22 @@ class HDF5RecordController:
         )
         self._file_name_record.add_alias(
             record_prefix + ":" + file_name_record_name.upper()
+        )
+
+        full_file_name_record_name = EpicsName(self._HDF5_PREFIX + ":FullFileName")
+        self._full_file_name_record = builder.longStringOut(
+            full_file_name_record_name,
+            length=path_length + 1 + filename_length,
+            DESC="Full HDF5 file name with path",
+        )
+        add_pvi_info(
+            PviGroup.INPUTS,
+            self._full_file_name_record,
+            full_file_name_record_name,
+            builder.longStringOut,
+        )
+        self._file_name_record.add_alias(
+            record_prefix + ":" + full_file_name_record_name.upper()
         )
 
         num_capture_record_name = EpicsName(self._HDF5_PREFIX + ":NumCapture")
@@ -104,6 +122,24 @@ class HDF5RecordController:
         # No validate - users are allowed to change this at any time
         self._num_capture_record.add_alias(
             record_prefix + ":" + num_capture_record_name.upper()
+        )
+
+        num_captured_record_name = EpicsName(self._HDF5_PREFIX + ":NumCaptured")
+        self._num_captured_record = builder.longOut(
+            num_captured_record_name,
+            initial_value=0,
+            DESC="Number of frames captured.",
+            DRVL=0,
+        )
+
+        add_pvi_info(
+            PviGroup.INPUTS,
+            self._num_captured_record,
+            num_captured_record_name,
+            builder.longOut,
+        )
+        self._num_captured_record.add_alias(
+            record_prefix + ":" + num_captured_record_name.upper()
         )
 
         flush_period_record_name = EpicsName(self._HDF5_PREFIX + ":FlushPeriod")
@@ -187,6 +223,9 @@ class HDF5RecordController:
             return False
         return True
 
+    async def _update_full_file_name(self, new_val) -> None:
+        self._full_file_name_record.set(self._get_filename())
+
     async def _handle_hdf5_data(self) -> None:
         """Handles writing HDF5 data from the PandA to file, based on configuration
         in the various HDF5 records.
@@ -197,6 +236,7 @@ class HDF5RecordController:
             # disabled
             start_data: Optional[StartData] = None
             captured_frames: int = 0
+            self._num_captured_record.set(captured_frames)
             # Only one filename - user must stop capture and set new FileName/FilePath
             # for new files
             pipeline: List[Pipeline] = create_default_pipeline(
@@ -250,6 +290,7 @@ class HDF5RecordController:
                         captured_frames = num_frames_to_capture
 
                     pipeline[0].queue.put_nowait(data)
+                    self._num_captured_record.set(captured_frames)
 
                     if (
                         num_frames_to_capture > 0
@@ -267,7 +308,9 @@ class HDF5RecordController:
                             EndData(captured_frames, EndReason.OK)
                         )
                         break
-                elif not isinstance(data, EndData):
+                elif isinstance(data, EndData):
+                    break
+                else:
                     raise RuntimeError(
                         f"Data was recieved that was of type {type(data)}, not"
                         "StartData, EndData, ReadyData or FrameData"
