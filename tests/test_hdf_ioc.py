@@ -395,6 +395,10 @@ async def test_hdf5_file_writing(
     val = await caget(hdf5_test_prefix + ":FilePath")
     assert val.tobytes().decode() == test_dir
 
+    val = await caget(hdf5_test_prefix + ":FullFileName")
+    # slash appended to file path for full file name
+    assert val.tobytes().decode() == "/".join([str(tmp_path), "\0"])
+
     await caput(
         hdf5_test_prefix + ":FileName",
         _string_to_buffer(test_filename),
@@ -403,6 +407,10 @@ async def test_hdf5_file_writing(
     )
     val = await caget(hdf5_test_prefix + ":FileName")
     assert val.tobytes().decode() == test_filename
+
+    val = await caget(hdf5_test_prefix + ":FullFileName")
+    # value has \0 terminator, like test_filename
+    assert val.tobytes().decode() == "/".join([str(tmp_path), test_filename])
 
     # Only a single FrameData in the example data
     assert await caget(hdf5_test_prefix + ":NumCapture") == 0
@@ -423,7 +431,7 @@ async def test_hdf5_file_writing(
     assert await capturing_queue.get() == 0
 
     await caput(hdf5_test_prefix + ":Capture", 1, wait=True, timeout=TIMEOUT)
-
+    assert await caget(hdf5_test_prefix + ":NumCaptured") <= num_capture
     assert await capturing_queue.get() == 1
 
     # The HDF5 data will be processed, and when it's done Capturing is set to 0
@@ -434,7 +442,7 @@ async def test_hdf5_file_writing(
     # Close capture, thus closing hdf5 file
     await caput(hdf5_test_prefix + ":Capture", 0, wait=True)
     assert await caget(hdf5_test_prefix + ":Capture") == 0
-
+    assert await caget(hdf5_test_prefix + ":NumCaptured") == num_capture
     # Confirm file contains data we expect
     hdf_file = h5py.File(tmp_path / test_filename[:-1], "r")
     assert list(hdf_file) == [
