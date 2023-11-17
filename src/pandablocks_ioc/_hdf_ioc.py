@@ -77,7 +77,7 @@ class HDF5RecordController:
             length=filename_length,
             DESC="File name prefix for HDF5 files",
             validate=self._parameter_validate,
-            on_update=self._update_full_file_name
+            on_update=self._update_full_file_name,
         )
         add_pvi_info(
             PviGroup.INPUTS,
