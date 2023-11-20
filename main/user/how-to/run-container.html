@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Run in a container &#8212; PandABlocks-ioc 0.2.2b4.dev21+g6194bb3 documentation</title>
+    <title>Run in a container &#8212; PandABlocks-ioc 0.4.dev2+gcf4b595 documentation</title>
   
   
   
@@ -38,7 +38,7 @@
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=365ca57ee442770a23c6" />
   <script src="../../_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=365ca57ee442770a23c6"></script>
 
-    <script src="../../_static/documentation_options.js?v=b8d236d6"></script>
+    <script src="../../_static/documentation_options.js?v=7693f14f"></script>
     <script src="../../_static/doctools.js?v=888ff710"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -484,14 +484,18 @@ document.write(`
   <section id="run-in-a-container">
 <h1>Run in a container<a class="headerlink" href="#run-in-a-container" title="Link to this heading">#</a></h1>
 <p>Pre-built containers with PandABlocks-ioc and its dependencies already
-installed are available on <a class="reference external" href="https://ghcr.io/PandABlocks/PandABlocks-ioc">Github Container Registry</a>.</p>
+installed are available on <a class="reference external" href="https://ghcr.io/pandablocks/pandablocks-ioc">Github Container Registry</a>.</p>
 <section id="starting-the-container">
 <h2>Starting the container<a class="headerlink" href="#starting-the-container" title="Link to this heading">#</a></h2>
-<p>To pull the container from github container registry and run:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ docker run ghcr.io/PandABlocks/PandABlocks-ioc:main --version
+<p>To pull the container from github container registry run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ docker run ghcr.io/pandablocks/pandablocks-ioc --version
 </pre></div>
 </div>
-<p>To get a released version, use a numbered release instead of <code class="docutils literal notranslate"><span class="pre">main</span></code>.</p>
+<p>This will pull the latest release. To get a different release, append the
+version number to the end:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ docker run ghcr.io/pandablocks/pandablocks-ioc:0.2.1 --version
+</pre></div>
+</div>
 </section>
 </section>
 
