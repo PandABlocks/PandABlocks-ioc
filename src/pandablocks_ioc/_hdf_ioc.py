@@ -309,6 +309,9 @@ class HDF5RecordController:
                         )
                         break
                 elif isinstance(data, EndData):
+                    pipeline[0].queue.put_nowait(
+                        EndData(captured_frames, EndReason.OK)
+                    )
                     break
                 else:
                     raise RuntimeError(
