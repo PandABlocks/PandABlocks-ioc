@@ -5,7 +5,7 @@ from asyncio import CancelledError
 from importlib.util import find_spec
 from typing import List, Optional
 
-from pandablocks.asyncio import AsyncioClient
+from pandablocks.asyncio import AsyncioClient, FlushMode
 from pandablocks.hdf import (
     EndData,
     FrameData,
@@ -28,6 +28,7 @@ class HDF5RecordController:
     _HDF5_PREFIX = "HDF5"
 
     _client: AsyncioClient
+    _flush_event = asyncio.Event()
 
     _file_path_record: RecordWrapper
     _file_name_record: RecordWrapper
@@ -106,6 +107,22 @@ class HDF5RecordController:
             record_prefix + ":" + num_capture_record_name.upper()
         )
 
+        flush_mode_record_name = EpicsName(self._HDF5_PREFIX + ":FlushMode")
+        self._flush_mode_record = builder.mbbOut(
+            flush_mode_record_name,
+            *[flush_mode.name for flush_mode in FlushMode],
+            initial_value=0,
+        )
+        add_pvi_info(
+            PviGroup.INPUTS,
+            self._flush_mode_record,
+            flush_mode_record_name,
+            builder.mbbOut,
+        )
+        self._flush_mode_record.add_alias(
+            record_prefix + ":" + flush_mode_record_name.upper()
+        )
+
         flush_period_record_name = EpicsName(self._HDF5_PREFIX + ":FlushPeriod")
         self._flush_period_record = builder.aOut(
             flush_period_record_name,
@@ -120,6 +137,24 @@ class HDF5RecordController:
         )
         self._flush_period_record.add_alias(
             record_prefix + ":" + flush_period_record_name.upper()
+        )
+
+        flush_now_record_name = EpicsName(self._HDF5_PREFIX + ":FlushNow")
+
+        self._flush_now_record = builder.Action(
+            flush_now_record_name,
+            on_update=self._set_flush_trigger,
+            ZNAM=ZNAM_STR,
+            ONAM=ONAM_STR,
+        )
+        add_pvi_info(
+            PviGroup.INPUTS,
+            self._flush_now_record,
+            flush_now_record_name,
+            builder.Action,
+        )
+        self._flush_now_record.add_alias(
+            record_prefix + ":" + flush_now_record_name.upper()
         )
 
         capture_control_record_name = EpicsName(self._HDF5_PREFIX + ":Capture")
@@ -174,6 +209,17 @@ class HDF5RecordController:
             record_prefix + ":" + currently_capturing_record_name.upper()
         )
 
+    def _set_flush_trigger(self, new_val):
+        if new_val == 1:
+            self._flush_event.set()
+            self._flush_now_record.set(0)
+        elif new_val != 0:
+            raise (
+                ValueError(
+                    f"Invalid value for {self._flush_now_record.name}: {new_val}"
+                )
+            )
+
     def _parameter_validate(self, record: RecordWrapper, new_val) -> bool:
         """Control when values can be written to parameter records
         (file name etc.) based on capturing record's value"""
@@ -202,10 +248,20 @@ class HDF5RecordController:
             pipeline: List[Pipeline] = create_default_pipeline(
                 iter([self._get_filename()])
             )
-            flush_period: float = self._flush_period_record.get()
+
+            flush_period: Optional[float] = None
+            flush_event: Optional[asyncio.Event] = None
+            flush_mode = FlushMode(self._flush_mode_record.get())
+            if flush_mode == FlushMode.PERIODIC:
+                flush_period = self._flush_period_record.get()
+            if flush_mode in (FlushMode.MANUAL, FlushMode.PERIODIC):
+                flush_event = self._flush_event
 
             async for data in self._client.data(
-                scaled=False, flush_period=flush_period
+                scaled=False,
+                flush_period=flush_period,
+                flush_event=flush_event,
+                flush_mode=flush_mode,
             ):
                 logging.debug(f"Received data packet: {data}")
                 if isinstance(data, ReadyData):

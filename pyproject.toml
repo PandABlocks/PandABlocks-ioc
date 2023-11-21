@@ -17,8 +17,8 @@ dependencies = [
     "click",
     "h5py",
     "softioc>=4.4.0",
-    "pandablocks>=0.5.3",
     "pvi>=0.6",
+    "pandablocks>=0.6",
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"

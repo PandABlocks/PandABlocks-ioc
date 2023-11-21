@@ -16,6 +16,7 @@ import pytest
 import pytest_asyncio
 from aioca import purge_channel_caches
 from mock import MagicMock, patch
+from pandablocks.asyncio import FlushMode
 from pandablocks.commands import (
     Arm,
     ChangeGroup,
@@ -223,8 +224,10 @@ class MockedAsyncioClient:
         scaled: bool = True,
         flush_period: Optional[float] = None,
         frame_timeout: Optional[float] = None,
+        flush_event: Optional[bool] = None,
+        flush_mode: FlushMode = FlushMode.IMMEDIATE,
     ):
-        flush_every_frame = flush_period is None
+        flush_every_frame = flush_mode == FlushMode.IMMEDIATE
         conn = DataConnection()
         conn.connect(scaled)
         try:
