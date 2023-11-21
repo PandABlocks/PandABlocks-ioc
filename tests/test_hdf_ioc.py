@@ -431,7 +431,7 @@ async def test_hdf5_file_writing(
     assert await capturing_queue.get() == 0
 
     await caput(hdf5_test_prefix + ":Capture", 1, wait=True, timeout=TIMEOUT)
-    assert await caget(hdf5_test_prefix + ":NumCaptured") <= num_capture
+    assert await caget(hdf5_test_prefix + ":NumWritten_RBV") <= num_capture
     assert await capturing_queue.get() == 1
 
     # The HDF5 data will be processed, and when it's done Capturing is set to 0
@@ -442,7 +442,7 @@ async def test_hdf5_file_writing(
     # Close capture, thus closing hdf5 file
     await caput(hdf5_test_prefix + ":Capture", 0, wait=True)
     assert await caget(hdf5_test_prefix + ":Capture") == 0
-    assert await caget(hdf5_test_prefix + ":NumCaptured") == num_capture
+    assert await caget(hdf5_test_prefix + ":NumWritten_RBV") == num_capture
     # Confirm file contains data we expect
     hdf_file = h5py.File(tmp_path / test_filename[:-1], "r")
     assert list(hdf_file) == [
