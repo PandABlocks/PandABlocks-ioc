@@ -5,6 +5,8 @@ It should not be ran during normal testing.
 ###############################################################################
 """
 
+from time import sleep
+
 import pytest
 from fixtures.mocked_panda import (
     BOBFILE_DIR,
@@ -44,4 +46,4 @@ def test_regenerate_test_bobfiles(mocked_panda_generate_new_bobfiles):
     has been removed. This means that to automatically regenerate test-bobfiles
     we need to run this in pytest.
     """
-    pass
+    sleep(1)
