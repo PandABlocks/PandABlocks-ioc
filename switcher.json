@@ -36,6 +36,10 @@
     "url": "https://PandABlocks.github.io/PandABlocks-ioc/0.1/"
   },
   {
+    "version": "add_manual_flush",
+    "url": "https://PandABlocks.github.io/PandABlocks-ioc/add_manual_flush/"
+  },
+  {
     "version": "alpha-dependencies",
     "url": "https://PandABlocks.github.io/PandABlocks-ioc/alpha-dependencies/"
   }
