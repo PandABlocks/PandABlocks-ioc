@@ -4,32 +4,32 @@
     "url": "https://PandABlocks.github.io/PandABlocks-ioc/main/"
   },
   {
-    "version": "0.1",
-    "url": "https://PandABlocks.github.io/PandABlocks-ioc/0.1/"
-  },
-  {
-    "version": "0.2",
-    "url": "https://PandABlocks.github.io/PandABlocks-ioc/0.2/"
-  },
-  {
-    "version": "0.2.1",
-    "url": "https://PandABlocks.github.io/PandABlocks-ioc/0.2.1/"
-  },
-  {
-    "version": "0.2.2b1",
-    "url": "https://PandABlocks.github.io/PandABlocks-ioc/0.2.2b1/"
-  },
-  {
-    "version": "0.2.2b2",
-    "url": "https://PandABlocks.github.io/PandABlocks-ioc/0.2.2b2/"
+    "version": "0.3",
+    "url": "https://PandABlocks.github.io/PandABlocks-ioc/0.3/"
   },
   {
     "version": "0.2b1",
     "url": "https://PandABlocks.github.io/PandABlocks-ioc/0.2b1/"
   },
   {
-    "version": "0.3",
-    "url": "https://PandABlocks.github.io/PandABlocks-ioc/0.3/"
+    "version": "0.2.2b2",
+    "url": "https://PandABlocks.github.io/PandABlocks-ioc/0.2.2b2/"
+  },
+  {
+    "version": "0.2.2b1",
+    "url": "https://PandABlocks.github.io/PandABlocks-ioc/0.2.2b1/"
+  },
+  {
+    "version": "0.2.1",
+    "url": "https://PandABlocks.github.io/PandABlocks-ioc/0.2.1/"
+  },
+  {
+    "version": "0.2",
+    "url": "https://PandABlocks.github.io/PandABlocks-ioc/0.2/"
+  },
+  {
+    "version": "0.1",
+    "url": "https://PandABlocks.github.io/PandABlocks-ioc/0.1/"
   },
   {
     "version": "0.3.1",
@@ -42,5 +42,9 @@
   {
     "version": "alpha-dependencies",
     "url": "https://PandABlocks.github.io/PandABlocks-ioc/alpha-dependencies/"
+  },
+  {
+    "version": "remove_flush_now_from_hdf5_file",
+    "url": "https://PandABlocks.github.io/PandABlocks-ioc/remove_flush_now_from_hdf5_file/"
   }
 ]
