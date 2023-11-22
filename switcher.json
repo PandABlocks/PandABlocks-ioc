@@ -42,5 +42,9 @@
   {
     "version": "alpha-dependencies",
     "url": "https://PandABlocks.github.io/PandABlocks-ioc/alpha-dependencies/"
+  },
+  {
+    "version": "remove_flush_now_from_hdf5_file",
+    "url": "https://PandABlocks.github.io/PandABlocks-ioc/remove_flush_now_from_hdf5_file/"
   }
 ]
