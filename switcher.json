@@ -4,6 +4,10 @@
     "url": "https://PandABlocks.github.io/PandABlocks-ioc/main/"
   },
   {
+    "version": "0.3.1",
+    "url": "https://PandABlocks.github.io/PandABlocks-ioc/0.3.1/"
+  },
+  {
     "version": "0.3",
     "url": "https://PandABlocks.github.io/PandABlocks-ioc/0.3/"
   },
@@ -32,19 +36,11 @@
     "url": "https://PandABlocks.github.io/PandABlocks-ioc/0.1/"
   },
   {
-    "version": "0.3.1",
-    "url": "https://PandABlocks.github.io/PandABlocks-ioc/0.3.1/"
-  },
-  {
     "version": "add_manual_flush",
     "url": "https://PandABlocks.github.io/PandABlocks-ioc/add_manual_flush/"
   },
   {
     "version": "alpha-dependencies",
     "url": "https://PandABlocks.github.io/PandABlocks-ioc/alpha-dependencies/"
-  },
-  {
-    "version": "remove_flush_now_from_hdf5_file",
-    "url": "https://PandABlocks.github.io/PandABlocks-ioc/remove_flush_now_from_hdf5_file/"
   }
 ]
