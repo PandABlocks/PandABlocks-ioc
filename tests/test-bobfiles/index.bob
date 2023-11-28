@@ -61,7 +61,7 @@
     <name>OpenDisplay</name>
     <actions>
       <action type="open_display">
-        <file>HDF5.bob</file>
+        <file>DATA.bob</file>
         <target>tab</target>
         <description>Open Display</description>
       </action>

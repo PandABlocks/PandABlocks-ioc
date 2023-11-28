@@ -39,6 +39,7 @@ class PviGroup(Enum):
     READBACKS = "Readbacks"
     OUTPUTS = "Outputs"
     CAPTURE = "Capture"
+    HDF = "HDF"
     TABLE = "Table"  # TODO: May not need this anymore
 
 
@@ -83,7 +84,10 @@ def add_pvi_info(
         if useComboBox:
             widget = ComboBox()
         else:
-            if record_creation_func in (builder.longStringOut, builder.stringOut):
+            if record_creation_func in (
+                builder.longStringOut,
+                builder.stringOut,
+            ):
                 widget = TextWrite(format=TextFormat.string)
             else:
                 widget = TextWrite(format=None)
@@ -91,6 +95,14 @@ def add_pvi_info(
         component = SignalRW(name=pvi_name, pv=record_name, widget=widget)
         access = "rw"
     else:
+        if record_creation_func in (
+            builder.longStringIn,
+            builder.stringIn,
+        ):
+            widget = TextRead(format=TextFormat.string)
+        else:
+            widget = TextRead(format=None)
+
         component = SignalR(name=pvi_name, pv=record_name, widget=TextRead())
         access = "r"
     block, field = record_name.split(":", maxsplit=1)
