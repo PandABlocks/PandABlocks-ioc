@@ -37,7 +37,7 @@ dev = [
     "pre-commit",
     "p4p",
     "pydata-sphinx-theme>=0.12",
-    "pytest-asyncio>=0.20",
+    "pytest-asyncio==0.21.1",    # https://github.com/PandABlocks/PandABlocks-ioc/issues/84
     "pytest-cov",
     "sphinx-autobuild",
     "sphinx-copybutton",
