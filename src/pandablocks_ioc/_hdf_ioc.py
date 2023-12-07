@@ -19,7 +19,7 @@ from pandablocks.responses import EndReason, ReadyData
 from softioc import alarm, builder
 from softioc.pythonSoftIoc import RecordWrapper
 
-from ._pvi import PviGroup, add_pvi_info
+from ._pvi import PviGroup, add_automatic_pvi_info, add_data_capture_pvi_info
 from ._types import ONAM_STR, ZNAM_STR, EpicsName
 
 HDFReceived = Union[ReadyData, StartData, FrameData, EndData]
@@ -55,7 +55,6 @@ class HDF5Buffer:
         filepath: str,
         number_of_rows_to_capture: int,
         status_message_setter: Callable,
-        capturing_record_setter: Callable,
         number_received_setter: Callable,
     ):
         # Only one filename - user must stop capture and set new FileName/FilePath
@@ -65,7 +64,6 @@ class HDF5Buffer:
         self.filepath = filepath
         self.number_of_rows_to_capture = number_of_rows_to_capture
         self.status_message_setter = status_message_setter
-        self.capturing_record_setter = capturing_record_setter
         self.number_received_setter = number_received_setter
 
         if (
@@ -242,13 +240,11 @@ class HDF5Buffer:
             self.finish_capturing = True
             self.status_message_setter("Finished capture")
 
-        self.capturing_record_setter(0)
         self.put_data_to_file(data)
 
     def handle_data(self, data: HDFReceived):
         match data:
             case ReadyData():
-                self.capturing_record_setter(1)
                 self.status_message_setter("Starting capture")
             case StartData():
                 self._handle_StartData(data)
@@ -278,7 +274,6 @@ class HDF5RecordController:
     _flush_period_record: RecordWrapper
     _capture_control_record: RecordWrapper  # Turn capture on/off
     _status_message_record: RecordWrapper  # Reports status and error messages
-    _currently_capturing_record: RecordWrapper  # If HDF5 file currently being written
 
     _handle_hdf5_data_task: Optional[asyncio.Task] = None
 
@@ -302,7 +297,7 @@ class HDF5RecordController:
             validate=self._parameter_validate,
             on_update=self._update_full_file_path,
         )
-        add_pvi_info(
+        add_automatic_pvi_info(
             PviGroup.HDF,
             self._directory_record,
             directory_record_name,
@@ -320,7 +315,7 @@ class HDF5RecordController:
             validate=self._parameter_validate,
             on_update=self._update_full_file_path,
         )
-        add_pvi_info(
+        add_automatic_pvi_info(
             PviGroup.HDF,
             self._file_name_record,
             file_name_record_name,
@@ -336,7 +331,7 @@ class HDF5RecordController:
             length=path_length + 1 + filename_length,
             DESC="Full HDF5 file name with directory",
         )
-        add_pvi_info(
+        add_automatic_pvi_info(
             PviGroup.HDF,
             self._full_file_path_record,
             full_file_path_record_name,
@@ -354,7 +349,7 @@ class HDF5RecordController:
             DRVL=0,
         )
 
-        add_pvi_info(
+        add_automatic_pvi_info(
             PviGroup.CAPTURE,
             self._num_capture_record,
             num_capture_record_name,
@@ -372,7 +367,7 @@ class HDF5RecordController:
             DESC="Number of frames written to HDF file.",
         )
 
-        add_pvi_info(
+        add_automatic_pvi_info(
             PviGroup.CAPTURE,
             self._num_received_record,
             num_received_record_name,
@@ -389,7 +384,7 @@ class HDF5RecordController:
             DESC="Frequency that data is flushed (seconds)",
             EGU="s",
         )
-        add_pvi_info(
+        add_automatic_pvi_info(
             PviGroup.CAPTURE,
             self._flush_period_record,
             flush_period_record_name,
@@ -408,11 +403,10 @@ class HDF5RecordController:
             validate=self._capture_validate,
             DESC="Start/stop HDF5 capture",
         )
-        add_pvi_info(
+        add_data_capture_pvi_info(
             PviGroup.CAPTURE,
-            self._capture_control_record,
             capture_control_record_name,
-            builder.boolOut,
+            self._capture_control_record,
         )
         self._capture_control_record.add_alias(
             record_prefix + ":" + capture_control_record_name.upper()
@@ -425,7 +419,7 @@ class HDF5RecordController:
             initial_value=0,
             DESC="Choose how to hdf writer flushes",
         )
-        add_pvi_info(
+        add_automatic_pvi_info(
             PviGroup.CAPTURE,
             self._capture_mode_record,
             capture_mode_record_name,
@@ -442,7 +436,7 @@ class HDF5RecordController:
             length=200,
             DESC="Reports current status of HDF5 capture",
         )
-        add_pvi_info(
+        add_automatic_pvi_info(
             PviGroup.OUTPUTS,
             self._status_message_record,
             status_message_record_name,
@@ -450,23 +444,6 @@ class HDF5RecordController:
         )
         self._status_message_record.add_alias(
             record_prefix + ":" + status_message_record_name.upper()
-        )
-
-        currently_capturing_record_name = EpicsName(self._DATA_PREFIX + ":Capturing")
-        self._currently_capturing_record = builder.boolIn(
-            currently_capturing_record_name,
-            ZNAM=ZNAM_STR,
-            ONAM=ONAM_STR,
-            DESC="If HDF5 file is currently being written",
-        )
-        add_pvi_info(
-            PviGroup.OUTPUTS,
-            self._currently_capturing_record,
-            currently_capturing_record_name,
-            builder.boolIn,
-        )
-        self._currently_capturing_record.add_alias(
-            record_prefix + ":" + currently_capturing_record_name.upper()
         )
 
     def _parameter_validate(self, record: RecordWrapper, new_val) -> bool:
@@ -493,12 +470,12 @@ class HDF5RecordController:
             # Set up the hdf buffer
             num_capture: int = self._num_capture_record.get()
             capture_mode: CaptureMode = CaptureMode(self._capture_mode_record.get())
+            filepath = self._get_filepath()
             buffer = HDF5Buffer(
                 capture_mode,
-                self._get_filepath(),
+                filepath,
                 num_capture,
                 self._status_message_record.set,
-                self._currently_capturing_record.set,
                 self._num_received_record.set,
             )
             buffer.start_pipeline()
@@ -542,7 +519,6 @@ class HDF5RecordController:
             buffer.stop_pipeline()
             self._num_received_record.set(buffer.number_of_received_rows)
             self._capture_control_record.set(0)
-            self._currently_capturing_record.set(0)
 
     def _get_filepath(self) -> str:
         """Create the file path for the HDF5 file from the relevant records"""

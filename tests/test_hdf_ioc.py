@@ -12,7 +12,7 @@ import h5py
 import numpy
 import pytest
 import pytest_asyncio
-from aioca import DBR_CHAR_STR, CANothing, caget, camonitor, caput
+from aioca import DBR_CHAR_STR, CANothing, caget, caput
 from fixtures.mocked_panda import (
     TIMEOUT,
     MockedAsyncioClient,
@@ -340,9 +340,6 @@ async def test_hdf5_ioc(hdf5_subprocess_ioc):
     val = await caget(hdf5_test_prefix + ":Status", datatype=DBR_CHAR_STR)
     assert val == "OK"
 
-    val = await caget(hdf5_test_prefix + ":Capturing")
-    assert val == 0
-
 
 async def test_hdf5_ioc_parameter_validate_works(
     hdf5_subprocess_ioc_no_logging_check, tmp_path
@@ -430,25 +427,8 @@ async def test_hdf5_file_writing_first_n(
     )
     assert await caget(hdf5_test_prefix + ":NumCapture") == num_capture
 
-    # The queue expects to see Capturing go 0 -> 1 -> 0 as Capture is enabled
-    # and subsequently finishes
-    capturing_queue: asyncio.Queue = asyncio.Queue()
-    m = camonitor(
-        hdf5_test_prefix + ":Capturing",
-        capturing_queue.put,
-    )
-
-    # Initially Capturing should be 0
-    assert await capturing_queue.get() == 0
-
     await caput(hdf5_test_prefix + ":Capture", 1, wait=True, timeout=TIMEOUT)
     assert await caget(hdf5_test_prefix + ":NumReceived") <= num_capture
-    assert await capturing_queue.get() == 1
-
-    # The HDF5 data will be processed, and when it's done Capturing is set to 0
-    assert await asyncio.wait_for(capturing_queue.get(), timeout=TIMEOUT) == 0
-
-    m.close()
 
     # Capture should have closed by itself
     assert await caget(hdf5_test_prefix + ":Capture") == 0
@@ -525,24 +505,7 @@ async def test_hdf5_file_writing_forever(hdf5_subprocess_ioc, tmp_path: Path, ca
     # Since we're in forever mode it shouldn't matter what num_capture is
     assert await caget(hdf5_test_prefix + ":NumCapture") == num_capture
 
-    # The queue expects to see Capturing go 0 -> 1 -> 0 as Capture is enabled
-    # and subsequently finishes
-    capturing_queue: asyncio.Queue = asyncio.Queue()
-    m = camonitor(
-        hdf5_test_prefix + ":Capturing",
-        capturing_queue.put,
-    )
-
-    # Initially Capturing should be 0
-    assert await capturing_queue.get() == 0
-
     await caput(hdf5_test_prefix + ":Capture", 1, wait=True, timeout=TIMEOUT)
-    assert await capturing_queue.get() == 1
-
-    # The HDF5 data will be processed, and when it's done Capturing is set to 0
-    assert await asyncio.wait_for(capturing_queue.get(), timeout=TIMEOUT) == 0
-
-    m.close()
 
     # The test panda writes 10000 rows before the capture is finished
     assert await caget(hdf5_test_prefix + ":NumReceived") == 10000
@@ -618,28 +581,11 @@ async def test_hdf5_file_writing_last_n(
     )
     assert await caget(hdf5_test_prefix + ":NumCapture") == num_capture
 
-    # The queue expects to see Capturing go 0 -> 1 -> 0 as Capture is enabled
-    # and subsequently finishes
-    capturing_queue: asyncio.Queue = asyncio.Queue()
-    m_capturing_queue = camonitor(
-        hdf5_test_prefix + ":Capturing",
-        capturing_queue.put,
-    )
-
-    # Initially Capturing should be 0
-    assert await capturing_queue.get() == 0
-
     # Initially Status should be "OK"
     val = await caget(hdf5_test_prefix + ":Status", datatype=DBR_CHAR_STR)
     assert val == "OK"
 
     await caput(hdf5_test_prefix + ":Capture", 1, wait=True, timeout=TIMEOUT)
-    assert await capturing_queue.get() == 1
-
-    # The HDF5 data will be processed, and when it's done Capturing is set to 0
-    assert await asyncio.wait_for(capturing_queue.get(), timeout=TIMEOUT) == 0
-
-    m_capturing_queue.close()
 
     await asyncio.sleep(1)
     # Capture should have closed by itself
@@ -777,7 +723,6 @@ def differently_sized_framedata():
 
 def test_hdf_buffer_last_n(differently_sized_framedata, tmp_path):
     filepath = str(tmp_path / "test_file.h5")
-    capturing_output = []
     status_output = []
     num_received_output = []
     buffer = HDF5Buffer(
@@ -785,7 +730,6 @@ def test_hdf_buffer_last_n(differently_sized_framedata, tmp_path):
         filepath,
         21,
         status_output.append,
-        capturing_output.append,
         num_received_output.append,
     )
     buffer.put_data_to_file = lambda x: ...

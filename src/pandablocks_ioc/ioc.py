@@ -41,7 +41,13 @@ from softioc.imports import db_put_field
 from softioc.pythonSoftIoc import RecordWrapper
 
 from ._hdf_ioc import HDF5RecordController
-from ._pvi import Pvi, PviGroup, add_positions_table_row, add_pvi_info
+from ._pvi import (
+    Pvi,
+    PviGroup,
+    add_automatic_pvi_info,
+    add_pcap_arm_pvi_info,
+    add_positions_table_row,
+)
 from ._tables import TableRecordWrapper, TableUpdater
 from ._types import (
     ONAM_STR,
@@ -652,7 +658,7 @@ class IocRecordFactory:
             record_name, *labels, *args, **extra_kwargs, **kwargs
         )
 
-        add_pvi_info(
+        add_automatic_pvi_info(
             group=group,
             record=record,
             record_name=record_name,
@@ -1727,9 +1733,7 @@ class IocRecordFactory:
                 DESC="Arm/Disarm the PandA",
             )
 
-            add_pvi_info(
-                PviGroup.INPUTS, pcap_arm_record, EpicsName("PCAP:ARM"), builder.Action
-            )
+            add_pcap_arm_pvi_info(PviGroup.INPUTS, pcap_arm_record)
 
             HDF5RecordController(self._client, self._record_prefix)
 
