@@ -11,6 +11,7 @@ from pandablocks.asyncio import AsyncioClient
 from pandablocks.hdf import (
     EndData,
     FrameData,
+    Pipeline,
     StartData,
     create_default_pipeline,
     stop_pipeline,
@@ -41,12 +42,23 @@ class CaptureMode(Enum):
     FOREVER = 2
 
 
+class NumCapturedSetter(Pipeline):
+    def __init__(self, number_captured_setter: Callable) -> None:
+        self.number_captured_setter = number_captured_setter
+        self.number_captured_setter(0)
+        super().__init__()
+
+        self.what_to_do = {int: self.set_record}
+
+    def set_record(self, value: int):
+        self.number_captured_setter(value)
+
+
 class HDF5Buffer:
     _buffer_index = None
     start_data = None
     number_of_received_rows = 0
     finish_capturing = False
-    circular_buffer: Deque[FrameData] = deque()
     number_of_rows_in_circular_buffer = 0
 
     def __init__(
@@ -56,23 +68,42 @@ class HDF5Buffer:
         number_of_rows_to_capture: int,
         status_message_setter: Callable,
         number_received_setter: Callable,
-        number_captured_setter: Callable,
+        number_captured_setter_pipeline: NumCapturedSetter,
     ):
         # Only one filename - user must stop capture and set new FileName/FilePath
         # for new files
 
+        self.circular_buffer: Deque[FrameData] = deque()
         self.capture_mode = capture_mode
+
+        match capture_mode:
+            case CaptureMode.FIRST_N:
+                self._handle_FrameData = self._capture_first_n
+            case CaptureMode.LAST_N:
+                self._handle_FrameData = self._capture_last_n
+            case CaptureMode.FOREVER:
+                self._handle_FrameData = self._capture_forever
+            case _:
+                raise RuntimeError("Invalid capture mode")
+
         self.filepath = filepath
         self.number_of_rows_to_capture = number_of_rows_to_capture
         self.status_message_setter = status_message_setter
         self.number_received_setter = number_received_setter
-        self.number_captured_setter = number_captured_setter
+        self.number_captured_setter_pipeline = number_captured_setter_pipeline
+        self.number_captured_setter_pipeline.number_captured_setter(0)
 
         if (
             self.capture_mode == CaptureMode.LAST_N
             and self.number_of_rows_to_capture <= 0
         ):
             raise RuntimeError("Number of rows to capture must be > 0 on LAST_N mode")
+
+        self.start_pipeline()
+
+    def __del__(self):
+        if self.pipeline[0].is_alive():
+            stop_pipeline(self.pipeline)
 
     def put_data_to_file(self, data: HDFReceived):
         try:
@@ -82,14 +113,8 @@ class HDF5Buffer:
 
     def start_pipeline(self):
         self.pipeline = create_default_pipeline(
-            iter([self.filepath]), number_captured_setter=self.number_captured_setter
+            iter([self.filepath]), self.number_captured_setter_pipeline
         )
-
-    def get_written_data_size(self):
-        return min([ds.size for ds in self.pipeline[1].datasets])
-
-    def stop_pipeline(self):
-        stop_pipeline(self.pipeline)
 
     def _handle_StartData(self, data: StartData):
         if self.start_data and data != self.start_data:
@@ -111,12 +136,19 @@ class HDF5Buffer:
 
             self.finish_capturing = True
 
-        if self.start_data is None:
-            # Only pass StartData to pipeline if we haven't previously
-            # - if we have there will already be an in-progress HDF file
-            # that we should just append data to
+        # Only pass StartData to pipeline if we haven't previously
+        else:
+            # In LAST_N mode, wait till the end of capture to write
+            # the StartData to file.
+            # In FOREVER mode write the StartData to file if it's the first received.
+            if (
+                self.capture_mode == CaptureMode.FIRST_N
+                or self.capture_mode == CaptureMode.FOREVER
+                and not self.start_data
+            ):
+                self.put_data_to_file(data)
+
             self.start_data = data
-            self.put_data_to_file(data)
 
     def _capture_first_n(self, data: FrameData):
         """
@@ -180,14 +212,15 @@ class HDF5Buffer:
             first_frame_data = self.circular_buffer.popleft()
             first_frame_data_length = len(first_frame_data.data)
 
-            if first_frame_data_length >= self.number_of_rows_to_capture:
+            if first_frame_data_length > self.number_of_rows_to_capture:
                 # More data than we want to capture, all in a single FrameData
                 # We can just slice with the NumCapture since this has to be the
                 # only FrameData in the buffer at this point
                 assert len(self.circular_buffer) == 0
-                first_frame_data.data = first_frame_data.data[
+                shrinked_data = first_frame_data.data[
                     -self.number_of_rows_to_capture :
                 ].copy()
+                first_frame_data.data = shrinked_data
                 self.circular_buffer.appendleft(first_frame_data)
                 self.number_of_rows_in_circular_buffer = self.number_of_rows_to_capture
             elif (
@@ -201,9 +234,8 @@ class HDF5Buffer:
                     self.number_of_rows_in_circular_buffer
                     - self.number_of_rows_to_capture
                 )
-                first_frame_data.data = first_frame_data.data[
-                    indices_to_discard:
-                ].copy()
+                shrinked_data = first_frame_data.data[indices_to_discard:].copy()
+                first_frame_data.data = shrinked_data
                 self.circular_buffer.appendleft(first_frame_data)
                 self.number_of_rows_in_circular_buffer -= indices_to_discard
                 assert (
@@ -217,40 +249,48 @@ class HDF5Buffer:
 
         self.number_received_setter(self.number_of_received_rows)
 
-    def _handle_FrameData(self, data: FrameData):
-        match self.capture_mode:
-            case CaptureMode.FIRST_N:
-                self._capture_first_n(data)
-            case CaptureMode.LAST_N:
-                self._capture_last_n(data)
-            case CaptureMode.FOREVER:
-                self._capture_forever(data)
-
     def _handle_EndData(self, data: EndData):
-        if self.capture_mode == CaptureMode.LAST_N:
-            # Put all the data to file
-            self.status_message_setter(
-                "Finishing capture, writing buffered frames to file"
-            )
-            # In LAST_N only write FrameData if the EndReason is OK
-            if data.reason == EndReason.OK:
+        match self.capture_mode:
+            case CaptureMode.LAST_N:
+                # In LAST_N only write FrameData if the EndReason is OK
+                if data.reason not in (EndReason.OK, EndReason.MANUALLY_STOPPED):
+                    self.status_message_setter(
+                        f"Stopped capturing with reason {data.reason}, "
+                        "skipping writing of buffered frames"
+                    )
+                    self.finish_capturing = True
+                    return
+
+                self.status_message_setter(
+                    "Finishing capture, writing buffered frames to file"
+                )
+                self.put_data_to_file(self.start_data)
                 for frame_data in self.circular_buffer:
                     self.put_data_to_file(frame_data)
 
-        if self.capture_mode == CaptureMode.FOREVER:
-            self.start_data = None
-            self.status_message_setter("Finished capture, waiting for next ReadyData")
-        else:
-            self.finish_capturing = True
-            self.status_message_setter("Finished capture")
+            case CaptureMode.FOREVER:
+                if data.reason != EndReason.MANUALLY_STOPPED:
+                    self.status_message_setter(
+                        "Finished capture, waiting for next ReadyData"
+                    )
+                    return
 
+            case CaptureMode.FIRST_N:
+                pass  # Frames will have already been written in FirstN
+
+            case _:
+                raise RuntimeError("Unknown capture mode")
+
+        self.status_message_setter("Finished capture")
+        self.finish_capturing = True
         self.put_data_to_file(data)
 
     def handle_data(self, data: HDFReceived):
         match data:
             case ReadyData():
-                self.status_message_setter("Starting capture")
+                pass
             case StartData():
+                self.status_message_setter("Starting capture")
                 self._handle_StartData(data)
             case FrameData():
                 self._handle_FrameData(data)
@@ -259,7 +299,7 @@ class HDF5Buffer:
             case _:
                 raise RuntimeError(
                     f"Data was recieved that was of type {type(data)}, not"
-                    "StartData, EndData, ReadyData or FrameData"
+                    "StartData, EndData, ReadyData, or FrameData"
                 )
 
 
@@ -493,16 +533,18 @@ class HDF5RecordController:
             num_capture: int = self._num_capture_record.get()
             capture_mode: CaptureMode = CaptureMode(self._capture_mode_record.get())
             filepath = self._get_filepath()
+
+            number_captured_setter_pipeline = NumCapturedSetter(
+                self._num_captured_record.set
+            )
             buffer = HDF5Buffer(
                 capture_mode,
                 filepath,
                 num_capture,
                 self._status_message_record.set,
                 self._num_received_record.set,
-                self._num_captured_record.set,
+                number_captured_setter_pipeline,
             )
-            buffer.start_pipeline()
-
             flush_period: float = self._flush_period_record.get()
             async for data in self._client.data(
                 scaled=False, flush_period=flush_period
@@ -518,9 +560,9 @@ class HDF5RecordController:
             self._status_message_record.set("Capturing disabled")
             # Only send EndData if we know the file was opened - could be cancelled
             # before PandA has actually send any data
-            if buffer.start_data:
+            if buffer.capture_mode != CaptureMode.LAST_N:
                 buffer.put_data_to_file(
-                    EndData(buffer.number_of_received_rows, EndReason.OK)
+                    EndData(buffer.number_of_received_rows, EndReason.MANUALLY_STOPPED)
                 )
 
         except Exception:
@@ -532,14 +574,13 @@ class HDF5RecordController:
             )
             # Only send EndData if we know the file was opened - exception could happen
             # before file was opened
-            if buffer.start_data:
+            if buffer.start_data and buffer.capture_mode != CaptureMode.LAST_N:
                 buffer.put_data_to_file(
                     EndData(buffer.number_of_received_rows, EndReason.UNKNOWN_EXCEPTION)
                 )
 
         finally:
             logging.debug("Finishing processing HDF5 PandA data")
-            buffer.stop_pipeline()
             self._num_received_record.set(buffer.number_of_received_rows)
             self._capture_control_record.set(0)
 
