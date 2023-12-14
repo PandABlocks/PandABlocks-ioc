@@ -725,12 +725,14 @@ def test_hdf_buffer_last_n(differently_sized_framedata, tmp_path):
     filepath = str(tmp_path / "test_file.h5")
     status_output = []
     num_received_output = []
+    num_captured_output = []
     buffer = HDF5Buffer(
         CaptureMode.LAST_N,
         filepath,
         21,
         status_output.append,
         num_received_output.append,
+        num_captured_output.append,
     )
     buffer.put_data_to_file = lambda x: ...
 

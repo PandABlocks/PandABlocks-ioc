@@ -56,6 +56,7 @@ class HDF5Buffer:
         number_of_rows_to_capture: int,
         status_message_setter: Callable,
         number_received_setter: Callable,
+        number_captured_setter: Callable,
     ):
         # Only one filename - user must stop capture and set new FileName/FilePath
         # for new files
@@ -65,6 +66,7 @@ class HDF5Buffer:
         self.number_of_rows_to_capture = number_of_rows_to_capture
         self.status_message_setter = status_message_setter
         self.number_received_setter = number_received_setter
+        self.number_captured_setter = number_captured_setter
 
         if (
             self.capture_mode == CaptureMode.LAST_N
@@ -79,7 +81,9 @@ class HDF5Buffer:
             logging.exception(f"Failed to save the data to HDF5 file: {ex}")
 
     def start_pipeline(self):
-        self.pipeline = create_default_pipeline(iter([self.filepath]))
+        self.pipeline = create_default_pipeline(
+            iter([self.filepath]), number_captured_setter=self.number_captured_setter
+        )
 
     def get_written_data_size(self):
         return min([ds.size for ds in self.pipeline[1].datasets])
@@ -271,6 +275,7 @@ class HDF5RecordController:
     _file_number_record: RecordWrapper
     _file_format_record: RecordWrapper
     _num_capture_record: RecordWrapper
+    _num_captured_record: RecordWrapper
     _flush_period_record: RecordWrapper
     _capture_control_record: RecordWrapper  # Turn capture on/off
     _status_message_record: RecordWrapper  # Reports status and error messages
@@ -360,11 +365,28 @@ class HDF5RecordController:
             record_prefix + ":" + num_capture_record_name.upper()
         )
 
+        num_captured_record_name = EpicsName(self._DATA_PREFIX + ":NumCaptured")
+        self._num_captured_record = builder.longIn(
+            num_captured_record_name,
+            initial_value=0,
+            DESC="Number of frames written to file.",
+        )
+
+        add_automatic_pvi_info(
+            PviGroup.CAPTURE,
+            self._num_captured_record,
+            num_captured_record_name,
+            builder.longIn,
+        )
+        self._num_captured_record.add_alias(
+            record_prefix + ":" + num_captured_record_name.upper()
+        )
+
         num_received_record_name = EpicsName(self._DATA_PREFIX + ":NumReceived")
         self._num_received_record = builder.longIn(
             num_received_record_name,
             initial_value=0,
-            DESC="Number of frames written to HDF file.",
+            DESC="Number of frames received from panda.",
         )
 
         add_automatic_pvi_info(
@@ -477,6 +499,7 @@ class HDF5RecordController:
                 num_capture,
                 self._status_message_record.set,
                 self._num_received_record.set,
+                self._num_captured_record.set,
             )
             buffer.start_pipeline()
 
