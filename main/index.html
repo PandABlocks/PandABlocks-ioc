@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>PandABlocks-ioc &#8212; PandABlocks-ioc 0.3.3.dev2+g01d4cd3 documentation</title>
+    <title>PandABlocks-ioc &#8212; PandABlocks-ioc 0.3.3.dev5+gf9efa39 documentation</title>
   
   
   
@@ -38,7 +38,7 @@
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd" />
   <script src="_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=5b4479735964841361fd"></script>
 
-    <script src="_static/documentation_options.js?v=1ab0b96e"></script>
+    <script src="_static/documentation_options.js?v=199551d6"></script>
     <script src="_static/doctools.js?v=888ff710"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -432,14 +432,7 @@ document.write(`
   <section id="pandablocks-ioc">
 <h1>PandABlocks-ioc<a class="headerlink" href="#pandablocks-ioc" title="Link to this heading">#</a></h1>
 <p><a class="reference external" href="https://github.com/PandABlocks/PandABlocks-ioc/actions/workflows/code.yml"><img alt="Code CI" src="https://github.com/PandABlocks/PandABlocks-ioc/actions/workflows/code.yml/badge.svg?branch=main" /></a> <a class="reference external" href="https://github.com/PandABlocks/PandABlocks-ioc/actions/workflows/docs.yml"><img alt="Docs CI" src="https://github.com/PandABlocks/PandABlocks-ioc/actions/workflows/docs.yml/badge.svg?branch=main" /></a> <a class="reference external" href="https://codecov.io/gh/PandABlocks/PandABlocks-ioc"><img alt="Test Coverage" src="https://codecov.io/gh/PandABlocks/PandABlocks-ioc/branch/main/graph/badge.svg" /></a> <a class="reference external" href="https://pypi.org/project/PandABlocks-ioc"><img alt="Latest PyPI version" src="https://img.shields.io/pypi/v/PandABlocks-ioc.svg" /></a> <a class="reference external" href="https://opensource.org/licenses/Apache-2.0"><img alt="Apache License" src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" /></a></p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This project contains template code only. For documentation on how to
-adopt this skeleton project see
-<a class="reference external" href="https://DiamondLightSource.github.io/python3-pip-skeleton-cli">https://DiamondLightSource.github.io/python3-pip-skeleton-cli</a></p>
-</div>
-<p>This is where you should write a short paragraph that describes what your module does,
-how it does it, and why people should use it.</p>
+<p>A softioc to control a <a class="reference external" href="https://github.com/PandABlocks/PandABlocks-FPGA">PandABlocks-FPGA</a>.</p>
 <table class="table">
 <tbody>
 <tr class="row-odd"><td><p>PyPI</p></td>
@@ -456,18 +449,25 @@ how it does it, and why people should use it.</p>
 </tr>
 </tbody>
 </table>
-<p>This is where you should put some images or code snippets that illustrate
-some relevant examples. If it is a library then you might put some
-introductory code here:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pandablocks_ioc</span> <span class="kn">import</span> <span class="n">__version__</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Hello pandablocks_ioc </span><span class="si">{</span><span class="n">__version__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<p>To run the ioc:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ python -m pandablocks-ioc softioc &lt;pandabox host&gt; &lt;pv prefix&gt; --screens-dir=&lt;directory to output bobfiles&gt; --clear-bobfiles
 </pre></div>
 </div>
-<p>Or if it is a commandline tool then you might put some example commands here:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python -m pandablocks_ioc --version
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>PVs will be available for all the values shown on the <a class="reference external" href="https://github.com/PandABlocks/PandABlocks-webcontrol">web client</a>:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ caget PANDA:CALC1:INPA
+PANDA:CALC1:INPA               ZERO
 </pre></div>
 </div>
+<a class="reference internal image-reference" href="https://raw.githubusercontent.com/PandABlocks/PandABlocks-ioc/main/docs/images/webui_calc1.png"><img alt="https://raw.githubusercontent.com/PandABlocks/PandABlocks-ioc/main/docs/images/webui_calc1.png" src="https://raw.githubusercontent.com/PandABlocks/PandABlocks-ioc/main/docs/images/webui_calc1.png" style="width: 300px;" /></a>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>On start-up the ioc will use <a class="reference external" href="https://github.com/epics-containers/pvi">PVI</a> to generate bobfiles for viewing the PVs in phoebus:</p>
+<a class="reference internal image-reference" href="https://raw.githubusercontent.com/PandABlocks/PandABlocks-ioc/main/docs/images/phoebus_calc1.png"><img alt="https://raw.githubusercontent.com/PandABlocks/PandABlocks-ioc/main/docs/images/phoebus_calc1.png" src="https://raw.githubusercontent.com/PandABlocks/PandABlocks-ioc/main/docs/images/phoebus_calc1.png" style="width: 34%;" /></a>
+<a class="reference internal image-reference" href="https://raw.githubusercontent.com/PandABlocks/PandABlocks-ioc/main/docs/images/screen_index.png"><img alt="https://raw.githubusercontent.com/PandABlocks/PandABlocks-ioc/main/docs/images/screen_index.png" src="https://raw.githubusercontent.com/PandABlocks/PandABlocks-ioc/main/docs/images/screen_index.png" style="width: 64%;" /></a>
 <section id="how-the-documentation-is-structured">
 <h2>How the documentation is structured<a class="headerlink" href="#how-the-documentation-is-structured" title="Link to this heading">#</a></h2>
 <p>The documentation is split into 2 sections:</p>
