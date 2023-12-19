@@ -12,9 +12,33 @@ Documentation  https://PandABlocks.github.io/PandABlocks-ioc
 Releases       https://github.com/PandABlocks/PandABlocks-ioc/releases
 ============== ==============================================================
 
-To run the ioc::
+To run the ioc:
+
+.. code-block:: text
 
     $ python -m pandablocks-ioc softioc <pandabox host> <pv prefix> --screens-dir=<directory to output bobfiles> --clear-bobfiles
+
+|
+
+PVs will be available for all the values shown on the `web client <https://github.com/PandABlocks/PandABlocks-webcontrol>`_:
+
+.. code-block:: text
+
+    $ caget PANDA:CALC1:INPA
+    PANDA:CALC1:INPA               ZERO
+
+..  image:: https://raw.githubusercontent.com/PandABlocks/PandABlocks-ioc/main/docs/images/webui_calc1.png
+   :width: 300
+
+|
+
+On start-up the ioc will use `PVI <https://github.com/epics-containers/pvi>`_ to generate bobfiles for viewing the PVs in phoebus:
+
+..  image:: https://raw.githubusercontent.com/PandABlocks/PandABlocks-ioc/main/docs/images/phoebus_calc1.png
+   :width: 34%
+..  image:: https://raw.githubusercontent.com/PandABlocks/PandABlocks-ioc/main/docs/images/screen_index.png
+   :width: 64%
+
 
 .. |code_ci| image:: https://github.com/PandABlocks/PandABlocks-ioc/actions/workflows/code.yml/badge.svg?branch=main
     :target: https://github.com/PandABlocks/PandABlocks-ioc/actions/workflows/code.yml
