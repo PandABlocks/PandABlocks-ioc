@@ -25,6 +25,7 @@ from ._types import (
     RecordInfo,
     RecordValue,
     epics_to_panda_name,
+    epics_to_pvi_name,
     trim_description,
 )
 
@@ -56,7 +57,7 @@ class TableFieldRecordContainer:
 
 
 def make_bit_order(
-    table_field_records: Dict[str, TableFieldRecordContainer]
+    table_field_records: Dict[str, TableFieldRecordContainer],
 ) -> Dict[str, TableFieldRecordContainer]:
     return dict(
         sorted(table_field_records.items(), key=lambda item: item[1].field.bit_low)
@@ -144,12 +145,14 @@ class TableUpdater:
         )
         self.all_values_dict = all_values_dict
 
+        pvi_table_name = epics_to_pvi_name(table_name)
+
         # The PVI group to put all records into
         pvi_group = PviGroup.PARAMETERS
         Pvi.add_pvi_info(
             table_name,
             pvi_group,
-            SignalRW(table_name, table_name, TableWrite([])),
+            SignalRW(name=pvi_table_name, pv=table_name, widget=TableWrite(widgets=[])),
         )
 
         # Note that the table_updater's table_fields are guaranteed sorted in bit order,
@@ -216,10 +219,11 @@ class TableUpdater:
             initial_value=TableModeEnum.VIEW.value,
             on_update=self.update_mode,
         )
+        pvi_name = epics_to_pvi_name(mode_record_name)
         Pvi.add_pvi_info(
             mode_record_name,
             pvi_group,
-            SignalRW(mode_record_name, mode_record_name, ComboBox()),
+            SignalRW(name=pvi_name, pv=mode_record_name, widget=ComboBox()),
         )
 
         self.mode_record_info = RecordInfo(lambda x: x, labels, False)

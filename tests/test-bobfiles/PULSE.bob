@@ -34,7 +34,7 @@
     <transparent>true</transparent>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>PULSE: DELAY</text>
+      <text>Delay</text>
       <x>0</x>
       <y>0</y>
       <width>250</width>
@@ -51,7 +51,7 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>PULSE: DELAY: UNITS</text>
+      <text>Units</text>
       <x>0</x>
       <y>25</y>
       <width>250</width>

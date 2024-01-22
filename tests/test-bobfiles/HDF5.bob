@@ -34,7 +34,7 @@
     <transparent>true</transparent>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>HDF5: File Path</text>
+      <text>Filepath</text>
       <x>0</x>
       <y>0</y>
       <width>250</width>
@@ -52,7 +52,7 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>HDF5: File Name</text>
+      <text>Filename</text>
       <x>0</x>
       <y>25</y>
       <width>250</width>
@@ -70,7 +70,7 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>HDF5: Num Capture</text>
+      <text>Numcapture</text>
       <x>0</x>
       <y>50</y>
       <width>250</width>
@@ -87,7 +87,7 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>HDF5: Flush Period</text>
+      <text>Flushperiod</text>
       <x>0</x>
       <y>75</y>
       <width>250</width>
@@ -104,7 +104,7 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>HDF5: Capture</text>
+      <text>Capture</text>
       <x>0</x>
       <y>100</y>
       <width>250</width>
@@ -129,7 +129,7 @@
     <transparent>true</transparent>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>HDF5: Status</text>
+      <text>Status</text>
       <x>0</x>
       <y>0</y>
       <width>250</width>
@@ -150,7 +150,7 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>HDF5: Capturing</text>
+      <text>Capturing</text>
       <x>0</x>
       <y>25</y>
       <width>250</width>
