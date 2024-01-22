@@ -27,7 +27,7 @@
   </widget>
   <widget type="label" version="2.0.0">
     <name>Label</name>
-    <text>PCAP: PVI</text>
+    <text>PCAP</text>
     <x>23</x>
     <y>30</y>
     <width>250</width>
@@ -42,7 +42,7 @@
         <description>Open Display</description>
       </action>
     </actions>
-    <text>PCAP: PVI</text>
+    <text>PCAP</text>
     <x>278</x>
     <y>30</y>
     <width>125</width>
@@ -51,7 +51,7 @@
   </widget>
   <widget type="label" version="2.0.0">
     <name>Label</name>
-    <text>HDF5: PVI</text>
+    <text>HDF5</text>
     <x>23</x>
     <y>55</y>
     <width>250</width>
@@ -66,7 +66,7 @@
         <description>Open Display</description>
       </action>
     </actions>
-    <text>HDF5: PVI</text>
+    <text>HDF5</text>
     <x>278</x>
     <y>55</y>
     <width>125</width>
@@ -75,7 +75,7 @@
   </widget>
   <widget type="label" version="2.0.0">
     <name>Label</name>
-    <text>SEQ: PVI</text>
+    <text>SEQ</text>
     <x>23</x>
     <y>80</y>
     <width>250</width>
@@ -90,7 +90,7 @@
         <description>Open Display</description>
       </action>
     </actions>
-    <text>SEQ: PVI</text>
+    <text>SEQ</text>
     <x>278</x>
     <y>80</y>
     <width>125</width>
@@ -99,7 +99,7 @@
   </widget>
   <widget type="label" version="2.0.0">
     <name>Label</name>
-    <text>PULSE: PVI</text>
+    <text>PULSE</text>
     <x>23</x>
     <y>105</y>
     <width>250</width>
@@ -114,7 +114,7 @@
         <description>Open Display</description>
       </action>
     </actions>
-    <text>PULSE: PVI</text>
+    <text>PULSE</text>
     <x>278</x>
     <y>105</y>
     <width>125</width>

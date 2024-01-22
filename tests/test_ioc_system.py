@@ -385,10 +385,11 @@ async def test_create_bobfiles_deletes_existing_files_with_clear_bobfiles(
     non_bobfile.touch()
 
     Pvi.configure_pvi(tmp_path, True)
+    pv = new_random_test_prefix + ":PCAP:TRIG_EDGE"
     Pvi.add_pvi_info(
-        new_random_test_prefix + ":PCAP:TRIG_EDGE",
+        pv,
         PviGroup.PARAMETERS,
-        SignalX("TRIG_EDGE", "Falling"),
+        SignalX(name="TrigEdge", pv=pv, value="Falling"),
     )
     Pvi.create_pvi_records(new_random_test_prefix)
 

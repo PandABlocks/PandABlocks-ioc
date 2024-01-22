@@ -27,7 +27,7 @@ from pvi.device import (
 from softioc import builder
 from softioc.pythonSoftIoc import RecordWrapper
 
-from ._types import OUT_RECORD_FUNCTIONS, EpicsName
+from ._types import OUT_RECORD_FUNCTIONS, EpicsName, epics_to_pvi_name
 
 
 class PviGroup(Enum):
@@ -64,18 +64,20 @@ def add_pvi_info(
     writeable: bool = record_creation_func in OUT_RECORD_FUNCTIONS
     useComboBox: bool = record_creation_func == builder.mbbOut
 
+    pvi_name = epics_to_pvi_name(record_name)
+
     if record_creation_func == builder.Action:
         if record_name == "PCAP:ARM":
             component = SignalRW(
-                record_name,
-                record_name,
-                widget=ButtonPanel(actions=dict(Arm=1, Disarm=0)),
+                name=pvi_name,
+                pv=record_name,
+                widget=ButtonPanel(actions=dict(Arm="1", Disarm="0")),
                 read_widget=LED(),
             )
             access = "rw"
 
         else:
-            component = SignalX(record_name, record_name, value="")
+            component = SignalX(name=pvi_name, pv=record_name, value="")
             access = "x"
     elif writeable:
         if useComboBox:
@@ -86,10 +88,10 @@ def add_pvi_info(
             else:
                 widget = TextWrite(format=None)
 
-        component = SignalRW(record_name, record_name, widget)
+        component = SignalRW(name=pvi_name, pv=record_name, widget=widget)
         access = "rw"
     else:
-        component = SignalR(record_name, record_name, TextRead())
+        component = SignalR(name=pvi_name, pv=record_name, widget=TextRead())
         access = "r"
     block, field = record_name.split(":", maxsplit=1)
     block_name_suffixed = f"pvi.{field.lower().replace(':', '_')}.{access}"
@@ -108,29 +110,56 @@ def add_pvi_info(
     Pvi.add_pvi_info(record_name=record_name, group=group, component=component)
 
 
-_positions_table_group = Group("POSITIONS_TABLE", Grid(labelled=True), children=[])
+_positions_table_group = Group(
+    name="PositionsTable", layout=Grid(labelled=True), children=[]
+)
 _positions_table_headers = ["VALUE", "UNITS", "SCALE", "OFFSET", "CAPTURE"]
 
 
 # TODO: Replicate this for the BITS table
 def add_positions_table_row(
-    record_name: str,
-    value_record_name: str,
-    units_record_name: str,
-    scale_record_name: str,
-    offset_record_name: str,
-    capture_record_name: str,
+    record_name: EpicsName,
+    value_record_name: EpicsName,
+    units_record_name: EpicsName,
+    scale_record_name: EpicsName,
+    offset_record_name: EpicsName,
+    capture_record_name: EpicsName,
 ) -> None:
     """Add a Row to the Positions table"""
     # TODO: Use the Components defined in _positions_columns_defs to
     # create the children, which will make it more obvious which
     # component is for which column
     children = [
-        SignalR(value_record_name, value_record_name, TextWrite()),
-        SignalRW(units_record_name, units_record_name, TextWrite()),
-        SignalRW(scale_record_name, scale_record_name, TextWrite()),
-        SignalRW(offset_record_name, offset_record_name, TextWrite()),
-        SignalRW(capture_record_name, capture_record_name, TextWrite()),
+        SignalR(
+            name=epics_to_pvi_name(value_record_name),
+            label=value_record_name,
+            pv=value_record_name,
+            widget=TextRead(),
+        ),
+        SignalRW(
+            name=epics_to_pvi_name(units_record_name),
+            label=units_record_name,
+            pv=units_record_name,
+            widget=TextWrite(),
+        ),
+        SignalRW(
+            name=epics_to_pvi_name(scale_record_name),
+            label=scale_record_name,
+            pv=scale_record_name,
+            widget=TextWrite(),
+        ),
+        SignalRW(
+            name=epics_to_pvi_name(offset_record_name),
+            label=offset_record_name,
+            pv=offset_record_name,
+            widget=TextWrite(),
+        ),
+        SignalRW(
+            name=epics_to_pvi_name(capture_record_name),
+            label=capture_record_name,
+            pv=capture_record_name,
+            widget=TextWrite(),
+        ),
     ]
 
     row = Row()
@@ -138,9 +167,10 @@ def add_positions_table_row(
         row.header = _positions_table_headers
 
     row_group = Group(
-        record_name,
-        row,
-        children,
+        name=epics_to_pvi_name(record_name),
+        label=record_name,
+        layout=row,
+        children=children,
     )
 
     _positions_table_group.children.append(row_group)
@@ -156,9 +186,9 @@ class Pvi:
     # to the positions table
     _general_device_refs = {
         "CAPTURE": DeviceRef(
-            "AllPostionCaptureParameters",
-            "CAPTURE",
-            "PandA_POSITIONS_TABLE",
+            name="AllPostionCaptureParameters",
+            pv="CAPTURE",
+            ui="PandA_PositionsTable",
         )
     }
 
@@ -205,9 +235,11 @@ class Pvi:
             if PviGroup.NONE in v:
                 children.extend(v.pop(PviGroup.NONE))
             for group, components in v.items():
-                children.append(Group(group.name, Grid(), components))
+                children.append(
+                    Group(name=group.name, layout=Grid(), children=components)
+                )
 
-            device = Device(block_name, children=children)
+            device = Device(label=block_name, children=children)
             devices.append(device)
 
             # Add PVI structure. Unfortunately we need something in the database
@@ -238,16 +270,25 @@ class Pvi:
         # TODO: Properly add this to list of screens, add a PV, maybe roll into
         # the "PLACEHOLDER" Device?
         # Add Tables to a new top level screen
-        top_device = Device("PandA", children=[_positions_table_group])
+        top_device = Device(label="PandA", children=[_positions_table_group])
         devices.append(top_device)
 
         # Create top level Device, with references to all child Devices
-        index_device_refs = [
-            DeviceRef(x, x, x.replace(":PVI", "")) for x in pvi_records
-        ]
+        index_device_refs = []
+        for pvi_record in pvi_records:
+            record_with_no_suffix = EpicsName(pvi_record.replace(":PVI", ""))
+            name = epics_to_pvi_name(record_with_no_suffix)
+            index_device_refs.append(
+                DeviceRef(
+                    name=name,
+                    label=record_with_no_suffix,
+                    pv=pvi_record,
+                    ui=record_with_no_suffix,
+                )
+            )
 
         # # TODO: What should the label be?
-        device = Device("index", children=index_device_refs)
+        device = Device(label="index", children=index_device_refs)
         devices.append(device)
 
         # TODO: label widths need some tweaking - some are pretty long right now

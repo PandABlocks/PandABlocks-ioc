@@ -34,7 +34,7 @@
     <transparent>true</transparent>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>PCAP: LABEL</text>
+      <text>Label</text>
       <x>0</x>
       <y>0</y>
       <width>250</width>
@@ -52,7 +52,7 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>PCAP: ARM</text>
+      <text>Arm</text>
       <x>0</x>
       <y>25</y>
       <width>250</width>
@@ -94,7 +94,7 @@
     </widget>
     <widget type="led" version="2.0.0">
       <name>LED</name>
-      <pv_name>TEST_PREFIX:</pv_name>
+      <pv_name>TEST_PREFIX:PCAP:ARM</pv_name>
       <x>350</x>
       <y>25</y>
       <width>20</width>
@@ -102,7 +102,7 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>PCAP: GATE</text>
+      <text>Gate</text>
       <x>0</x>
       <y>50</y>
       <width>250</width>
@@ -120,7 +120,7 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>PCAP: GATE: DELAY</text>
+      <text>Delay</text>
       <x>0</x>
       <y>75</y>
       <width>250</width>
@@ -145,7 +145,7 @@
     <transparent>true</transparent>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>PCAP: TRIG_ EDGE</text>
+      <text>Trig Edge</text>
       <x>0</x>
       <y>0</y>
       <width>250</width>

@@ -42,7 +42,7 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>SEQ: TABLE: MODE</text>
+      <text>Mode</text>
       <x>0</x>
       <y>205</y>
       <width>250</width>

@@ -1,5 +1,6 @@
 # Various new or derived types/classes and helper functions for the IOC module
 import logging
+import re
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, List, NewType, Optional, Union
 
@@ -20,6 +21,8 @@ RecordValue = Union[ScalarRecordValue, TableRecordValue]
 EpicsName = NewType("EpicsName", str)
 # PandA format, i.e. "." dividers
 PandAName = NewType("PandAName", str)
+# No dividers and PascalCase
+PviName = NewType("PviName", str)
 
 
 def panda_to_epics_name(field_name: PandAName) -> EpicsName:
@@ -32,6 +35,20 @@ def epics_to_panda_name(field_name: EpicsName) -> PandAName:
     """Convert EPICS naming convention to PandA convention. This module defaults to
     EPICS names internally, only converting back to PandA names when necessary."""
     return PandAName(field_name.replace(":", "."))
+
+
+def epics_to_pvi_name(field_name: EpicsName) -> PviName:
+    """Converts EPICS naming convention to PVI naming convention.
+    For example PANDA:PCAP:TRIG_EDGE -> TrigEdge."""
+    relevant_section = field_name.split(":")[-1]
+    words = relevant_section.replace("-", "_").split("_")
+    capitalised_word = "".join(word.capitalize() for word in words)
+
+    # We don't want to allow any non-alphanumeric characters.
+    formatted_word = re.search(r"[A-Za-z0-9]+", capitalised_word)
+    assert formatted_word
+
+    return PviName(formatted_word.group())
 
 
 def device_and_record_to_panda_name(field_name: EpicsName) -> PandAName:
