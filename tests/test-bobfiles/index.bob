@@ -51,7 +51,7 @@
   </widget>
   <widget type="label" version="2.0.0">
     <name>Label</name>
-    <text>HDF5</text>
+    <text>DATA</text>
     <x>23</x>
     <y>55</y>
     <width>250</width>
@@ -66,7 +66,7 @@
         <description>Open Display</description>
       </action>
     </actions>
-    <text>HDF5</text>
+    <text>DATA</text>
     <x>278</x>
     <y>55</y>
     <width>125</width>

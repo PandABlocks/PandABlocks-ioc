@@ -34,7 +34,7 @@
     <transparent>true</transparent>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>Filepath</text>
+      <text>Hdfdirectory</text>
       <x>0</x>
       <y>0</y>
       <width>250</width>
@@ -52,7 +52,7 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>Filename</text>
+      <text>Hdffilename</text>
       <x>0</x>
       <y>25</y>
       <width>250</width>
@@ -70,68 +70,9 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>Numcapture</text>
+      <text>Hdffullfilepath</text>
       <x>0</x>
       <y>50</y>
-      <width>250</width>
-      <height>20</height>
-    </widget>
-    <widget type="textentry" version="3.0.0">
-      <name>TextEntry</name>
-      <pv_name>TEST_PREFIX:HDF5:NumCapture</pv_name>
-      <x>255</x>
-      <y>50</y>
-      <width>125</width>
-      <height>20</height>
-      <horizontal_alignment>1</horizontal_alignment>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <name>Label</name>
-      <text>Flushperiod</text>
-      <x>0</x>
-      <y>75</y>
-      <width>250</width>
-      <height>20</height>
-    </widget>
-    <widget type="textentry" version="3.0.0">
-      <name>TextEntry</name>
-      <pv_name>TEST_PREFIX:HDF5:FlushPeriod</pv_name>
-      <x>255</x>
-      <y>75</y>
-      <width>125</width>
-      <height>20</height>
-      <horizontal_alignment>1</horizontal_alignment>
-    </widget>
-    <widget type="label" version="2.0.0">
-      <name>Label</name>
-      <text>Capture</text>
-      <x>0</x>
-      <y>100</y>
-      <width>250</width>
-      <height>20</height>
-    </widget>
-    <widget type="textentry" version="3.0.0">
-      <name>TextEntry</name>
-      <pv_name>TEST_PREFIX:HDF5:Capture</pv_name>
-      <x>255</x>
-      <y>100</y>
-      <width>125</width>
-      <height>20</height>
-      <horizontal_alignment>1</horizontal_alignment>
-    </widget>
-  </widget>
-  <widget type="group" version="2.0.0">
-    <name>OUTPUTS</name>
-    <x>5</x>
-    <y>191</y>
-    <width>416</width>
-    <height>81</height>
-    <transparent>true</transparent>
-    <widget type="label" version="2.0.0">
-      <name>Label</name>
-      <text>Status</text>
-      <x>0</x>
-      <y>0</y>
       <width>250</width>
       <height>20</height>
     </widget>
@@ -147,7 +88,6 @@
       </font>
       </font>
       <horizontal_alignment>1</horizontal_alignment>
-      <format>6</format>
     </widget>
   </widget>
   <widget type="group" version="2.0.0">
@@ -159,7 +99,7 @@
     <transparent>true</transparent>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>DATA: Num Capture</text>
+      <text>Numcapture</text>
       <x>0</x>
       <y>0</y>
       <width>250</width>
@@ -176,7 +116,7 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>DATA: Num Captured</text>
+      <text>Numcaptured</text>
       <x>0</x>
       <y>25</y>
       <width>250</width>
@@ -197,7 +137,7 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>DATA: Num Received</text>
+      <text>Numreceived</text>
       <x>0</x>
       <y>50</y>
       <width>250</width>
@@ -218,7 +158,7 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>DATA: Flush Period</text>
+      <text>Flushperiod</text>
       <x>0</x>
       <y>75</y>
       <width>250</width>
@@ -235,7 +175,7 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>DATA: Capture</text>
+      <text>Capture</text>
       <x>0</x>
       <y>100</y>
       <width>250</width>
@@ -277,7 +217,7 @@
     </widget>
     <widget type="led" version="2.0.0">
       <name>LED</name>
-      <pv_name>TEST_PREFIX:</pv_name>
+      <pv_name>TEST_PREFIX:DATA:Capture</pv_name>
       <x>350</x>
       <y>100</y>
       <width>20</width>
@@ -285,7 +225,7 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>DATA: Capture Mode</text>
+      <text>Capturemode</text>
       <x>0</x>
       <y>125</y>
       <width>250</width>
@@ -311,7 +251,7 @@
       <name>OpenDisplay</name>
       <actions>
         <action type="open_display">
-          <file>PandA_POSITIONS_TABLE.bob</file>
+          <file>PandA_PositionsTable.bob</file>
           <target>tab</target>
           <description>Open Display</description>
         </action>
@@ -333,7 +273,7 @@
     <transparent>true</transparent>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>DATA: Status</text>
+      <text>Status</text>
       <x>0</x>
       <y>0</y>
       <width>250</width>
@@ -351,7 +291,6 @@
       </font>
       </font>
       <horizontal_alignment>1</horizontal_alignment>
-      <format>6</format>
     </widget>
   </widget>
 </display>

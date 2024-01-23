@@ -81,9 +81,9 @@ def add_data_capture_pvi_info(
     data_capture_pvi_record: RecordWrapper,
 ):
     component = SignalRW(
-        data_capture_record_name,
-        data_capture_record_name,
-        widget=ButtonPanel(actions=dict(Start=1, Stop=0)),
+        name=epics_to_pvi_name(data_capture_record_name),
+        pv=data_capture_record_name,
+        widget=ButtonPanel(actions=dict(Start="1", Stop="0")),
         read_widget=LED(),
     )
     add_pvi_info_to_record(data_capture_pvi_record, data_capture_record_name, "rw")
@@ -95,9 +95,9 @@ def add_data_capture_pvi_info(
 def add_pcap_arm_pvi_info(group: PviGroup, pcap_arm_pvi_record: RecordWrapper):
     pcap_arm_record_name = EpicsName("PCAP:ARM")
     component = SignalRW(
-        pcap_arm_record_name,
-        pcap_arm_record_name,
-        widget=ButtonPanel(actions=dict(Arm=1, Disarm=0)),
+        name=epics_to_pvi_name(pcap_arm_record_name),
+        pv=pcap_arm_record_name,
+        widget=ButtonPanel(actions=dict(Arm="1", Disarm="0")),
         read_widget=LED(),
     )
     add_pvi_info_to_record(pcap_arm_pvi_record, pcap_arm_record_name, "rw")
