@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>About the documentation &#8212; PandABlocks-ioc 0.3.4.dev13+g03f55bf documentation</title>
+    <title>Capture data &#8212; PandABlocks-ioc 0.3.4.dev13+g03f55bf documentation</title>
   
   
   
@@ -44,7 +44,7 @@
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=30646c52"></script>
     <script src="../../_static/design-tabs.js?v=36754332"></script>
-    <script>DOCUMENTATION_OPTIONS.pagename = 'user/explanations/docs-structure';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'user/how-to/capture-hdf';</script>
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.15.2';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://PandABlocks.github.io/PandABlocks-ioc/switcher.json';
@@ -54,8 +54,8 @@
     <link rel="icon" href="../../_static/dls-favicon.ico"/>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="API" href="../reference/api.html" />
-    <link rel="prev" title="Capture data" href="../how-to/capture-hdf.html" />
+    <link rel="next" title="About the documentation" href="../explanations/docs-structure.html" />
+    <link rel="prev" title="Run in a container" href="run-container.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   </head>
@@ -411,13 +411,13 @@ document.write(`
 <li class="toctree-l1"><a class="reference internal" href="../tutorials/installation.html">Installation</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">How-to Guides</span></p>
-<ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="../how-to/run-container.html">Run in a container</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../how-to/capture-hdf.html">Capture data</a></li>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="run-container.html">Run in a container</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Capture data</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Explanations</span></p>
-<ul class="current nav bd-sidenav">
-<li class="toctree-l1 current active"><a class="current reference internal" href="#">About the documentation</a></li>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../explanations/docs-structure.html">About the documentation</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Reference</span></p>
 <ul class="nav bd-sidenav">
@@ -463,7 +463,7 @@ document.write(`
     
     <li class="breadcrumb-item"><a href="../index.html" class="nav-link">User Guide</a></li>
     
-    <li class="breadcrumb-item active" aria-current="page">About the...</li>
+    <li class="breadcrumb-item active" aria-current="page">Capture data</li>
   </ul>
 </nav>
 </div>
@@ -480,20 +480,33 @@ document.write(`
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="about-the-documentation">
-<h1>About the documentation<a class="headerlink" href="#about-the-documentation" title="Link to this heading">#</a></h1>
-<blockquote>
-<div><p><svg version="4.0.0.63c5cb3" width="2.0em" height="2.0em" class="sd-material-icon sd-material-icon-format_quote" viewBox="0 0 24 24" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"></path><path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z"></path></svg></p>
-<p>The Grand Unified Theory of Documentation</p>
-<p class="attribution">—David Laing</p>
-</div></blockquote>
-<p>There is a secret that needs to be understood in order to write good software
-documentation: there isn’t one thing called <em>documentation</em>, there are four.</p>
-<p>They are: <em>tutorials</em>, <em>how-to guides</em>, <em>technical reference</em> and <em>explanation</em>.
-They represent four different purposes or functions, and require four different
-approaches to their creation. Understanding the implications of this will help
-improve most documentation - often immensely.</p>
-<p><a class="reference external" href="https://documentation.divio.com">More information on this topic.</a></p>
+  <section id="capture-data">
+<h1>Capture data<a class="headerlink" href="#capture-data" title="Link to this heading">#</a></h1>
+<p>The <code class="docutils literal notranslate"><span class="pre">:DATA</span></code> PVs are used to capture data from the panda.
+These can be viewed from the DATA screen.</p>
+<img alt="The data screen" class="align-center" src="../../_images/data_bobfile.png" />
+<ul class="simple">
+<li><p>The file directory and name are chosen with <code class="docutils literal notranslate"><span class="pre">:DATA:HDFDirectory</span></code> and <code class="docutils literal notranslate"><span class="pre">:DATA:HDFFileName</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">:DATA:NumCapture</span></code> is the number of frames to capture in the file.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">:DATA:NumCaptured</span></code> is the number of frames written to file.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">:DATA:NumReceived</span></code> is the number of frames received from the panda.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">:DATA:FlushPeriod</span></code> is the frequency that the data is flushed into frames in the client.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">:DATA:Capture</span></code> will begin capturing data.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">:DATA:CaptureMode</span></code> is one of the three capture modes listed below.</p></li>
+</ul>
+<section id="first-n-mode">
+<h2>First N mode<a class="headerlink" href="#first-n-mode" title="Link to this heading">#</a></h2>
+<p>Begin capturing data and writing it to file as soon as it is received. Stop capturing once <code class="docutils literal notranslate"><span class="pre">NumCapture</span></code>
+frames have been written or the panda has been disarmed.</p>
+</section>
+<section id="last-n-mode">
+<h2>Last N mode<a class="headerlink" href="#last-n-mode" title="Link to this heading">#</a></h2>
+<p>Begin capturing data in a buffer, once capturing has finished write the last <code class="docutils literal notranslate"><span class="pre">NumCapture</span></code> frames to disk.</p>
+</section>
+<section id="forever-mode">
+<h2>Forever mode<a class="headerlink" href="#forever-mode" title="Link to this heading">#</a></h2>
+<p>Keep capturing and writing frames. Once the panda has been disarmed wait for it to be armed again and continue writing.</p>
+</section>
 </section>
 
 
@@ -507,20 +520,20 @@ improve most documentation - often immensely.</p>
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="../how-to/capture-hdf.html"
+       href="run-container.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Capture data</p>
+        <p class="prev-next-title">Run in a container</p>
       </div>
     </a>
     <a class="right-next"
-       href="../reference/api.html"
+       href="../explanations/docs-structure.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">API</p>
+        <p class="prev-next-title">About the documentation</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -535,10 +548,24 @@ improve most documentation - often immensely.</p>
 
 
   <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#first-n-mode">First N mode</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#last-n-mode">Last N mode</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#forever-mode">Forever mode</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
 
   
   <div class="tocsection editthispage">
-    <a href="https://github.com/PandABlocks/PandABlocks-ioc/edit/main/docs/user/explanations/docs-structure.rst">
+    <a href="https://github.com/PandABlocks/PandABlocks-ioc/edit/main/docs/user/how-to/capture-hdf.rst">
       <i class="fa-solid fa-pencil"></i>
       
       
@@ -553,7 +580,7 @@ improve most documentation - often immensely.</p>
   <div class="sidebar-secondary-item">
 
   <div class="tocsection sourcelink">
-    <a href="../../_sources/user/explanations/docs-structure.rst.txt">
+    <a href="../../_sources/user/how-to/capture-hdf.rst.txt">
       <i class="fa-solid fa-file-lines"></i> Show Source
     </a>
   </div>
