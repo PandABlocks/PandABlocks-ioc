@@ -363,9 +363,9 @@ async def test_table_updater_update_mode_submit_exception_data_error(
     assert isinstance(table_updater.client.send, AsyncMock)
     table_updater.client.send.side_effect = Exception("Mocked exception")
 
-    table_updater.all_values_dict[
-        EpicsName(EPICS_FORMAT_TABLE_NAME)
-    ] = InErrorException("Mocked in error exception")
+    table_updater.all_values_dict[EpicsName(EPICS_FORMAT_TABLE_NAME)] = (
+        InErrorException("Mocked in error exception")
+    )
 
     await table_updater.update_mode(TableModeEnum.SUBMIT.value)
 

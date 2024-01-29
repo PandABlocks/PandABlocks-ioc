@@ -39,6 +39,7 @@ class PviGroup(Enum):
     READBACKS = "Readbacks"
     OUTPUTS = "Outputs"
     CAPTURE = "Capture"
+    HDF = "HDF"
     TABLE = "Table"  # TODO: May not need this anymore
 
 
@@ -53,13 +54,64 @@ class PviInfo:
     component: Component
 
 
-def add_pvi_info(
+def add_pvi_info_to_record(
+    record: RecordWrapper,
+    record_name: EpicsName,
+    access: str,
+):
+    block, field = record_name.split(":", maxsplit=1)
+    block_name_suffixed = f"pvi.{field.lower().replace(':', '_')}.{access}"
+    record.add_info(
+        "Q:group",
+        {
+            RecordName(f"{block}:PVI"): {
+                block_name_suffixed: {
+                    "+channel": "NAME",
+                    "+type": "plain",
+                    "+trigger": block_name_suffixed,
+                }
+            }
+        },
+    )
+
+
+def add_data_capture_pvi_info(
+    group: PviGroup,
+    data_capture_record_name: EpicsName,
+    data_capture_pvi_record: RecordWrapper,
+):
+    component = SignalRW(
+        name=epics_to_pvi_name(data_capture_record_name),
+        pv=data_capture_record_name,
+        widget=ButtonPanel(actions=dict(Start="1", Stop="0")),
+        read_widget=LED(),
+    )
+    add_pvi_info_to_record(data_capture_pvi_record, data_capture_record_name, "rw")
+    Pvi.add_pvi_info(
+        record_name=data_capture_record_name, group=group, component=component
+    )
+
+
+def add_pcap_arm_pvi_info(group: PviGroup, pcap_arm_pvi_record: RecordWrapper):
+    pcap_arm_record_name = EpicsName("PCAP:ARM")
+    component = SignalRW(
+        name=epics_to_pvi_name(pcap_arm_record_name),
+        pv=pcap_arm_record_name,
+        widget=ButtonPanel(actions=dict(Arm="1", Disarm="0")),
+        read_widget=LED(),
+    )
+    add_pvi_info_to_record(pcap_arm_pvi_record, pcap_arm_record_name, "rw")
+    Pvi.add_pvi_info(record_name=pcap_arm_record_name, group=group, component=component)
+
+
+def add_automatic_pvi_info(
     group: PviGroup,
     record: RecordWrapper,
     record_name: EpicsName,
     record_creation_func: Callable,
 ) -> None:
-    """Create the most common forms of the `PviInfo` structure"""
+    """Create the most common forms of the `PviInfo` structure.
+    Generates generic components from"""
     component: Component
     writeable: bool = record_creation_func in OUT_RECORD_FUNCTIONS
     useComboBox: bool = record_creation_func == builder.mbbOut
@@ -83,7 +135,10 @@ def add_pvi_info(
         if useComboBox:
             widget = ComboBox()
         else:
-            if record_creation_func in (builder.longStringOut, builder.stringOut):
+            if record_creation_func in (
+                builder.longStringOut,
+                builder.stringOut,
+            ):
                 widget = TextWrite(format=TextFormat.string)
             else:
                 widget = TextWrite(format=None)
@@ -91,22 +146,18 @@ def add_pvi_info(
         component = SignalRW(name=pvi_name, pv=record_name, widget=widget)
         access = "rw"
     else:
+        if record_creation_func in (
+            builder.longStringIn,
+            builder.stringIn,
+        ):
+            widget = TextRead(format=TextFormat.string)
+        else:
+            widget = TextRead(format=None)
+
         component = SignalR(name=pvi_name, pv=record_name, widget=TextRead())
         access = "r"
-    block, field = record_name.split(":", maxsplit=1)
-    block_name_suffixed = f"pvi.{field.lower().replace(':', '_')}.{access}"
-    record.add_info(
-        "Q:group",
-        {
-            RecordName(f"{block}:PVI"): {
-                block_name_suffixed: {
-                    "+channel": "NAME",
-                    "+type": "plain",
-                    "+trigger": block_name_suffixed,
-                }
-            }
-        },
-    )
+
+    add_pvi_info_to_record(record, record_name, access)
     Pvi.add_pvi_info(record_name=record_name, group=group, component=component)
 
 

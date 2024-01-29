@@ -227,15 +227,12 @@ class MockedAsyncioClient:
         flush_every_frame = flush_period is None
         conn = DataConnection()
         conn.connect(scaled)
-        try:
-            f = open(Path(__file__).parent.parent / "raw_dump.txt", "rb")
+        with open(Path(__file__).parent.parent / "raw_dump.txt", "rb") as f:
             for raw in chunked_read(f, 200000):
                 for data in conn.receive_bytes(
                     raw, flush_every_frame=flush_every_frame
                 ):
                     yield data
-        finally:
-            f.close()
 
 
 def get_multiprocessing_context():
