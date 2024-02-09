@@ -317,6 +317,7 @@ class _RecordUpdater:
     """
 
     record_info: RecordInfo
+    record_prefix: str
     client: AsyncioClient
     all_values_dict: Dict[EpicsName, RecordValue]
     labels: Optional[List[str]]
@@ -344,7 +345,8 @@ class _RecordUpdater:
                 # value is None - expected for action-write fields
                 val = new_val
 
-            panda_field = device_and_record_to_panda_name(self.record_info.record.name)
+            record_name = self.record_info.record.name.removeprefix(self.record_prefix)
+            panda_field = device_and_record_to_panda_name(record_name)
 
             await self.client.send(Put(panda_field, val))
 
@@ -360,7 +362,7 @@ class _RecordUpdater:
             )
             try:
                 if self.record_info.record:
-                    record_name = self.record_info.record.name.split(":", maxsplit=1)[1]
+                    record_name = self.record_info.record.name.removeprefix(self.record_prefix)
 
                     assert record_name in self.all_values_dict
                     old_val = self.all_values_dict[record_name]
@@ -408,7 +410,6 @@ class _TimeRecordUpdater(_RecordUpdater):
     of `time` do not have a `MIN` attribute."""
 
     base_record: RecordWrapper
-    record_prefix: str
     is_type_time: bool
 
     async def update(self, new_val: Any):
@@ -646,6 +647,7 @@ class IocRecordFactory:
         ):
             record_updater = _RecordUpdater(
                 record_info,
+                self._record_prefix,
                 self._client,
                 self._all_values_dict,
                 labels if labels else None,
@@ -717,11 +719,11 @@ class IocRecordFactory:
         )
         updater = _TimeRecordUpdater(
             record_dict[units_record_name],
+            self._record_prefix,
             self._client,
             self._all_values_dict,
             labels,
             time_record_info.record,
-            self._record_prefix,
             isinstance(field_info, TimeFieldInfo),
         )
 
@@ -1425,7 +1427,7 @@ class IocRecordFactory:
         )
 
         updater = _WriteRecordUpdater(
-            record_info, self._client, self._all_values_dict, None
+            record_info, self._record_prefix, self._client, self._all_values_dict, None
         )
 
         record_info.add_record(record_info.record)
