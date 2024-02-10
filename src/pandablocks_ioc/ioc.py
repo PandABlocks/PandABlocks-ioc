@@ -362,7 +362,9 @@ class _RecordUpdater:
             )
             try:
                 if self.record_info.record:
-                    record_name = self.record_info.record.name.removeprefix(self.record_prefix)
+                    record_name = self.record_info.record.name.removeprefix(
+                        self.record_prefix + ":"
+                    )
 
                     assert record_name in self.all_values_dict
                     old_val = self.all_values_dict[record_name]
