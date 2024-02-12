@@ -2,7 +2,7 @@
   <name>Display</name>
   <x>0</x>
   <y>0</y>
-  <width>408</width>
+  <width>488</width>
   <height>130</height>
   <grid_step_x>4</grid_step_x>
   <grid_step_y>4</grid_step_y>
@@ -12,7 +12,7 @@
     <text>index - TEST_PREFIX:</text>
     <x use_class="true">0</x>
     <y use_class="true">0</y>
-    <width>408</width>
+    <width>488</width>
     <height>25</height>
     <font use_class="true">
       <font name="Header 1" family="Liberation Sans" style="BOLD" size="22.0">
@@ -45,7 +45,7 @@
     <text>PCAP</text>
     <x>278</x>
     <y>30</y>
-    <width>125</width>
+    <width>205</width>
     <height>20</height>
     <tooltip>$(actions)</tooltip>
   </widget>
@@ -69,7 +69,7 @@
     <text>DATA</text>
     <x>278</x>
     <y>55</y>
-    <width>125</width>
+    <width>205</width>
     <height>20</height>
     <tooltip>$(actions)</tooltip>
   </widget>
@@ -93,7 +93,7 @@
     <text>SEQ</text>
     <x>278</x>
     <y>80</y>
-    <width>125</width>
+    <width>205</width>
     <height>20</height>
     <tooltip>$(actions)</tooltip>
   </widget>
@@ -117,7 +117,7 @@
     <text>PULSE</text>
     <x>278</x>
     <y>105</y>
-    <width>125</width>
+    <width>205</width>
     <height>20</height>
     <tooltip>$(actions)</tooltip>
   </widget>
