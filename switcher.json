@@ -50,5 +50,9 @@
   {
     "version": "alpha-dependencies",
     "url": "https://PandABlocks.github.io/PandABlocks-ioc/alpha-dependencies/"
+  },
+  {
+    "version": "regenerate_test_bobfiles",
+    "url": "https://PandABlocks.github.io/PandABlocks-ioc/regenerate_test_bobfiles/"
   }
 ]
