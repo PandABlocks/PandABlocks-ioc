@@ -42,7 +42,7 @@ def epics_to_pvi_name(field_name: EpicsName) -> PviName:
     For example PANDA:PCAP:TRIG_EDGE -> TrigEdge."""
     relevant_section = field_name.split(":")[-1]
     words = relevant_section.replace("-", "_").split("_")
-    capitalised_word = "".join(word.capitalize() for word in words)
+    capitalised_word = "".join(word[0].upper() + word[1:] for word in words)
 
     # We don't want to allow any non-alphanumeric characters.
     formatted_word = re.search(r"[A-Za-z0-9]+", capitalised_word)
