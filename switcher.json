@@ -52,7 +52,7 @@
     "url": "https://PandABlocks.github.io/PandABlocks-ioc/alpha-dependencies/"
   },
   {
-    "version": "regenerate_test_bobfiles",
-    "url": "https://PandABlocks.github.io/PandABlocks-ioc/regenerate_test_bobfiles/"
+    "version": "fix_pvi_label_capitalization",
+    "url": "https://PandABlocks.github.io/PandABlocks-ioc/fix_pvi_label_capitalization/"
   }
 ]
