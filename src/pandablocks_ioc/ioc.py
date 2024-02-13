@@ -309,6 +309,7 @@ class _RecordUpdater:
 
     Args:
         record_info: The RecordInfo structure for the record
+        record_prefix: The prefix of the record name
         client: The client used to send data to PandA
         all_values_dict: The dictionary containing the most recent value of all records
             as returned from GetChanges. This dict will be dynamically updated by other
