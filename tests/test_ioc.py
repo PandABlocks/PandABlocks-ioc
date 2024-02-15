@@ -51,10 +51,11 @@ def record_updater() -> _RecordUpdater:
     client.send = AsyncMock()  # type: ignore
     record_info = RecordInfo(float)
     mocked_record = MagicMock()
-    mocked_record.name = "PREFIX:ABC:DEF"
+    record_prefix = "PREFIX:ES"
+    mocked_record.name = record_prefix + ":ABC:DEF"
     record_info.add_record(mocked_record)
 
-    return _RecordUpdater(record_info, client, {}, None)
+    return _RecordUpdater(record_info, record_prefix, client, {}, None)
 
 
 @pytest.fixture

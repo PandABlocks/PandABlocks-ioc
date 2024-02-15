@@ -88,11 +88,11 @@ def mocked_time_record_updater(
         yield (
             _TimeRecordUpdater(
                 mocked_record_info,
+                new_random_test_prefix,
                 client,
                 {},
                 ["TEST1", "TEST2", "TEST3"],
                 base_record,
-                new_random_test_prefix,
                 True,
             ),
             new_random_test_prefix,
