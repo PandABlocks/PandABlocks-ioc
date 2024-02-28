@@ -8,11 +8,8 @@ installed are available on `Github Container Registry
 Starting the container
 ----------------------
 
-To pull the container from github container registry run::
+To pull the container from github container registry and run::
 
-    $ docker run ghcr.io/pandablocks/pandablocks-ioc --version
+    $ docker run ghcr.io/pandablocks/pandablocks-ioc:main --version
 
-This will pull the latest release. To get a different release, append the
-version number to the end::
-
-    $ docker run ghcr.io/pandablocks/pandablocks-ioc:0.2.1 --version
+To get a released version, use a numbered release instead of ``main``.

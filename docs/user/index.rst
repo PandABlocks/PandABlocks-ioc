@@ -26,7 +26,6 @@ side-bar.
             :maxdepth: 1
 
             how-to/run-container
-            how-to/capture-hdf
 
         +++
 
