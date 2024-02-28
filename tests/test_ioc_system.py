@@ -20,6 +20,7 @@ from pandablocks.responses import (
     BitMuxFieldInfo,
     BlockInfo,
     EnumFieldInfo,
+    ExtOutFieldInfo,
     TableFieldInfo,
 )
 from pvi.device import SignalX
@@ -50,6 +51,16 @@ async def test_introspect_panda(
                 description="Trig Edge Desc",
                 labels=["Rising", "Falling", "Either"],
             ),
+            "GATE_DURATION": ExtOutFieldInfo(
+                type="ext_out",
+                subtype="samples",
+                description="Gate Duration Desc",
+                capture_labels=[
+                    "TTLIN1.VAL",
+                    "INENC1.A",
+                    "CLOCK1.OUT",
+                ],
+            ),
             "GATE": BitMuxFieldInfo(
                 type="bit_mux",
                 subtype=None,
@@ -62,6 +73,7 @@ async def test_introspect_panda(
             EpicsName("PCAP:TRIG_EDGE"): "Falling",
             EpicsName("PCAP:GATE"): "CLOCK1.OUT",
             EpicsName("PCAP:GATE:DELAY"): "1",
+            EpicsName("PCAP:GATE_DURATION"): "1",
             EpicsName("PCAP:LABEL"): "PcapMetadataLabel",
             EpicsName("PCAP:ARM"): "0",
         },
@@ -77,6 +89,7 @@ async def test_introspect_panda(
 
     assert all_values_dict == {
         "PCAP:TRIG_EDGE": "Falling",
+        "PCAP:GATE_DURATION": "1",
         "PCAP:GATE": "CLOCK1.OUT",
         "PCAP:GATE:DELAY": "1",
         "PCAP:LABEL": "PcapMetadataLabel",

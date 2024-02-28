@@ -33,6 +33,7 @@ from pandablocks.responses import (
     BlockInfo,
     Changes,
     EnumFieldInfo,
+    ExtOutFieldInfo,
     TimeFieldInfo,
 )
 from softioc import builder
@@ -227,7 +228,7 @@ class MockedAsyncioClient:
         flush_every_frame = flush_period is None
         conn = DataConnection()
         conn.connect(scaled)
-        with open(Path(__file__).parent.parent / "raw_dump.txt", "rb") as f:
+        with open(Path(__file__).parent.parent / "data_dumps/raw_dump.bin", "rb") as f:
             for raw in chunked_read(f, 200000):
                 for data in conn.receive_bytes(
                     raw, flush_every_frame=flush_every_frame
@@ -744,6 +745,12 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
                     max_delay=100,
                     labels=["TTLIN1.VAL", "INENC1.A", "CLOCK1.OUT"],
                 ),
+                "GATE_DURATION": ExtOutFieldInfo(
+                    type="ext_out",
+                    subtype="samples",
+                    description="Gate Duration Desc",
+                    capture_labels=["TTLIN1.VAL", "INENC1.A", "CLOCK1.OUT"],
+                ),
             }
         ),
         command_to_key(Put(field="PCAP.TRIG_EDGE", value="Falling")): repeat("OK"),
@@ -833,6 +840,7 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
                     "PCAP.TRIG_EDGE": "Falling",
                     "PCAP.GATE": "CLOCK1.OUT",
                     "PCAP.GATE.DELAY": "1",
+                    "PCAP.GATE_DURATION": "1",
                     "PCAP.ARM": "0",
                     "*METADATA.LABEL_PCAP1": "PcapMetadataLabel",
                     "PULSE.DELAY": "100",

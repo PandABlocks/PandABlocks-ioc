@@ -450,7 +450,7 @@ async def test_hdf5_file_writing_first_n(
             "COUNTER2.OUT.Mean",
             "COUNTER3.OUT.Value",
             "PCAP.BITS2.Value",
-            "PCAP.SAMPLES.Value",
+            "PCAP.GATE_DURATION.Value",
             "PCAP.TS_START.Value",
         ]
 
