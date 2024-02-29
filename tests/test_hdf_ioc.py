@@ -13,16 +13,6 @@ import numpy
 import pytest
 import pytest_asyncio
 from aioca import DBR_CHAR_STR, CANothing, caget, caput
-from fixtures.mocked_panda import (
-    TIMEOUT,
-    MockedAsyncioClient,
-    Rows,
-    append_random_uppercase,
-    custom_logger,
-    enable_codecov_multiprocess,
-    get_multiprocessing_context,
-    select_and_recv,
-)
 from mock.mock import AsyncMock, MagicMock, patch
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.responses import (
@@ -35,6 +25,16 @@ from pandablocks.responses import (
 )
 from softioc import asyncio_dispatcher, builder, softioc
 
+from fixtures.mocked_panda import (
+    TIMEOUT,
+    MockedAsyncioClient,
+    Rows,
+    append_random_uppercase,
+    custom_logger,
+    enable_codecov_multiprocess,
+    get_multiprocessing_context,
+    select_and_recv,
+)
 from pandablocks_ioc._hdf_ioc import (
     CaptureMode,
     HDF5Buffer,
@@ -676,11 +676,14 @@ def test_hdf_buffer_forever(differently_sized_framedata, tmp_path):
     assert buffer.finish_capturing
 
     assert len(frames_written_to_file) == 14
-    sum(
-        len(frame.data)
-        for frame in frames_written_to_file
-        if isinstance(frame, FrameData)
-    ) == 116
+    assert (
+        sum(
+            len(frame.data)
+            for frame in frames_written_to_file
+            if isinstance(frame, FrameData)
+        )
+        == 116
+    )
 
 
 def test_hdf_buffer_last_n(differently_sized_framedata, tmp_path):
@@ -780,12 +783,12 @@ def test_hdf_buffer_last_n_large_data(tmp_path):
     large_data = [
         ReadyData(),
         StartData([], 0, "Scaled", "Framed", 52),
-        FrameData(numpy.zeros((25000))),
-        FrameData(numpy.zeros((25000))),
-        FrameData(numpy.zeros((25000))),
-        FrameData(numpy.zeros((25000))),
-        FrameData(numpy.zeros((25000))),
-        FrameData(numpy.append(numpy.zeros((15000)), numpy.arange(1, 10001))),
+        FrameData(numpy.zeros(25000)),
+        FrameData(numpy.zeros(25000)),
+        FrameData(numpy.zeros(25000)),
+        FrameData(numpy.zeros(25000)),
+        FrameData(numpy.zeros(25000)),
+        FrameData(numpy.append(numpy.zeros(15000), numpy.arange(1, 10001))),
         EndData(150000, EndReason.OK),
     ]
 
@@ -797,7 +800,7 @@ def test_hdf_buffer_last_n_large_data(tmp_path):
 
     expected_output = [
         StartData([], 0, "Scaled", "Framed", 52),
-        FrameData(numpy.append(numpy.zeros((15000)), numpy.arange(1, 10001))),
+        FrameData(numpy.append(numpy.zeros(15000), numpy.arange(1, 10001))),
         EndData(150000, EndReason.OK),
     ]
 

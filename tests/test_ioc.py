@@ -2,10 +2,9 @@ import asyncio
 import logging
 from pathlib import Path
 from typing import Dict, Tuple
+from unittest.mock import AsyncMock, patch
 
 import pytest
-from fixtures.mocked_panda import TEST_PREFIX
-from mock import AsyncMock, patch
 from mock.mock import MagicMock, call
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import GetLine, Put
@@ -26,6 +25,7 @@ from pandablocks.responses import (
 )
 from softioc import builder, fields
 
+from fixtures.mocked_panda import TEST_PREFIX
 from pandablocks_ioc._pvi import PviGroup
 from pandablocks_ioc._types import (
     ONAM_STR,

@@ -1,13 +1,12 @@
 import asyncio
 import typing
 from typing import Dict, List
+from unittest.mock import AsyncMock
 
 import numpy
 import numpy.testing
 import pytest
 from aioca import caget, camonitor, caput
-from fixtures.mocked_panda import TIMEOUT, command_to_key, multiprocessing_queue_to_list
-from mock import AsyncMock
 from mock.mock import MagicMock, PropertyMock
 from numpy import ndarray
 from pandablocks.asyncio import AsyncioClient
@@ -15,6 +14,7 @@ from pandablocks.commands import GetMultiline, Put
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
 from softioc import alarm
 
+from fixtures.mocked_panda import TIMEOUT, command_to_key, multiprocessing_queue_to_list
 from pandablocks_ioc._tables import (
     TableFieldRecordContainer,
     TableModeEnum,
@@ -433,7 +433,7 @@ async def test_table_updater_update_mode_other(
     table_updater.client.send.assert_not_called()
 
     # Confirm each record was not called
-    for field_name, data in table_unpacked_data.items():
+    for field_name, _ in table_unpacked_data.items():
         record_info = table_updater.table_fields_records[field_name].record_info
         assert record_info
 
@@ -479,7 +479,7 @@ def test_table_updater_update_table_not_view(
     table_updater.mode_record_info.record.get.assert_called_once()
 
     # Confirm the records were not called
-    for field_name, data in table_unpacked_data.items():
+    for field_name, _ in table_unpacked_data.items():
         # Note table_unpacked_data is deliberately in a different order to the sorted
         # data, hence use this lookup mechanism instead
         record_info = table_updater.table_fields_records[field_name].record_info
