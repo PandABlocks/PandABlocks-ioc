@@ -1,3 +1,4 @@
+<<<<<<< before updating
 import sys
 from .ioc import create_softioc
 
@@ -8,5 +9,8 @@ else:
 
 __version__ = version("pandablocks-ioc")
 del version
+=======
+from ._version import __version__
+>>>>>>> after updating
 
 __all__ = ["__version__", "create_softioc"]
