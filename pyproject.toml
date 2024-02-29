@@ -11,7 +11,6 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 description = "Create an IOC from a PandA"
-<<<<<<< before updating
 dependencies = [
     "setuptools>=64",
     "numpy",
@@ -33,28 +32,11 @@ dev = [
     "black",
     "mock",
     "mypy",
-=======
-dependencies = [] # Add project dependencies here, e.g. ["click", "numpy"]
-dynamic = ["version"]
-license.file = "LICENSE"
-readme = "README.md"
-requires-python = ">=3.7"
-
-[project.optional-dependencies]
-dev = [
-    "copier",
-    "myst-parser",
->>>>>>> after updating
     "pipdeptree",
     "pre-commit",
     "p4p",
     "pydata-sphinx-theme>=0.12",
-<<<<<<< before updating
     "pytest-asyncio==0.21.1",    # https://github.com/PandABlocks/PandABlocks-ioc/issues/84
-=======
-    "pyright",
-    "pytest",
->>>>>>> after updating
     "pytest-cov",
     "ruff",
     "sphinx-autobuild",
