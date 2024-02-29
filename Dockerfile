@@ -7,9 +7,11 @@ ARG REGISTRY=ghcr.io/epics-containers
 FROM  ${REGISTRY}/epics-base-linux-developer:${BASE} AS developer
 ARG PIP_OPTIONS=.
 
-# Copy any required context for the pip install over
+# The build stage installs the context into the venv
+FROM developer as build
 COPY . /context
 WORKDIR /context
+RUN pip install .
 
 # install python package into /venv
 RUN pip install ${PIP_OPTIONS}
