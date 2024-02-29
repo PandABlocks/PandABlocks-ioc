@@ -665,8 +665,6 @@ async def test_time_record_updater_update_drvl(
     time_record_updater, test_prefix = mocked_time_record_updater
     await time_record_updater.update_drvl()
 
-    # ...Just to make mypy happy...
-    assert isinstance(time_record_updater.client, MagicMock)
     time_record_updater.client.send.assert_called_once_with(GetLine("TEST.MIN"))
 
     db_put_field.assert_called_once()
