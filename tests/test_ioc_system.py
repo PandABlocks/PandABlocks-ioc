@@ -5,15 +5,6 @@ from typing import List, OrderedDict
 import numpy
 import pytest
 from aioca import DBR_CHAR_STR, CANothing, caget, camonitor, caput
-from fixtures.mocked_panda import (
-    BOBFILE_DIR,
-    TEST_PREFIX,
-    TIMEOUT,
-    MockedAsyncioClient,
-    ResponseHandler,
-    command_to_key,
-    multiprocessing_queue_to_list,
-)
 from numpy import ndarray
 from pandablocks.commands import Arm, Disarm, Put
 from pandablocks.responses import (
@@ -24,6 +15,15 @@ from pandablocks.responses import (
 )
 from pvi.device import SignalX
 
+from fixtures.mocked_panda import (
+    BOBFILE_DIR,
+    TEST_PREFIX,
+    TIMEOUT,
+    MockedAsyncioClient,
+    ResponseHandler,
+    command_to_key,
+    multiprocessing_queue_to_list,
+)
 from pandablocks_ioc._pvi import Pvi, PviGroup
 from pandablocks_ioc._types import EpicsName
 from pandablocks_ioc.ioc import _BlockAndFieldInfo, introspect_panda
@@ -115,7 +115,7 @@ async def test_create_softioc_system(
     pcap1_label = await caget(test_prefix + ":PCAP:LABEL")
     assert numpy.array_equal(
         pcap1_label,
-        numpy.array(list("PcapMetadataLabel".encode() + b"\0"), dtype=numpy.uint8),
+        numpy.array(list(b"PcapMetadataLabel" + b"\0"), dtype=numpy.uint8),
     )
 
 

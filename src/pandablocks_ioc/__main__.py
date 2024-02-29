@@ -1,7 +1,3 @@
-from argparse import ArgumentParser
-
-from . import __version__
-
 import logging
 
 import click
@@ -31,10 +27,6 @@ def cli(ctx, log_level: str):
     # if no command is supplied, print the help message
     if ctx.invoked_subcommand is None:
         click.echo(cli.get_help(ctx))
-
-    parser = ArgumentParser()
-    parser.add_argument("-v", "--version", action="version", version=__version__)
-    args = parser.parse_args(args)
 
 
 @cli.command()

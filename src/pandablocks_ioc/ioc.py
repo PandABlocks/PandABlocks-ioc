@@ -573,7 +573,7 @@ class IocRecordFactory:
         record_creation_func: Callable,
         data_type_func: Callable,
         group: PviGroup,
-        labels: List[str] = [],
+        labels: Optional[List[str]] = None,
         *args,
         **kwargs,
     ) -> RecordInfo:
@@ -605,6 +605,9 @@ class IocRecordFactory:
             RecordInfo: Class containing the created record and anything needed for
                 updating the record.
         """
+        if labels is None:
+            labels = []
+
         extra_kwargs: Dict[str, Any] = {}
         assert (
             record_creation_func in self._builder_methods

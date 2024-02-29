@@ -3,10 +3,10 @@ import collections
 from typing import OrderedDict
 
 import numpy
-from fixtures.mocked_panda import TIMEOUT
 from numpy import ndarray
 from p4p.client.asyncio import Context
 
+from fixtures.mocked_panda import TIMEOUT
 from pandablocks_ioc._types import EpicsName
 
 

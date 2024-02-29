@@ -8,6 +8,7 @@ It should not be ran during normal testing.
 from time import sleep
 
 import pytest
+
 from fixtures.mocked_panda import (
     BOBFILE_DIR,
     TEST_PREFIX,
