@@ -1,8 +1,4 @@
-from importlib.metadata import version  # noqa
-
+from ._version import __version__
 from .ioc import create_softioc
-
-__version__ = version("pandablocks-ioc")
-del version
 
 __all__ = ["__version__", "create_softioc"]
