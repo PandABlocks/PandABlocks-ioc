@@ -3,12 +3,9 @@
 [![PyPI](https://img.shields.io/pypi/v/pandablocks-ioc.svg)](https://pypi.org/project/pandablocks-ioc)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-# pandablocks_ioc
+# PandABlocks-ioc
 
-Create an IOC from a PandA
-
-This is where you should write a short paragraph that describes what your module does,
-how it does it, and why people should use it.
+A softioc to control a [PandABlocks-FPGA](https://github.com/PandABlocks/PandABlocks-FPGA).
 
 Source          | <https://github.com/PandABlocks/PandABlocks-ioc>
 :---:           | :---:
@@ -17,22 +14,27 @@ Docker          | `docker run ghcr.io/pandablocks/PandABlocks-ioc:latest`
 Documentation   | <https://pandablocks.github.io/PandABlocks-ioc>
 Releases        | <https://github.com/PandABlocks/PandABlocks-ioc/releases>
 
-This is where you should put some images or code snippets that illustrate
-some relevant examples. If it is a library then you might put some
-introductory code here:
+To run the ioc:
 
-```python
-from pandablocks_ioc import __version__
-
-print(f"Hello pandablocks_ioc {__version__}")
+```text
+$ python -m pandablocks-ioc softioc <pandabox host> <pv prefix> --screens-dir=<directory to output bobfiles> --clear-bobfiles
 ```
 
-Or if it is a commandline tool then you might put some example commands here:
+PVs will be available for all the values shown on the [web client](https://github.com/PandABlocks/PandABlocks-webcontrol):
 
+```text
+$ caget PANDA:CALC1:INPA
+PANDA:CALC1:INPA               ZERO
 ```
-python -m pandablocks_ioc --version
-```
+
+<img src="https://raw.githubusercontent.com/PandABlocks/PandABlocks-ioc/main/docs/images/webui_calc1.png" width="300px">
+
+On start-up the ioc will use [PVI](https://github.com/epics-containers/pvi) to generate bobfiles for viewing the PVs in phoebus:
+
+<img src="https://raw.githubusercontent.com/PandABlocks/PandABlocks-ioc/main/docs/images/phoebus_calc1.png" width="34%">
+
+<img src="https://raw.githubusercontent.com/PandABlocks/PandABlocks-ioc/main/docs/images/screen_index.png" width="64%">
 
 <!-- README only content. Anything below this line won't be included in index.md -->
 
-See https://pandablocks.github.io/PandABlocks-ioc for more detailed documentation.
+See <https://PandABlocks.github.io/PandABlocks-ioc> for more detailed documentation.
