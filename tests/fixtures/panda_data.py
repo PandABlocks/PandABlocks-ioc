@@ -207,7 +207,7 @@ def table_data_2() -> List[str]:
 
 @pytest.fixture
 def table_unpacked_data(
-    table_fields: Dict[str, TableFieldDetails]
+    table_fields: Dict[str, TableFieldDetails],
 ) -> OrderedDict[EpicsName, ndarray]:
     """The unpacked equivalent of table_data"""
     array_values: List[ndarray] = [

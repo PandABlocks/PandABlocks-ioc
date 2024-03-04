@@ -8,7 +8,6 @@ __pycache__/
 # Distribution / packaging
 .Python
 env/
-.venv
 build/
 develop-eggs/
 dist/
@@ -66,3 +65,6 @@ venv*
 
 # further build artifacts
 lockfiles/
+
+# ruff cache
+.ruff_cache/

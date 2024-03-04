@@ -10,12 +10,12 @@ from multiprocessing import Queue, get_context
 from multiprocessing.connection import Connection
 from pathlib import Path
 from typing import Any, Generator, Iterator, Optional, Tuple, TypeVar
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
 import pytest_asyncio
 from aioca import purge_channel_caches
-from mock import MagicMock, patch
 from pandablocks.commands import (
     Arm,
     ChangeGroup,

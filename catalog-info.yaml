@@ -1,0 +1,10 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: pandablocks-ioc
+  title: PandABlocks-ioc
+  description: Create an IOC from a PandA
+spec:
+  type: documentation
+  lifecycle: experimental
+  owner: group:default/sscc

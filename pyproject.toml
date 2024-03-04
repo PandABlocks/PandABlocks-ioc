@@ -10,7 +10,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
 ]
-description = "One line description of your module"
+description = "Create an IOC from a PandA"
 dependencies = [
     "setuptools>=64",
     "numpy",
@@ -19,10 +19,11 @@ dependencies = [
     "softioc>=4.4.0",
     "pandablocks~=0.7.0",
     "pvi~=0.7.0",
+    "typing-extensions;python_version<'3.8'",
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"
-readme = "README.rst"
+readme = "README.md"
 requires-python = ">=3.8"
 
 [project.optional-dependencies]
@@ -31,14 +32,15 @@ dev = [
     "black",
     "mock",
     "mypy",
-    "flake8-isort",
-    "Flake8-pyproject",
+    "copier",
+    "myst-parser",
     "pipdeptree",
     "pre-commit",
     "p4p",
     "pydata-sphinx-theme>=0.12",
     "pytest-asyncio==0.21.1",    # https://github.com/PandABlocks/PandABlocks-ioc/issues/84
     "pytest-cov",
+    "ruff",
     "sphinx-autobuild",
     "sphinx-copybutton",
     "sphinx-design",
@@ -66,25 +68,10 @@ write_to = "src/pandablocks_ioc/_version.py"
 [tool.mypy]
 ignore_missing_imports = true # Ignore missing stubs in imported modules
 
-[tool.isort]
-float_to_top = true
-profile = "black"
-
-[tool.flake8]
-extend-ignore = [
-    "E203", # See https://github.com/PyCQA/pycodestyle/issues/373
-    "F811", # support typing.overload decorator
-    "F722", # allow Annotated[typ, some_func("some string")]
-]
-max-line-length = 88 # Respect black's line length (default 88),
-exclude = [".tox", "venv"]
-
-
 [tool.pytest.ini_options]
 # Run pytest with all our checkers, and don't spam us with massive tracebacks on error
 addopts = """
     --tb=native -vv --doctest-modules --doctest-glob="*.rst"
-    --cov=pandablocks_ioc --cov-report term --cov-report xml:cov.xml
     """
 # https://iscinumpy.gitlab.io/post/bound-version-constraints/#watch-for-warnings
 # First ignore is due to p4p staticly linking an old numpy version and us installing
@@ -117,7 +104,7 @@ legacy_tox_ini = """
 [tox]
 skipsdist=True
 
-[testenv:{pre-commit,mypy,pytest,docs}]
+[testenv:{pre-commit,type-checking,tests,docs}]
 # Don't create a virtualenv for the command, requires tox-direct plugin
 direct = True
 passenv = *
@@ -128,8 +115,21 @@ allowlist_externals =
     sphinx-build
     sphinx-autobuild
 commands =
-    pytest: pytest {posargs}
-    mypy: mypy src tests {posargs}
     pre-commit: pre-commit run --all-files {posargs}
+    type-checking: mypy src tests {posargs}
+    tests: pytest --cov=pandablocks_ioc --cov-report term --cov-report xml:cov.xml {posargs}
     docs: sphinx-{posargs:build -EW --keep-going} -T docs build/html
 """
+
+[tool.ruff]
+src = ["src", "tests"]
+line-length = 88
+lint.select = [
+    "B",  # flake8-bugbear - https://docs.astral.sh/ruff/rules/#flake8-bugbear-b
+    "C4", # flake8-comprehensions - https://docs.astral.sh/ruff/rules/#flake8-comprehensions-c4
+    "E",  # pycodestyle errors - https://docs.astral.sh/ruff/rules/#error-e
+    "F",  # pyflakes rules - https://docs.astral.sh/ruff/rules/#pyflakes-f
+    "W",  # pycodestyle warnings - https://docs.astral.sh/ruff/rules/#warning-w
+    "I",  # isort - https://docs.astral.sh/ruff/rules/#isort-i
+    "UP", # pyupgrade - https://docs.astral.sh/ruff/rules/#pyupgrade-up
+]
