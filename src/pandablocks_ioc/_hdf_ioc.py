@@ -357,7 +357,7 @@ class HDF5RecordController:
             record_prefix + ":" + create_directory_record_name.upper()
         )
 
-        directory_exists_name = EpicsName(self._DATA_PREFIX + ":CreateDirectory")
+        directory_exists_name = EpicsName(self._DATA_PREFIX + ":DirectoryExists")
         self._directory_exists_record = builder.boolIn(
             directory_exists_name,
             DESC="Directory exists"
