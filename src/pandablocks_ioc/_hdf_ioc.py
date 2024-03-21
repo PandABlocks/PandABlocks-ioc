@@ -8,14 +8,8 @@ from importlib.util import find_spec
 from typing import Callable, Deque, Optional, Union
 
 from pandablocks.asyncio import AsyncioClient
-from pandablocks.hdf import (
-    EndData,
-    FrameData,
-    Pipeline,
-    StartData,
-    create_default_pipeline,
-    stop_pipeline,
-)
+from pandablocks.hdf import (EndData, FrameData, Pipeline, StartData,
+                             create_default_pipeline, stop_pipeline)
 from pandablocks.responses import EndReason, ReadyData
 from softioc import alarm, builder
 from softioc.pythonSoftIoc import RecordWrapper
@@ -311,6 +305,8 @@ class HDF5RecordController:
     _client: AsyncioClient
 
     _directory_record: RecordWrapper
+    _create_directory_record: RecordWrapper
+    _directory_exists_record: RecordWrapper
     _file_name_record: RecordWrapper
     _file_number_record: RecordWrapper
     _file_format_record: RecordWrapper
@@ -350,6 +346,24 @@ class HDF5RecordController:
         )
         self._directory_record.add_alias(
             record_prefix + ":" + directory_record_name.upper()
+        )
+
+        create_directory_record_name = EpicsName(self._DATA_PREFIX + ":CreateDirectory")
+        self._create_directory_record = builder.aOut(
+            create_directory_record_name,
+            DESC="Directory creation depth",
+        )
+        self._create_directory_record.add_alias(
+            record_prefix + ":" + create_directory_record_name.upper()
+        )
+
+        directory_exists_name = EpicsName(self._DATA_PREFIX + ":CreateDirectory")
+        self._directory_exists_record = builder.boolIn(
+            directory_exists_name,
+            DESC="Directory exists"
+        )
+        self._directory_exists_record.add_alias(
+            record_prefix + ":" + directory_exists_name.upper()
         )
 
         file_name_record_name = EpicsName(self._DATA_PREFIX + ":HDFFileName")
@@ -522,6 +536,36 @@ class HDF5RecordController:
         return True
 
     async def _update_full_file_path(self, new_val) -> None:
+        new_path_as_list = os.path.normpath(new_val).split(os.sep)
+        create_dir_depth = self._create_directory_record.get()
+
+        dirs_to_create = 0
+        if create_dir_depth < 0:
+            if len(new_path_as_list) < abs(create_dir_depth):
+                dirs_to_create = len(new_path_as_list)
+            else:
+                dirs_to_create = abs(create_dir_depth)
+        elif create_dir_depth > 0:
+            if len(new_path_as_list) < create_dir_depth:
+                dirs_to_create = 0
+            else:
+                dirs_to_create = len(new_path_as_list) - create_dir_depth
+
+        create_dir_path = os.path.join(new_path_as_list[:-dirs_to_create])
+        for i in reversed(range(dirs_to_create)):
+            create_dir_path = os.path.join(create_dir_path, new_path_as_list[-i])
+            if not os.path.exists(create_dir_path):
+                try:
+                    os.mkdir(create_dir_path)
+                except Exception as e:
+                    logging.error(f"Failed to create directory: {create_dir_path}. Error: {str(e)}")
+                    break
+
+        if os.path.exists(new_val):
+            self._directory_exists_record.set(True)
+        else:
+            self._directory_exists_record.set(False)
+
         self._full_file_path_record.set(self._get_filepath())
 
     async def _handle_hdf5_data(self) -> None:
