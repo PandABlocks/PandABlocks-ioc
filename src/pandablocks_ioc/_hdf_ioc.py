@@ -551,7 +551,7 @@ class HDF5RecordController:
             else:
                 dirs_to_create = len(new_path_as_list) - create_dir_depth
 
-        create_dir_path = os.path.join(new_path_as_list[:-dirs_to_create])
+        create_dir_path = os.path.join(*new_path_as_list[:-dirs_to_create])
         for i in reversed(range(dirs_to_create)):
             create_dir_path = os.path.join(create_dir_path, new_path_as_list[-i])
             if not os.path.exists(create_dir_path):
