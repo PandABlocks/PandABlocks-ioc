@@ -154,7 +154,7 @@ def add_automatic_pvi_info(
         else:
             widget = TextRead(format=None)
 
-        component = SignalR(name=pvi_name, pv=record_name, widget=TextRead())
+        component = SignalR(name=pvi_name, pv=record_name, widget=widget)
         access = "r"
 
     add_pvi_info_to_record(record, record_name, access)

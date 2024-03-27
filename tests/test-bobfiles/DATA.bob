@@ -88,6 +88,7 @@
       </font>
       </font>
       <horizontal_alignment>1</horizontal_alignment>
+      <format>6</format>
     </widget>
   </widget>
   <widget type="group" version="2.0.0">
@@ -291,6 +292,7 @@
       </font>
       </font>
       <horizontal_alignment>1</horizontal_alignment>
+      <format>6</format>
     </widget>
   </widget>
 </display>
