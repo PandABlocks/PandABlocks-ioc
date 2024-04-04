@@ -40,6 +40,7 @@ from softioc import alarm, asyncio_dispatcher, builder, fields, softioc
 from softioc.imports import db_put_field
 from softioc.pythonSoftIoc import RecordWrapper
 
+from ._connection_status import ConnectionStatus, Statuses
 from ._hdf_ioc import HDF5RecordController
 from ._pvi import (
     Pvi,
@@ -94,6 +95,7 @@ def _when_finished(task):
 async def _create_softioc(
     client: AsyncioClient,
     record_prefix: str,
+    connection_status: ConnectionStatus,
     dispatcher: asyncio_dispatcher.AsyncioDispatcher,
 ):
     """Asynchronous wrapper for IOC creation"""
@@ -111,7 +113,14 @@ async def _create_softioc(
         raise RuntimeError("Unexpected state - softioc task already exists")
 
     create_softioc_task = asyncio.create_task(
-        update(client, all_records, 0.1, all_values_dict, block_info_dict)
+        update(
+            client,
+            connection_status,
+            all_records,
+            0.1,
+            all_values_dict,
+            block_info_dict,
+        )
     )
 
     create_softioc_task.add_done_callback(_when_finished)
@@ -146,15 +155,21 @@ def create_softioc(
 
     try:
         dispatcher = asyncio_dispatcher.AsyncioDispatcher()
+        connection_status = ConnectionStatus(record_prefix)
+        connection_status.set_status(Statuses.CONNECTING)
         asyncio.run_coroutine_threadsafe(
-            _create_softioc(client, record_prefix, dispatcher), dispatcher.loop
+            _create_softioc(client, record_prefix, connection_status, dispatcher),
+            dispatcher.loop,
         ).result()
+        connection_status.set_status(Statuses.CONNECTED)
 
         # Must leave this blocking line here, in the main thread, not in the
         # dispatcher's loop or it'll block every async process in this module
         softioc.interactive_ioc(globals())
-    except Exception:
+    except OSError as exc:
         logging.exception("Exception while initializing softioc")
+        connection_status.set_status(Statuses.DISCONNECTED)
+        raise exc
     finally:
         # Client was connected in the _create_softioc method
         if client.is_connected():
@@ -1851,6 +1866,7 @@ async def create_records(
 
 async def update(
     client: AsyncioClient,
+    connection_status: ConnectionStatus,
     all_records: Dict[EpicsName, RecordInfo],
     poll_period: float,
     all_values_dict: Dict[EpicsName, RecordValue],
@@ -1887,15 +1903,14 @@ async def update(
                 # Indicates PandA did not reply within the timeout
                 logging.error(
                     f"PandA did not respond to GetChanges within {timeout} seconds. "
-                    "Setting all records to major alarm state."
+                    "Setting all records to major alarm state and disconnecting."
                 )
+                connection_status.set_status(Statuses.DISCONNECTED)
                 set_all_records_severity(
                     all_records, alarm.MAJOR_ALARM, alarm.READ_ACCESS_ALARM
                 )
-                continue
-
-            # Clear any alarm state as we've received a new update from PandA
-            set_all_records_severity(all_records, alarm.NO_ALARM, alarm.UDF_ALARM)
+                await client.close()
+                break
 
             _, new_all_values_dict = _create_dicts_from_changes(
                 changes, block_info_dict
@@ -2016,6 +2031,5 @@ def set_all_records_severity(
     """Set the severity of all possible records to the given state"""
     logging.debug(f"Setting all record to severity {severity} alarm {alarm}")
     for record_info in all_records.values():
-        # TODO: Update this if PythonSoftIOC issue #53 is fixed
         if record_info.is_in_record:
             record_info.record.set_alarm(severity, alarm)

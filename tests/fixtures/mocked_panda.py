@@ -163,6 +163,13 @@ class ResponseHandler:
                 f"the mocked responses defined for are: {[self.responses.keys()]}"
             )
 
+        try:
+            response = next(self.responses[key])
+        except StopIteration as err:  # Only happens if the client has disconnected
+            raise asyncio.TimeoutError from err
+
+        return response
+
         return next(self.responses[key])
 
 
@@ -209,8 +216,7 @@ class MockedAsyncioClient:
             # Now the panda has set up, tell the test to start
             self.child_conn.send("R")
 
-        response = self.response_handler(command)
-        return response
+        return self.response_handler(command)
 
     def is_connected(self):
         return False

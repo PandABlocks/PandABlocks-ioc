@@ -788,9 +788,22 @@ async def test_update_on_error_marks_record(caplog):
     all_values_dict = {}
     block_info = {}
 
+    class MockConnectionStatus:
+        statuses_set = []
+        set_status = statuses_set.append
+
+    mock_connection_status = MockConnectionStatus()
+
     try:
         await asyncio.wait_for(
-            update(client, all_records, poll_period, all_values_dict, block_info),
+            update(
+                client,
+                mock_connection_status,
+                all_records,
+                poll_period,
+                all_values_dict,
+                block_info,
+            ),
             timeout=0.3,
         )
     except asyncio.TimeoutError:
@@ -824,9 +837,22 @@ async def test_update_toggles_bit_field():
     all_values_dict = {}
     block_info = {}
 
+    class MockConnectionStatus:
+        statuses_set = []
+        set_status = statuses_set.append
+
+    mock_connection_status = MockConnectionStatus()
+
     try:
         await asyncio.wait_for(
-            update(client, all_records, poll_period, all_values_dict, block_info),
+            update(
+                client,
+                mock_connection_status,
+                all_records,
+                poll_period,
+                all_values_dict,
+                block_info,
+            ),
             timeout=0.5,
         )
     except asyncio.TimeoutError:
