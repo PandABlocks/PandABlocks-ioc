@@ -330,7 +330,7 @@ async def test_hdf5_ioc(hdf5_subprocess_ioc):
     assert val == ""
 
     # Mix and match between CamelCase and UPPERCASE to check aliases work
-    val = await caget(hdf5_test_prefix + ":HDFFILENAME", datatype=DBR_CHAR_STR)
+    val = await caget(hdf5_test_prefix + ":HDF_FILE_NAME", datatype=DBR_CHAR_STR)
     assert val == ""
 
     val = await caget(hdf5_test_prefix + ":NumCapture")

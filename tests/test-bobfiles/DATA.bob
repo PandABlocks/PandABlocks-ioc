@@ -34,7 +34,7 @@
     <transparent>true</transparent>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>Hdfdirectory</text>
+      <text>Hdf Directory</text>
       <x>0</x>
       <y>0</y>
       <width>250</width>
@@ -42,7 +42,7 @@
     </widget>
     <widget type="textentry" version="3.0.0">
       <name>TextEntry</name>
-      <pv_name>TEST_PREFIX:DATA:HDFDirectory</pv_name>
+      <pv_name>TEST_PREFIX:DATA:HDF_DIRECTORY</pv_name>
       <x>255</x>
       <y>0</y>
       <width>205</width>
@@ -52,7 +52,7 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>Hdffilename</text>
+      <text>Hdf File Name</text>
       <x>0</x>
       <y>25</y>
       <width>250</width>
@@ -60,7 +60,7 @@
     </widget>
     <widget type="textentry" version="3.0.0">
       <name>TextEntry</name>
-      <pv_name>TEST_PREFIX:DATA:HDFFileName</pv_name>
+      <pv_name>TEST_PREFIX:DATA:HDF_FILE_NAME</pv_name>
       <x>255</x>
       <y>25</y>
       <width>205</width>
@@ -70,7 +70,7 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>Hdffullfilepath</text>
+      <text>Hdf Full File Path</text>
       <x>0</x>
       <y>50</y>
       <width>250</width>
@@ -78,7 +78,7 @@
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>TextUpdate</name>
-      <pv_name>TEST_PREFIX:DATA:HDFFullFilePath</pv_name>
+      <pv_name>TEST_PREFIX:DATA:HDF_FULL_FILE_PATH</pv_name>
       <x>255</x>
       <y>50</y>
       <width>205</width>
@@ -100,7 +100,7 @@
     <transparent>true</transparent>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>Numcapture</text>
+      <text>Num Capture</text>
       <x>0</x>
       <y>0</y>
       <width>250</width>
@@ -108,7 +108,7 @@
     </widget>
     <widget type="textentry" version="3.0.0">
       <name>TextEntry</name>
-      <pv_name>TEST_PREFIX:DATA:NumCapture</pv_name>
+      <pv_name>TEST_PREFIX:DATA:NUM_CAPTURE</pv_name>
       <x>255</x>
       <y>0</y>
       <width>205</width>
@@ -117,7 +117,7 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>Numcaptured</text>
+      <text>Num Captured</text>
       <x>0</x>
       <y>25</y>
       <width>250</width>
@@ -125,7 +125,7 @@
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>TextUpdate</name>
-      <pv_name>TEST_PREFIX:DATA:NumCaptured</pv_name>
+      <pv_name>TEST_PREFIX:DATA:NUM_CAPTURED</pv_name>
       <x>255</x>
       <y>25</y>
       <width>205</width>
@@ -138,7 +138,7 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>Numreceived</text>
+      <text>Num Received</text>
       <x>0</x>
       <y>50</y>
       <width>250</width>
@@ -146,7 +146,7 @@
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>TextUpdate</name>
-      <pv_name>TEST_PREFIX:DATA:NumReceived</pv_name>
+      <pv_name>TEST_PREFIX:DATA:NUM_RECEIVED</pv_name>
       <x>255</x>
       <y>50</y>
       <width>205</width>
@@ -159,7 +159,7 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>Flushperiod</text>
+      <text>Flush Period</text>
       <x>0</x>
       <y>75</y>
       <width>250</width>
@@ -167,7 +167,7 @@
     </widget>
     <widget type="textentry" version="3.0.0">
       <name>TextEntry</name>
-      <pv_name>TEST_PREFIX:DATA:FlushPeriod</pv_name>
+      <pv_name>TEST_PREFIX:DATA:FLUSH_PERIOD</pv_name>
       <x>255</x>
       <y>75</y>
       <width>205</width>
@@ -184,7 +184,7 @@
     </widget>
     <widget type="action_button" version="3.0.0">
       <name>WritePV</name>
-      <pv_name>TEST_PREFIX:DATA:Capture</pv_name>
+      <pv_name>TEST_PREFIX:DATA:CAPTURE</pv_name>
       <actions>
         <action type="write_pv">
           <pv_name>$(pv_name)</pv_name>
@@ -201,7 +201,7 @@
     </widget>
     <widget type="action_button" version="3.0.0">
       <name>WritePV</name>
-      <pv_name>TEST_PREFIX:DATA:Capture</pv_name>
+      <pv_name>TEST_PREFIX:DATA:CAPTURE</pv_name>
       <actions>
         <action type="write_pv">
           <pv_name>$(pv_name)</pv_name>
@@ -218,7 +218,7 @@
     </widget>
     <widget type="led" version="2.0.0">
       <name>LED</name>
-      <pv_name>TEST_PREFIX:DATA:Capture</pv_name>
+      <pv_name>TEST_PREFIX:DATA:CAPTURE</pv_name>
       <x>417</x>
       <y>100</y>
       <width>20</width>
@@ -226,7 +226,7 @@
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
-      <text>Capturemode</text>
+      <text>Capture Mode</text>
       <x>0</x>
       <y>125</y>
       <width>250</width>
@@ -234,7 +234,7 @@
     </widget>
     <widget type="combo" version="2.0.0">
       <name>ComboBox</name>
-      <pv_name>TEST_PREFIX:DATA:CaptureMode</pv_name>
+      <pv_name>TEST_PREFIX:DATA:CAPTURE_MODE</pv_name>
       <x>255</x>
       <y>125</y>
       <width>205</width>
@@ -282,7 +282,7 @@
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>TextUpdate</name>
-      <pv_name>TEST_PREFIX:DATA:Status</pv_name>
+      <pv_name>TEST_PREFIX:DATA:STATUS</pv_name>
       <x>255</x>
       <y>0</y>
       <width>205</width>
