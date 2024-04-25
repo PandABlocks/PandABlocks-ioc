@@ -116,7 +116,7 @@ DUMP_FIELDS = [
 def slow_dump_expected():
     yield [
         ReadyData(),
-        StartData(DUMP_FIELDS, 0, "Scaled", "Framed", 52),
+        StartData(DUMP_FIELDS, 0, "Scaled", "Framed", 52, None, None, None),
         FrameData(Rows([0, 1, 1, 3, 5.6e-08, 1, 2])),
         FrameData(Rows([8, 2, 2, 6, 1.000000056, 2, 4])),
         FrameData(Rows([0, 3, 3, 9, 2.000000056, 3, 6])),
@@ -130,7 +130,7 @@ def slow_dump_expected():
 def fast_dump_expected():
     yield [
         ReadyData(),
-        StartData(DUMP_FIELDS, 0, "Scaled", "Framed", 52),
+        StartData(DUMP_FIELDS, 0, "Scaled", "Framed", 52, None, None, None),
         FrameData(
             Rows(
                 [0, 1, 1, 3, 5.6e-08, 1, 2],
@@ -544,7 +544,7 @@ async def test_hdf5_file_writing_last_n_endreason_not_ok(
 def differently_sized_framedata():
     yield [
         ReadyData(),
-        StartData(DUMP_FIELDS, 0, "Scaled", "Framed", 52),
+        StartData(DUMP_FIELDS, 0, "Scaled", "Framed", 52, None, None, None),
         FrameData(
             numpy.array(
                 [
@@ -782,7 +782,7 @@ def test_hdf_buffer_last_n_large_data(tmp_path):
 
     large_data = [
         ReadyData(),
-        StartData([], 0, "Scaled", "Framed", 52),
+        StartData([], 0, "Scaled", "Framed", 52, None, None, None),
         FrameData(numpy.zeros(25000)),
         FrameData(numpy.zeros(25000)),
         FrameData(numpy.zeros(25000)),
@@ -799,7 +799,7 @@ def test_hdf_buffer_last_n_large_data(tmp_path):
     assert buffer.number_of_rows_in_circular_buffer == 25000
 
     expected_output = [
-        StartData([], 0, "Scaled", "Framed", 52),
+        StartData([], 0, "Scaled", "Framed", 52, None, None, None),
         FrameData(numpy.append(numpy.zeros(15000), numpy.arange(1, 10001))),
         EndData(150000, EndReason.OK),
     ]
@@ -941,17 +941,14 @@ async def test_handle_data_mismatching_start_data(
                 "Scaled",
                 "Framed",
                 52,
+                None,
+                None,
+                None,
             ),
             FrameData(Rows([0, 1, 1, 3, 5.6e-08, 1, 2])),
             # Implicit end of first data here
             ReadyData(),
-            StartData(
-                [],
-                0,
-                "Different",
-                "Also Different",
-                52,
-            ),
+            StartData([], 0, "Different", "Also Different", 52, None, None, None),
         ]
         for item in list:
             yield item
@@ -1010,6 +1007,9 @@ async def test_handle_data_cancelled_error(
                 "Scaled",
                 "Framed",
                 52,
+                None,
+                None,
+                None,
             ),
         ]
         for item in list:
@@ -1065,6 +1065,9 @@ async def test_handle_data_unexpected_exception(
                 "Scaled",
                 "Framed",
                 52,
+                None,
+                None,
+                None,
             ),
         ]
         for item in list:
