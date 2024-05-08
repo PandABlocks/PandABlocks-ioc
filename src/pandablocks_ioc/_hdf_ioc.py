@@ -8,14 +8,8 @@ from importlib.util import find_spec
 from typing import Callable, Deque, Optional, Union
 
 from pandablocks.asyncio import AsyncioClient
-from pandablocks.hdf import (
-    EndData,
-    FrameData,
-    Pipeline,
-    StartData,
-    create_default_pipeline,
-    stop_pipeline,
-)
+from pandablocks.hdf import (EndData, FrameData, Pipeline, StartData,
+                             create_default_pipeline, stop_pipeline)
 from pandablocks.responses import EndReason, ReadyData
 from softioc import alarm, builder
 from softioc.pythonSoftIoc import RecordWrapper
@@ -311,6 +305,8 @@ class HDF5RecordController:
     _client: AsyncioClient
 
     _directory_record: RecordWrapper
+    _create_directory_record: RecordWrapper
+    _directory_exists_record: RecordWrapper
     _file_name_record: RecordWrapper
     _file_number_record: RecordWrapper
     _file_format_record: RecordWrapper
@@ -350,6 +346,28 @@ class HDF5RecordController:
         )
         self._directory_record.add_alias(
             record_prefix + ":" + self._DATA_PREFIX + ":HDFDirectory"
+        )
+
+        create_directory_record_name = EpicsName(self._DATA_PREFIX + ":CreateDirectory")
+        self._create_directory_record = builder.longOut(
+            create_directory_record_name,
+            initial_value=0,
+            DESC="Directory creation depth",
+        )
+        self._create_directory_record.add_alias(
+            record_prefix + ":" + create_directory_record_name.upper()
+        )
+
+        directory_exists_name = EpicsName(self._DATA_PREFIX + ":DirectoryExists")
+        self._directory_exists_record = builder.boolIn(
+            directory_exists_name,
+            ZNAM="No",
+            ONAM="Yes",
+            initial_value=0,
+            DESC="Directory exists",
+        )
+        self._directory_exists_record.add_alias(
+            record_prefix + ":" + directory_exists_name.upper()
         )
 
         file_name_record_name = EpicsName(self._DATA_PREFIX + ":HDF_FILE_NAME")
@@ -524,6 +542,41 @@ class HDF5RecordController:
         return True
 
     async def _update_full_file_path(self, new_val) -> None:
+        full_path_as_list = os.path.normpath(new_val).split(os.sep)
+        drive = full_path_as_list[0]
+        new_path_as_list = full_path_as_list[1:]
+        create_dir_depth = self._create_directory_record.get()
+
+        dirs_to_create = 0
+        if create_dir_depth < 0:
+            if len(new_path_as_list) < abs(create_dir_depth):
+                dirs_to_create = len(new_path_as_list)
+            else:
+                dirs_to_create = abs(create_dir_depth)
+        elif create_dir_depth > 0:
+            if len(new_path_as_list) < create_dir_depth:
+                dirs_to_create = 0
+            else:
+                dirs_to_create = len(new_path_as_list) - create_dir_depth
+
+        if dirs_to_create > 0:
+            if len(full_path_as_list[:-2]) == 1:
+                # Insert a blank element in index #1 if at root dir.
+                # Ex. on linux, [''] becomes ['', ''] which joins to '/'
+                # On windows ['C:'] becomes ['C:', ''] which joins to 'C:\\'
+                full_path_as_list.insert(1, "")
+            if os.path.isdir(os.sep.join(full_path_as_list[:-dirs_to_create])) and not os.path.exists(new_val):
+                try:
+                    os.makedirs(new_val, exist_ok=True)
+                    logging.info(f"Created directory {new_val}.")
+                except Exception as e:
+                    logging.error(f"Failed to create directory {new_val}! Error: {str(e)}")
+
+        if os.path.exists(new_val) and os.access(new_val, os.W_OK):
+            self._directory_exists_record.set(1)
+        else:
+            self._directory_exists_record.set(0)
+
         self._full_file_path_record.set(self._get_filepath())
 
     async def _handle_hdf5_data(self) -> None:
@@ -532,6 +585,10 @@ class HDF5RecordController:
         This method expects to be run as an asyncio Task."""
         try:
             # Set up the hdf buffer
+
+            if not self._directory_exists_record.get() == 1:
+                raise RuntimeError("Configured HDF directory does not exist or is not writable!")
+
             num_capture: int = self._num_capture_record.get()
             capture_mode: CaptureMode = CaptureMode(self._capture_mode_record.get())
             filepath = self._get_filepath()
