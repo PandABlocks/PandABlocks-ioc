@@ -7,6 +7,8 @@ from enum import Enum
 from importlib.util import find_spec
 from typing import Callable, Deque, Optional, Union
 
+from pathlib import Path
+
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.hdf import (EndData, FrameData, Pipeline, StartData,
                              create_default_pipeline, stop_pipeline)
@@ -337,6 +339,7 @@ class HDF5RecordController:
             DESC="File path for HDF5 files",
             validate=self._parameter_validate,
             on_update=self._update_full_file_path,
+            always_update=True,
         )
         add_automatic_pvi_info(
             PviGroup.HDF,
@@ -542,41 +545,63 @@ class HDF5RecordController:
         return True
 
     async def _update_full_file_path(self, new_val) -> None:
-        full_path_as_list = os.path.normpath(new_val).split(os.sep)
-        drive = full_path_as_list[0]
-        new_path_as_list = full_path_as_list[1:]
+        new_path = Path(new_val).absolute()
         create_dir_depth = self._create_directory_record.get()
-
         dirs_to_create = 0
         if create_dir_depth < 0:
-            if len(new_path_as_list) < abs(create_dir_depth):
-                dirs_to_create = len(new_path_as_list)
-            else:
-                dirs_to_create = abs(create_dir_depth)
+            dirs_to_create = abs(create_dir_depth)
+        elif create_dir_depth > len(new_path.parents):
+            dirs_to_create = 0
         elif create_dir_depth > 0:
-            if len(new_path_as_list) < create_dir_depth:
-                dirs_to_create = 0
+            dirs_to_create = len(new_path.parents) - create_dir_depth 
+
+        logging.debug(f"Configured to create up to {dirs_to_create} dirs.")
+        created_dirs = 0
+        for p in reversed(new_path.parents):
+            if not p.exists():
+                created_dirs += 1
+
+        # Account for target path itself not existing
+        if not os.path.exists(new_path):
+            created_dirs += 1
+
+        logging.debug(f"Need to create {created_dirs} directories.")
+        
+
+        status_msg = "Ok"
+
+        # Case where all dirs exist
+        if created_dirs == 0:
+            if os.access(new_path, os.W_OK):
+                self._directory_exists_record.set(1)
             else:
-                dirs_to_create = len(new_path_as_list) - create_dir_depth
+                status_msg = "Dirs exist but aren't writable."
+                self._directory_exists_record.set(0)
+        # Case where we will create directories
+        elif created_dirs <= dirs_to_create:
 
-        if dirs_to_create > 0:
-            if len(full_path_as_list[:-2]) == 1:
-                # Insert a blank element in index #1 if at root dir.
-                # Ex. on linux, [''] becomes ['', ''] which joins to '/'
-                # On windows ['C:'] becomes ['C:', ''] which joins to 'C:\\'
-                full_path_as_list.insert(1, "")
-            if os.path.isdir(os.sep.join(full_path_as_list[:-dirs_to_create])) and not os.path.exists(new_val):
-                try:
-                    os.makedirs(new_val, exist_ok=True)
-                    logging.info(f"Created directory {new_val}.")
-                except Exception as e:
-                    logging.error(f"Failed to create directory {new_val}! Error: {str(e)}")
-
-        if os.path.exists(new_val) and os.access(new_val, os.W_OK):
-            self._directory_exists_record.set(1)
-        else:
+            logging.debug(f"Attempting to create {created_dirs} dir(s)...")
+            try:
+                os.makedirs(new_path, exist_ok=True)
+                status_msg = f"Created {created_dirs} dirs."
+                self._directory_exists_record.set(1)
+            except PermissionError:
+                status_msg = "Permission error creating dirs!"
+                self._directory_exists_record.set(0)
+        # Case where too many directories need to be created
+        else: 
+            status_msg = f"Need to create {created_dirs} > {dirs_to_create} dirs."
             self._directory_exists_record.set(0)
 
+        sevr = alarm.NO_ALARM
+        alrm = None
+        if self._directory_exists_record.get() == 0:
+            sevr = alarm.MAJOR_ALARM
+            alrm = alarm.STATE_ALARM
+            logging.error(status_msg)            
+
+        self._status_message_record.set(status_msg, severity=sevr, alarm=alrm)
+        
         self._full_file_path_record.set(self._get_filepath())
 
     async def _handle_hdf5_data(self) -> None:
@@ -613,7 +638,7 @@ class HDF5RecordController:
                 buffer.handle_data(data)
                 if buffer.finish_capturing:
                     break
-
+            
         except CancelledError:
             logging.info("Capturing task cancelled, closing HDF5 file")
             self._status_message_record.set("Capturing disabled")
