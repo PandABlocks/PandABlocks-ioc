@@ -550,7 +550,7 @@ class HDF5RecordController:
         return True
 
     async def _update_directory_path(self, new_val) -> None:
-        """Handles writest to the directory path PV, creating
+        """Handles writes to the directory path PV, creating
         directories based on the setting of the CreateDirectory record"""
         new_path = Path(new_val).absolute()
         create_dir_depth = self._create_directory_record.get()
