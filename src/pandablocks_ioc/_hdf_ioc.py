@@ -554,56 +554,58 @@ class HDF5RecordController:
         directories based on the setting of the CreateDirectory record"""
         new_path = Path(new_val).absolute()
         create_dir_depth = self._create_directory_record.get()
-        dirs_to_create = 0
+        max_dirs_to_create = 0
         if create_dir_depth < 0:
-            dirs_to_create = abs(create_dir_depth)
+            max_dirs_to_create = abs(create_dir_depth)
         elif create_dir_depth > len(new_path.parents):
-            dirs_to_create = 0
+            max_dirs_to_create = 0
         elif create_dir_depth > 0:
-            dirs_to_create = len(new_path.parents) - create_dir_depth
+            max_dirs_to_create = len(new_path.parents) - create_dir_depth
 
-        logging.debug(f"Permitted to create up to {dirs_to_create} dirs.")
-        created_dirs = 0
+        logging.debug(f"Permitted to create up to {max_dirs_to_create} dirs.")
+        dirs_to_create = 0
         for p in reversed(new_path.parents):
             if not p.exists():
-                logging.error(f"{str(p)} does not exist")
-                created_dirs += 1
+                if dirs_to_create == 0:
+                    # First directory level that does not exist, log it.
+                    logging.error(f"All dir from {str(p)} and below do not exist!")
+                dirs_to_create += 1
             else:
                 logging.info(f"{str(p)} exists")
 
         # Account for target path itself not existing
         if not os.path.exists(new_path):
-            created_dirs += 1
+            dirs_to_create += 1
 
-        logging.debug(f"Need to create {created_dirs} directories.")
+        logging.debug(f"Need to create {dirs_to_create} directories.")
 
         # Default message is "OK"
         status_msg = "OK"
 
         # Case where all dirs exist
-        if created_dirs == 0:
+        if dirs_to_create == 0:
             if os.access(new_path, os.W_OK):
                 self._directory_exists_record.set(1)
             else:
                 status_msg = "Dirs exist but aren't writable."
                 self._directory_exists_record.set(0)
         # Case where we will create directories
-        elif created_dirs <= dirs_to_create:
-            logging.error(f"Attempting to create {created_dirs} dir(s)...")
+        elif dirs_to_create <= max_dirs_to_create:
+            logging.info(f"Attempting to create {dirs_to_create} dir(s)...")
             try:
                 os.makedirs(new_path, exist_ok=True)
-                status_msg = f"Created {created_dirs} dirs."
+                status_msg = f"Created {dirs_to_create} dirs."
                 self._directory_exists_record.set(1)
             except PermissionError:
                 status_msg = "Permission error creating dirs!"
                 self._directory_exists_record.set(0)
         # Case where too many directories need to be created
         else:
-            status_msg = f"Need to create {created_dirs} > {dirs_to_create} dirs."
+            status_msg = f"Need to create {dirs_to_create} > {max_dirs_to_create} dirs."
             self._directory_exists_record.set(0)
 
         sevr = alarm.NO_ALARM
-        alrm = None
+        alrm = alarm.NO_ALARM
         if self._directory_exists_record.get() == 0:
             sevr = alarm.MAJOR_ALARM
             alrm = alarm.STATE_ALARM
