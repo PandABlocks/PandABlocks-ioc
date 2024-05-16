@@ -400,11 +400,8 @@ async def test_hdf5_ioc_parameter_validate_works(
         (1, "panda_test4/depth_2", True),
         (0, "/", False),
         (-1, "/panda_test5", False),
-        (
-            0,
-            ".",
-            True,
-        ),  # make sure our final test passes, so final status message is "OK"
+        # make sure our final test passes, so final status message is "OK"
+        (0, ".", True),
     ],
 )
 async def test_hdf5_directory_creation(
