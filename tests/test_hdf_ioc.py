@@ -431,9 +431,7 @@ async def test_hdf5_directory_creation(
         wait=True,
     )
     exists = await caget(hdf5_test_prefix + ":DirectoryExists")
-    status = await caget(hdf5_test_prefix + ":Status", datatype=DBR_CHAR_STR)
 
-    print(f"Path: {str(path)}, IOC status: {status}, exists: {exists}")
     assert (exists > 0) == expect_exists
     if expect_exists:
         assert os.path.exists(target_path)
@@ -560,7 +558,6 @@ async def test_hdf5_file_writing_last_n_endreason_not_ok(
     assert val == test_filename
 
     val = await caget(hdf5_test_prefix + ":HDFFullFilePath", datatype=DBR_CHAR_STR)
-    print(val)
     assert val == "/".join([str(tmp_path), test_filename])
 
     # Only a single FrameData in the example data
