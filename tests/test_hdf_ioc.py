@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import os
 from asyncio import CancelledError
 from collections import deque
 from multiprocessing.connection import Connection
@@ -345,6 +346,12 @@ async def test_hdf5_ioc(hdf5_subprocess_ioc):
     val = await caget(hdf5_test_prefix + ":Status", datatype=DBR_CHAR_STR)
     assert val == "OK"
 
+    val = await caget(hdf5_test_prefix + ":CreateDirectory")
+    assert val == 0
+
+    val = await caget(hdf5_test_prefix + ":DirectoryExists")
+    assert val == 0
+
 
 async def test_hdf5_ioc_parameter_validate_works(
     hdf5_subprocess_ioc_no_logging_check, tmp_path
@@ -382,6 +389,58 @@ async def test_hdf5_ioc_parameter_validate_works(
         )
     val = await caget(hdf5_test_prefix + ":HDFFullFilePath", datatype=DBR_CHAR_STR)
     assert val == str(tmp_path) + "/name.h5"  # put should have been stopped
+
+
+@pytest.mark.parametrize(
+    "create_depth, path, expect_exists",
+    [
+        (0, "panda_test1", False),
+        (-2, "panda_test2", True),
+        (-1, "panda_test3/depth_2", False),
+        (1, "panda_test4/depth_2", True),
+        (0, "/", False),
+        (-1, "/panda_test5", False),
+        (
+            0,
+            ".",
+            True,
+        ),  # make sure our final test passes, so final status message is "OK"
+    ],
+)
+async def test_hdf5_directory_creation(
+    hdf5_subprocess_ioc,
+    tmp_path: Path,
+    create_depth: int,
+    path: str,
+    expect_exists: bool,
+):
+    """Test to see if directory creation/exists works as expected"""
+
+    _, hdf5_test_prefix = hdf5_subprocess_ioc
+
+    target_path = str(os.path.join(tmp_path, path))
+    if path.startswith("/"):
+        target_path = path
+
+    await caput(
+        hdf5_test_prefix + ":CreateDirectory",
+        create_depth,
+        wait=True,
+    )
+    await caput(
+        hdf5_test_prefix + ":HDFDirectory",
+        target_path,
+        datatype=DBR_CHAR_STR,
+        wait=True,
+    )
+    exists = await caget(hdf5_test_prefix + ":DirectoryExists")
+    status = await caget(hdf5_test_prefix + ":Status", datatype=DBR_CHAR_STR)
+
+    print(f"Path: {str(path)}, IOC status: {status}, exists: {exists}")
+    assert (exists > 0) == expect_exists
+    if expect_exists:
+        assert os.path.exists(target_path)
+        assert os.access(target_path, os.W_OK)
 
 
 @pytest.mark.parametrize("num_capture", [1, 1000, 10000])
@@ -504,6 +563,7 @@ async def test_hdf5_file_writing_last_n_endreason_not_ok(
     assert val == test_filename
 
     val = await caget(hdf5_test_prefix + ":HDFFullFilePath", datatype=DBR_CHAR_STR)
+    print(val)
     assert val == "/".join([str(tmp_path), test_filename])
 
     # Only a single FrameData in the example data
@@ -851,6 +911,9 @@ async def test_handle_data(
         for item in slow_dump_expected:
             yield item
 
+    # Assume directory exists for testing.
+    hdf5_controller._directory_exists_record.set(1)
+
     # Set up all the mocks
     hdf5_controller._get_filepath = MagicMock(  # type: ignore
         return_value="Some/Filepath"
@@ -888,6 +951,9 @@ async def test_handle_data_two_start_data(
         doubled_list.extend(doubled_list)
         for item in doubled_list:
             yield item
+
+    # Assume directory exists for testing.
+    hdf5_controller._directory_exists_record.set(1)
 
     # Set up all the mocks
     hdf5_controller._get_filepath = MagicMock(  # type: ignore
@@ -953,6 +1019,9 @@ async def test_handle_data_mismatching_start_data(
         for item in list:
             yield item
 
+    # Assume directory exists for testing.
+    hdf5_controller._directory_exists_record.set(1)
+
     # Set up all the mocks
     hdf5_controller._get_filepath = MagicMock(  # type: ignore
         return_value="Some/Filepath"
@@ -1016,6 +1085,9 @@ async def test_handle_data_cancelled_error(
             yield item
         raise CancelledError
 
+    # Assume directory exists for testing.
+    hdf5_controller._directory_exists_record.set(1)
+
     # Set up all the mocks
     hdf5_controller._get_filepath = MagicMock(  # type: ignore
         return_value="Some/Filepath"
@@ -1073,6 +1145,9 @@ async def test_handle_data_unexpected_exception(
         for item in list:
             yield item
         raise Exception("Test exception")
+
+    # Assume directory exists for testing.
+    hdf5_controller._directory_exists_record.set(1)
 
     # Set up all the mocks
     hdf5_controller._get_filepath = MagicMock(  # type: ignore
