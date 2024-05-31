@@ -362,6 +362,12 @@ class HDF5RecordController:
             initial_value=0,
             DESC="Directory creation depth",
         )
+        add_automatic_pvi_info(
+            PviGroup.HDF,
+            self._create_directory_record,
+            create_directory_record_name,
+            builder.longOut,
+        )
         self._create_directory_record.add_alias(
             record_prefix + ":" + create_directory_record_name.upper()
         )
@@ -373,6 +379,12 @@ class HDF5RecordController:
             ONAM="Yes",
             initial_value=0,
             DESC="Directory exists",
+        )
+        add_automatic_pvi_info(
+            PviGroup.HDF,
+            self._directory_exists_record,
+            directory_exists_name,
+            builder.boolIn,
         )
         self._directory_exists_record.add_alias(
             record_prefix + ":" + directory_exists_name.upper()
@@ -585,13 +597,14 @@ class HDF5RecordController:
         # Case where all dirs exist
         if dirs_to_create == 0:
             if os.access(new_path, os.W_OK):
+                status_msg = "Dir exists and is writable"
                 self._directory_exists_record.set(1)
             else:
                 status_msg = "Dirs exist but aren't writable."
                 self._directory_exists_record.set(0)
         # Case where we will create directories
         elif dirs_to_create <= max_dirs_to_create:
-            logging.info(f"Attempting to create {dirs_to_create} dir(s)...")
+            logging.debug(f"Attempting to create {dirs_to_create} dir(s)...")
             try:
                 os.makedirs(new_path, exist_ok=True)
                 status_msg = f"Created {dirs_to_create} dirs."
@@ -611,7 +624,7 @@ class HDF5RecordController:
             alrm = alarm.STATE_ALARM
             logging.error(status_msg)
         else:
-            logging.debug("Directory exists or has been successfully created.")
+            logging.debug(status_msg)
 
         self._status_message_record.set(status_msg, severity=sevr, alarm=alrm)
 
