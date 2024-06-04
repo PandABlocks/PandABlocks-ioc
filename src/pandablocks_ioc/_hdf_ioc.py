@@ -591,9 +591,6 @@ class HDF5RecordController:
 
         logging.debug(f"Need to create {dirs_to_create} directories.")
 
-        # Default message is "OK"
-        status_msg = "OK"
-
         # Case where all dirs exist
         if dirs_to_create == 0:
             if os.access(new_path, os.W_OK):
@@ -617,12 +614,11 @@ class HDF5RecordController:
             status_msg = f"Need to create {dirs_to_create} > {max_dirs_to_create} dirs."
             self._directory_exists_record.set(0)
 
-        sevr = alarm.NO_ALARM
-        alrm = alarm.NO_ALARM
         if self._directory_exists_record.get() == 0:
             sevr = alarm.MAJOR_ALARM, alrm = alarm.STATE_ALARM
             logging.error(status_msg)
         else:
+            sevr = alarm.NO_ALARM, alrm = alarm.NO_ALARM
             logging.debug(status_msg)
 
         self._status_message_record.set(status_msg, severity=sevr, alarm=alrm)
