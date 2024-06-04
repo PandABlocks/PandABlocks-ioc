@@ -620,8 +620,7 @@ class HDF5RecordController:
         sevr = alarm.NO_ALARM
         alrm = alarm.NO_ALARM
         if self._directory_exists_record.get() == 0:
-            sevr = alarm.MAJOR_ALARM
-            alrm = alarm.STATE_ALARM
+            sevr = alarm.MAJOR_ALARM, alrm = alarm.STATE_ALARM
             logging.error(status_msg)
         else:
             logging.debug(status_msg)

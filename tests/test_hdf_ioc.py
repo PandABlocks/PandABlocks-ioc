@@ -406,6 +406,7 @@ async def test_hdf5_ioc_parameter_validate_works(
         (0, ".", False, True),
         (1, "panda_test5", False, True),
         (-1, "panda_test6", False, True),
+        (10, "panda_test7", False, False),
     ],
 )
 async def test_hdf5_dir_creation(
@@ -616,9 +617,9 @@ async def test_hdf5_file_writing_last_n_endreason_not_ok(
     )
     assert await caget(hdf5_test_prefix + ":NumCapture") == num_capture
 
-    # Initially Status should be "OK"
+    # Initially Status should be "Dir exists and is writable"
     val = await caget(hdf5_test_prefix + ":Status", datatype=DBR_CHAR_STR)
-    assert val == "OK"
+    assert val == "Dir exists and is writable"
 
     await caput(hdf5_test_prefix + ":Capture", 1, wait=True, timeout=TIMEOUT)
 
