@@ -201,6 +201,7 @@ def idfn(val):
                 f"{TEST_RECORD}:CAPTURE": "Diff",
                 f"{TEST_RECORD}:OFFSET": "5",
                 f"{TEST_RECORD}:SCALE": "0.5",
+                f"{TEST_RECORD}:DATASET": "",
                 f"{TEST_RECORD}:UNITS": "MyUnits",
             },
             [
@@ -208,6 +209,7 @@ def idfn(val):
                 f"{TEST_RECORD}:CAPTURE",
                 f"{TEST_RECORD}:OFFSET",
                 f"{TEST_RECORD}:SCALE",
+                f"{TEST_RECORD}:DATASET",
                 f"{TEST_RECORD}:UNITS",
             ],
         ),

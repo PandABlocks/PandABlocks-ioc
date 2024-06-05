@@ -164,7 +164,7 @@ def add_automatic_pvi_info(
 _positions_table_group = Group(
     name="PositionsTable", layout=Grid(labelled=True), children=[]
 )
-_positions_table_headers = ["VALUE", "UNITS", "SCALE", "OFFSET", "CAPTURE"]
+_positions_table_headers = ["VALUE", "UNITS", "SCALE", "OFFSET", "DATASET", "CAPTURE"]
 
 
 # TODO: Replicate this for the BITS table
@@ -174,6 +174,7 @@ def add_positions_table_row(
     units_record_name: EpicsName,
     scale_record_name: EpicsName,
     offset_record_name: EpicsName,
+    dataset_record_name: EpicsName,
     capture_record_name: EpicsName,
 ) -> None:
     """Add a Row to the Positions table"""
@@ -203,6 +204,12 @@ def add_positions_table_row(
             name=epics_to_pvi_name(offset_record_name),
             label=offset_record_name,
             pv=offset_record_name,
+            widget=TextWrite(),
+        ),
+        SignalRW(
+            name=epics_to_pvi_name(dataset_record_name),
+            label=dataset_record_name,
+            pv=dataset_record_name,
             widget=TextWrite(),
         ),
         SignalRW(

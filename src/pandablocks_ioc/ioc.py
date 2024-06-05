@@ -917,6 +917,16 @@ class IocRecordFactory:
             DESC="Value with scaling applied",
         )
 
+        dataset_record_name = EpicsName(record_name + ":DATASET")
+        record_dict[dataset_record_name] = self._create_record_info(
+            dataset_record_name,
+            "Used to adjust the dataset name to one more scientifically relevant",
+            builder.stringOut,
+            str,
+            PviGroup.CAPTURE,
+            initial_value=values.get(dataset_record_name, ""),
+        )
+
         # Create the POSITIONS "table" of records. Most are aliases of the records
         # created above.
         positions_record_name = f"POSITIONS:{self._pos_out_row_counter}"
@@ -957,6 +967,13 @@ class IocRecordFactory:
             + ":"
             + units_record_name.split(":")[-1]
         )
+        record_dict[dataset_record_name].record.add_alias(
+            self._record_prefix
+            + ":"
+            + positions_record_name
+            + ":"
+            + dataset_record_name.split(":")[-1]
+        )
 
         self._pos_out_row_counter += 1
         add_positions_table_row(
@@ -965,6 +982,7 @@ class IocRecordFactory:
             units_record_name,
             scale_record_name,
             offset_record_name,
+            dataset_record_name,
             capture_record_name,
         )
 
