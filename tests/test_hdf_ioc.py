@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import os
 from asyncio import CancelledError
 from collections import deque
 from multiprocessing.connection import Connection
@@ -228,6 +229,10 @@ async def hdf5_controller(
     test_prefix, hdf5_test_prefix = new_random_hdf5_prefix
 
     hdf5_controller = HDF5RecordController(AsyncioClient("localhost"), test_prefix)
+
+    # When using tests w/o CA, need to manually set _directory_exists to 1
+    hdf5_controller._directory_exists_record.set(1)
+
     yield hdf5_controller
     # Give time for asyncio to fully close its connections
     await asyncio.sleep(0)
@@ -345,6 +350,12 @@ async def test_hdf5_ioc(hdf5_subprocess_ioc):
     val = await caget(hdf5_test_prefix + ":Status", datatype=DBR_CHAR_STR)
     assert val == "OK"
 
+    val = await caget(hdf5_test_prefix + ":CreateDirectory")
+    assert val == 0
+
+    val = await caget(hdf5_test_prefix + ":DirectoryExists")
+    assert val == 0
+
 
 async def test_hdf5_ioc_parameter_validate_works(
     hdf5_subprocess_ioc_no_logging_check, tmp_path
@@ -382,6 +393,99 @@ async def test_hdf5_ioc_parameter_validate_works(
         )
     val = await caget(hdf5_test_prefix + ":HDFFullFilePath", datatype=DBR_CHAR_STR)
     assert val == str(tmp_path) + "/name.h5"  # put should have been stopped
+
+
+@pytest.mark.parametrize(
+    "create_depth, path, expect_exists, restrict_permissions",
+    [
+        (0, ".", True, False),
+        (0, "panda_test1", False, False),
+        (-2, "panda_test2", True, False),
+        (-1, "panda_test3/depth_2", False, False),
+        (1, "panda_test4/depth_2", True, False),
+        (0, ".", False, True),
+        (1, "panda_test5", False, True),
+        (-1, "panda_test6", False, True),
+        (10, "panda_test7", False, False),
+    ],
+)
+async def test_hdf5_dir_creation(
+    hdf5_subprocess_ioc,
+    tmp_path: Path,
+    create_depth: int,
+    path: str,
+    expect_exists: bool,
+    restrict_permissions: bool,
+):
+    """Test to see if directory creation/exists works as expected"""
+
+    if restrict_permissions:
+        # Artificially restrict perms for temp folder to simulate perm issues.
+        tmp_path.chmod(0o444)
+
+    _, hdf5_test_prefix = hdf5_subprocess_ioc
+
+    target_path = str(tmp_path / path)
+
+    await caput(
+        hdf5_test_prefix + ":CreateDirectory",
+        create_depth,
+        wait=True,
+    )
+    await caput(
+        hdf5_test_prefix + ":HDFDirectory",
+        target_path,
+        datatype=DBR_CHAR_STR,
+        wait=True,
+    )
+    exists = await caget(hdf5_test_prefix + ":DirectoryExists")
+
+    assert (exists > 0) == expect_exists
+    if expect_exists:
+        assert os.path.exists(target_path)
+        assert os.access(target_path, os.W_OK)
+
+    if restrict_permissions:
+        # Put back default permissions
+        tmp_path.chmod(0o700)
+
+
+async def test_hdf5_file_writing_no_dir(hdf5_subprocess_ioc, tmp_path: Path, caplog):
+    """Test that if dir doesn't exist, HDF file writing fails with a runtime error"""
+    test_prefix, hdf5_test_prefix = hdf5_subprocess_ioc
+
+    test_dir = tmp_path
+    test_filename = "test.h5"
+    await caput(
+        hdf5_test_prefix + ":HDFDirectory",
+        str(test_dir / "panda_test1"),
+        wait=True,
+        datatype=DBR_CHAR_STR,
+    )
+
+    exists = await caget(hdf5_test_prefix + ":DirectoryExists")
+    assert exists == 0
+
+    await caput(
+        hdf5_test_prefix + ":HDFFileName", "name.h5", wait=True, datatype=DBR_CHAR_STR
+    )
+    await caput(
+        hdf5_test_prefix + ":HDFFileName",
+        test_filename,
+        wait=True,
+        timeout=TIMEOUT,
+        datatype=DBR_CHAR_STR,
+    )
+
+    val = await caget(hdf5_test_prefix + ":HDFFullFilePath", datatype=DBR_CHAR_STR)
+    assert val == "/".join([str(tmp_path), "panda_test1", test_filename])
+
+    await caput(hdf5_test_prefix + ":NumCapture", 1, wait=True, timeout=TIMEOUT)
+
+    await caput(hdf5_test_prefix + ":Capture", 1, wait=True, timeout=TIMEOUT)
+
+    val = await caget(hdf5_test_prefix + ":Status", datatype=DBR_CHAR_STR)
+    assert val == "Capture disabled, unexpected exception"
 
 
 @pytest.mark.parametrize("num_capture", [1, 1000, 10000])
@@ -513,7 +617,7 @@ async def test_hdf5_file_writing_last_n_endreason_not_ok(
     )
     assert await caget(hdf5_test_prefix + ":NumCapture") == num_capture
 
-    # Initially Status should be "OK"
+    # Initially Status should be "Dir exists and is writable"
     val = await caget(hdf5_test_prefix + ":Status", datatype=DBR_CHAR_STR)
     assert val == "OK"
 

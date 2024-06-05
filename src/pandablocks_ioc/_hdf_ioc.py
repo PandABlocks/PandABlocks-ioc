@@ -5,6 +5,7 @@ from asyncio import CancelledError
 from collections import deque
 from enum import Enum
 from importlib.util import find_spec
+from pathlib import Path
 from typing import Callable, Deque, Optional, Union
 
 from pandablocks.asyncio import AsyncioClient
@@ -311,6 +312,8 @@ class HDF5RecordController:
     _client: AsyncioClient
 
     _directory_record: RecordWrapper
+    _create_directory_record: RecordWrapper
+    _directory_exists_record: RecordWrapper
     _file_name_record: RecordWrapper
     _file_number_record: RecordWrapper
     _file_format_record: RecordWrapper
@@ -340,7 +343,8 @@ class HDF5RecordController:
             length=path_length,
             DESC="File path for HDF5 files",
             validate=self._parameter_validate,
-            on_update=self._update_full_file_path,
+            on_update=self._update_directory_path,
+            always_update=True,
         )
         add_automatic_pvi_info(
             PviGroup.HDF,
@@ -350,6 +354,40 @@ class HDF5RecordController:
         )
         self._directory_record.add_alias(
             record_prefix + ":" + self._DATA_PREFIX + ":HDFDirectory"
+        )
+
+        create_directory_record_name = EpicsName(self._DATA_PREFIX + ":CreateDirectory")
+        self._create_directory_record = builder.longOut(
+            create_directory_record_name,
+            initial_value=0,
+            DESC="Directory creation depth",
+        )
+        add_automatic_pvi_info(
+            PviGroup.HDF,
+            self._create_directory_record,
+            create_directory_record_name,
+            builder.longOut,
+        )
+        self._create_directory_record.add_alias(
+            record_prefix + ":" + create_directory_record_name.upper()
+        )
+
+        directory_exists_name = EpicsName(self._DATA_PREFIX + ":DirectoryExists")
+        self._directory_exists_record = builder.boolIn(
+            directory_exists_name,
+            ZNAM="No",
+            ONAM="Yes",
+            initial_value=0,
+            DESC="Directory exists",
+        )
+        add_automatic_pvi_info(
+            PviGroup.HDF,
+            self._directory_exists_record,
+            directory_exists_name,
+            builder.boolIn,
+        )
+        self._directory_exists_record.add_alias(
+            record_prefix + ":" + directory_exists_name.upper()
         )
 
         file_name_record_name = EpicsName(self._DATA_PREFIX + ":HDF_FILE_NAME")
@@ -523,6 +561,70 @@ class HDF5RecordController:
             return False
         return True
 
+    async def _update_directory_path(self, new_val) -> None:
+        """Handles writes to the directory path PV, creating
+        directories based on the setting of the CreateDirectory record"""
+        new_path = Path(new_val).absolute()
+        create_dir_depth = self._create_directory_record.get()
+        max_dirs_to_create = 0
+        if create_dir_depth < 0:
+            max_dirs_to_create = abs(create_dir_depth)
+        elif create_dir_depth > len(new_path.parents):
+            max_dirs_to_create = 0
+        elif create_dir_depth > 0:
+            max_dirs_to_create = len(new_path.parents) - create_dir_depth
+
+        logging.debug(f"Permitted to create up to {max_dirs_to_create} dirs.")
+        dirs_to_create = 0
+        for p in reversed(new_path.parents):
+            if not p.exists():
+                if dirs_to_create == 0:
+                    # First directory level that does not exist, log it.
+                    logging.error(f"All dir from {str(p)} and below do not exist!")
+                dirs_to_create += 1
+            else:
+                logging.info(f"{str(p)} exists")
+
+        # Account for target path itself not existing
+        if not os.path.exists(new_path):
+            dirs_to_create += 1
+
+        logging.debug(f"Need to create {dirs_to_create} directories.")
+
+        # Case where all dirs exist
+        if dirs_to_create == 0:
+            if os.access(new_path, os.W_OK):
+                status_msg = "Dir exists and is writable"
+                self._directory_exists_record.set(1)
+            else:
+                status_msg = "Dirs exist but aren't writable."
+                self._directory_exists_record.set(0)
+        # Case where we will create directories
+        elif dirs_to_create <= max_dirs_to_create:
+            logging.debug(f"Attempting to create {dirs_to_create} dir(s)...")
+            try:
+                os.makedirs(new_path, exist_ok=True)
+                status_msg = f"Created {dirs_to_create} dirs."
+                self._directory_exists_record.set(1)
+            except PermissionError:
+                status_msg = "Permission error creating dirs!"
+                self._directory_exists_record.set(0)
+        # Case where too many directories need to be created
+        else:
+            status_msg = f"Need to create {dirs_to_create} > {max_dirs_to_create} dirs."
+            self._directory_exists_record.set(0)
+
+        if self._directory_exists_record.get() == 0:
+            sevr = alarm.MAJOR_ALARM, alrm = alarm.STATE_ALARM
+            logging.error(status_msg)
+        else:
+            sevr = alarm.NO_ALARM, alrm = alarm.NO_ALARM
+            logging.debug(status_msg)
+
+        self._status_message_record.set(status_msg, severity=sevr, alarm=alrm)
+
+        await self._update_full_file_path(new_val)
+
     async def _update_full_file_path(self, new_val) -> None:
         self._full_file_path_record.set(self._get_filepath())
 
@@ -532,6 +634,12 @@ class HDF5RecordController:
         This method expects to be run as an asyncio Task."""
         try:
             # Set up the hdf buffer
+
+            if not self._directory_exists_record.get() == 1:
+                raise RuntimeError(
+                    "Configured HDF directory does not exist or is not writable!"
+                )
+
             num_capture: int = self._num_capture_record.get()
             capture_mode: CaptureMode = CaptureMode(self._capture_mode_record.get())
             filepath = self._get_filepath()

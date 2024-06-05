@@ -9,6 +9,8 @@ These can be viewed from the DATA screen.
 ```
 
 - The file directory and name are chosen with `:DATA:HDFDirectory` and `:DATA:HDFFileName`.
+- The number of directories that the IOC is allowed to create provided they don't exist is determined by `:DATA:CreateDirectory`. The behavior of this signal is the same as the identical PV in [`areaDetector`](https://areadetector.github.io/areaDetector/ADCore/NDPluginFile.html).
+- `DATA:DirectoryExists` represents whether or not the directory specified exists and is writable by the user under which the IOC is running.
 - `:DATA:NumCapture` is the number of frames to capture in the file.
 - `:DATA:NumCaptured` is the number of frames written to file.
 - `:DATA:NumReceived` is the number of frames received from the panda.
