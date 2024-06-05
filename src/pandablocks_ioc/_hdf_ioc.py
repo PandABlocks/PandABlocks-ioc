@@ -6,7 +6,7 @@ from collections import deque
 from enum import Enum
 from importlib.util import find_spec
 from pathlib import Path
-from typing import Callable, Deque, Optional, Union
+from typing import Callable, Deque, Dict, Optional, Union
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.hdf import (
@@ -70,6 +70,7 @@ class HDF5Buffer:
         status_message_setter: Callable,
         number_received_setter: Callable,
         number_captured_setter_pipeline: NumCapturedSetter,
+        dataset_names: Dict[EpicsName, str],
     ):
         # Only one filename - user must stop capture and set new FileName/FilePath
         # for new files
@@ -94,6 +95,8 @@ class HDF5Buffer:
         self.number_captured_setter_pipeline = number_captured_setter_pipeline
         self.number_captured_setter_pipeline.number_captured_setter(0)
 
+        self.dataset_names = dataset_names
+
         if (
             self.capture_mode == CaptureMode.LAST_N
             and self.number_of_rows_to_capture <= 0
@@ -114,7 +117,9 @@ class HDF5Buffer:
 
     def start_pipeline(self):
         self.pipeline = create_default_pipeline(
-            iter([self.filepath]), self.number_captured_setter_pipeline
+            iter([self.filepath]),
+            self.dataset_names,
+            self.number_captured_setter_pipeline,
         )
 
     def _handle_StartData(self, data: StartData):
@@ -325,12 +330,18 @@ class HDF5RecordController:
 
     _handle_hdf5_data_task: Optional[asyncio.Task] = None
 
-    def __init__(self, client: AsyncioClient, record_prefix: str):
+    def __init__(
+        self,
+        client: AsyncioClient,
+        dataset_name_getters: Dict[str, Callable[[], str]],
+        record_prefix: str,
+    ):
         if find_spec("h5py") is None:
             logging.warning("No HDF5 support detected - skipping creating HDF5 records")
             return
 
         self._client = client
+        self.dataset_name_getters = dataset_name_getters
 
         path_length = os.pathconf("/", "PC_PATH_MAX")
         filename_length = os.pathconf("/", "PC_NAME_MAX")
@@ -654,6 +665,11 @@ class HDF5RecordController:
                 self._status_message_record.set,
                 self._num_received_record.set,
                 number_captured_setter_pipeline,
+                {
+                    record_name: dataset_name_getter() or record_name
+                    for record_name, dataset_name_getter in
+                    self.dataset_name_getters.items()
+                },
             )
             flush_period: float = self._flush_period_record.get()
             async for data in self._client.data(

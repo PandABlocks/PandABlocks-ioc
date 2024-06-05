@@ -537,6 +537,10 @@ class IocRecordFactory:
         self._client = client
         self._all_values_dict = all_values_dict
 
+        # We require a dictionary of pos out record name to the getter
+        # for the corresponding dataset name
+        self._pos_out_dataset_name_getters: Dict[EpicsName, Callable[[], str]] = {}
+
         # Set the record prefix
         builder.SetDeviceName(self._record_prefix)
 
@@ -924,8 +928,11 @@ class IocRecordFactory:
             builder.stringOut,
             str,
             PviGroup.CAPTURE,
-            initial_value=values.get(dataset_record_name, ""),
+            initial_value="",
         )
+        self._pos_out_dataset_name_getters[record_name] = record_dict[
+            dataset_record_name
+        ].record.get
 
         # Create the POSITIONS "table" of records. Most are aliases of the records
         # created above.
@@ -1776,7 +1783,9 @@ class IocRecordFactory:
 
             add_pcap_arm_pvi_info(PviGroup.INPUTS, pcap_arm_record)
 
-            HDF5RecordController(self._client, self._record_prefix)
+            HDF5RecordController(
+                self._client, self._pos_out_dataset_name_getters, self._record_prefix
+            )
 
         return record_dict
 

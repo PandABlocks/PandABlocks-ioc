@@ -228,7 +228,16 @@ async def hdf5_controller(
 
     test_prefix, hdf5_test_prefix = new_random_hdf5_prefix
 
-    hdf5_controller = HDF5RecordController(AsyncioClient("localhost"), test_prefix)
+    dataset_name_getters = {
+        "COUNTER1": lambda: "some_other_dataset_name",
+        # these datasets haven't been overwritten, they should be the default
+        "COUNTER2": lambda: "",
+        "COUNTER3": lambda: "",
+    }
+
+    hdf5_controller = HDF5RecordController(
+        AsyncioClient("localhost"), dataset_name_getters, test_prefix
+    )
 
     # When using tests w/o CA, need to manually set _directory_exists to 1
     hdf5_controller._directory_exists_record.set(1)
@@ -247,7 +256,7 @@ def subprocess_func(
     async def wrapper():
         builder.SetDeviceName(namespace_prefix)
         client = MockedAsyncioClient(standard_responses)
-        HDF5RecordController(client, namespace_prefix)
+        HDF5RecordController(client, {}, namespace_prefix)
         dispatcher = asyncio_dispatcher.AsyncioDispatcher()
         builder.LoadDatabase()
         softioc.iocInit(dispatcher)
@@ -762,6 +771,7 @@ def test_hdf_buffer_forever(differently_sized_framedata, tmp_path):
         status_output.append,
         num_received_output.append,
         num_captured_setter_pipeline,
+        {},
     )
     buffer.put_data_to_file = frames_written_to_file.append
 
@@ -805,6 +815,7 @@ def test_hdf_buffer_last_n(differently_sized_framedata, tmp_path):
         status_output.append,
         num_received_output.append,
         num_captured_setter_pipeline,
+        {},
     )
     buffer.put_data_to_file = frames_written_to_file.append
 
@@ -881,6 +892,7 @@ def test_hdf_buffer_last_n_large_data(tmp_path):
         status_output.append,
         num_received_output.append,
         num_captured_setter_pipeline,
+        {},
     )
     buffer.put_data_to_file = frames_written_to_file.append
 
