@@ -537,9 +537,9 @@ class IocRecordFactory:
         self._client = client
         self._all_values_dict = all_values_dict
 
-        # We require a dictionary of pos out record name to the getter
-        # for the corresponding dataset name
-        self._pos_out_dataset_name_getters: Dict[EpicsName, Callable[[], str]] = {}
+        # A dictionary of record name to capture type to HDF dataset name
+        # e.g {"COUNTER1": {"Max": "SOME_OTHER_DATASET_NAME"}}
+        self._capture_record_hdf_names: Dict[EpicsName, Dict[str, str]] = {}
 
         # Set the record prefix
         builder.SetDeviceName(self._record_prefix)
@@ -867,9 +867,35 @@ class IocRecordFactory:
         )
 
         capture_record_name = EpicsName(record_name + ":CAPTURE")
+        dataset_record_name = EpicsName(record_name + ":DATASET")
         labels, capture_index = self._process_labels(
             field_info.capture_labels, values[capture_record_name]
         )
+
+        def adjust_hdf_field_name_based_on_dataset(dataset_name) -> str:
+            current_capture_mode = labels[record_dict[capture_record_name].record.get()]
+
+            # Throw away all the old settings
+            self._capture_record_hdf_names[record_name] = {}
+
+            # Add a -Max or -Min or -Mean to the dataset name if it exists
+            if current_capture_mode in ("Min Max", "Min Max Mean"):
+                for capture_mode_instance in current_capture_mode.split(" "):
+                    self._capture_record_hdf_names[record_name][
+                        capture_mode_instance
+                    ] = f"{(dataset_name or record_name)}-{capture_mode_instance}"
+
+            # Current capture mode will be the same as the capture mode instance
+            else:
+                self._capture_record_hdf_names[record_name][current_capture_mode] = (
+                    dataset_name or f"{record_name}-{current_capture_mode}"
+                )
+
+        def adjust_hdf_field_name_based_on_capture_mode(capture_mode) -> str:
+            current_dataset_name = record_dict[capture_record_name].record.get()
+            adjust_hdf_field_name_based_on_dataset(current_dataset_name)
+
+        print("RECORD NAME", record_name)
         record_dict[capture_record_name] = self._create_record_info(
             capture_record_name,
             "Capture options",
@@ -878,6 +904,16 @@ class IocRecordFactory:
             PviGroup.CAPTURE,
             labels=labels,
             initial_value=capture_index,
+            on_update=adjust_hdf_field_name_based_on_capture_mode,
+        )
+        record_dict[dataset_record_name] = self._create_record_info(
+            dataset_record_name,
+            "Used to adjust the dataset name to one more scientifically relevant",
+            builder.stringOut,
+            str,
+            PviGroup.CAPTURE,
+            initial_value="",
+            on_update=adjust_hdf_field_name_based_on_dataset,
         )
 
         offset_record_name = EpicsName(record_name + ":OFFSET")
@@ -920,19 +956,6 @@ class IocRecordFactory:
             INPC=builder.CP(record_dict[offset_record_name].record),
             DESC="Value with scaling applied",
         )
-
-        dataset_record_name = EpicsName(record_name + ":DATASET")
-        record_dict[dataset_record_name] = self._create_record_info(
-            dataset_record_name,
-            "Used to adjust the dataset name to one more scientifically relevant",
-            builder.stringOut,
-            str,
-            PviGroup.CAPTURE,
-            initial_value="",
-        )
-        self._pos_out_dataset_name_getters[record_name] = record_dict[
-            dataset_record_name
-        ].record.get
 
         # Create the POSITIONS "table" of records. Most are aliases of the records
         # created above.
@@ -1784,7 +1807,7 @@ class IocRecordFactory:
             add_pcap_arm_pvi_info(PviGroup.INPUTS, pcap_arm_record)
 
             HDF5RecordController(
-                self._client, self._pos_out_dataset_name_getters, self._record_prefix
+                self._client, self._capture_record_hdf_names, self._record_prefix
             )
 
         return record_dict

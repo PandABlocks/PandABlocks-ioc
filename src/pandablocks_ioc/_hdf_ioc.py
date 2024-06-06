@@ -3,6 +3,7 @@ import logging
 import os
 from asyncio import CancelledError
 from collections import deque
+from copy import deepcopy
 from enum import Enum
 from importlib.util import find_spec
 from pathlib import Path
@@ -70,7 +71,7 @@ class HDF5Buffer:
         status_message_setter: Callable,
         number_received_setter: Callable,
         number_captured_setter_pipeline: NumCapturedSetter,
-        dataset_names: Dict[EpicsName, str],
+        capture_record_hdf_names: Dict[EpicsName, Dict[str, str]],
     ):
         # Only one filename - user must stop capture and set new FileName/FilePath
         # for new files
@@ -95,7 +96,7 @@ class HDF5Buffer:
         self.number_captured_setter_pipeline = number_captured_setter_pipeline
         self.number_captured_setter_pipeline.number_captured_setter(0)
 
-        self.dataset_names = dataset_names
+        self.capture_record_hdf_names = capture_record_hdf_names
 
         if (
             self.capture_mode == CaptureMode.LAST_N
@@ -118,7 +119,7 @@ class HDF5Buffer:
     def start_pipeline(self):
         self.pipeline = create_default_pipeline(
             iter([self.filepath]),
-            self.dataset_names,
+            self.capture_record_hdf_names,
             self.number_captured_setter_pipeline,
         )
 
@@ -333,7 +334,7 @@ class HDF5RecordController:
     def __init__(
         self,
         client: AsyncioClient,
-        dataset_name_getters: Dict[str, Callable[[], str]],
+        capture_record_hdf_name: Dict[str, Callable[[str], str]],
         record_prefix: str,
     ):
         if find_spec("h5py") is None:
@@ -341,7 +342,7 @@ class HDF5RecordController:
             return
 
         self._client = client
-        self.dataset_name_getters = dataset_name_getters
+        self.capture_record_hdf_name = capture_record_hdf_name
 
         path_length = os.pathconf("/", "PC_PATH_MAX")
         filename_length = os.pathconf("/", "PC_NAME_MAX")
@@ -626,10 +627,10 @@ class HDF5RecordController:
             self._directory_exists_record.set(0)
 
         if self._directory_exists_record.get() == 0:
-            sevr = alarm.MAJOR_ALARM, alrm = alarm.STATE_ALARM
+            sevr, alrm = alarm.MAJOR_ALARM, alarm.STATE_ALARM
             logging.error(status_msg)
         else:
-            sevr = alarm.NO_ALARM, alrm = alarm.NO_ALARM
+            sevr, alrm = alarm.NO_ALARM, alarm.NO_ALARM
             logging.debug(status_msg)
 
         self._status_message_record.set(status_msg, severity=sevr, alarm=alrm)
@@ -658,6 +659,9 @@ class HDF5RecordController:
             number_captured_setter_pipeline = NumCapturedSetter(
                 self._num_captured_record.set
             )
+
+            # Get the dataset names, or use the record name if no
+            # dataset name is provided
             buffer = HDF5Buffer(
                 capture_mode,
                 filepath,
@@ -665,11 +669,7 @@ class HDF5RecordController:
                 self._status_message_record.set,
                 self._num_received_record.set,
                 number_captured_setter_pipeline,
-                {
-                    record_name: dataset_name_getter() or record_name
-                    for record_name, dataset_name_getter in
-                    self.dataset_name_getters.items()
-                },
+                deepcopy(self.capture_record_hdf_name),
             )
             flush_period: float = self._flush_period_record.get()
             async for data in self._client.data(

@@ -628,7 +628,7 @@ async def test_hdf5_file_writing_last_n_endreason_not_ok(
 
     # Initially Status should be "Dir exists and is writable"
     val = await caget(hdf5_test_prefix + ":Status", datatype=DBR_CHAR_STR)
-    assert val == "OK"
+    assert val == "Dir exists and is writable"
 
     await caput(hdf5_test_prefix + ":Capture", 1, wait=True, timeout=TIMEOUT)
 
