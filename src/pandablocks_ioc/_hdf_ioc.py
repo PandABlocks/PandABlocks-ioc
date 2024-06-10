@@ -71,7 +71,7 @@ class HDF5Buffer:
         status_message_setter: Callable,
         number_received_setter: Callable,
         number_captured_setter_pipeline: NumCapturedSetter,
-        capture_record_hdf_names: Dict[EpicsName, Dict[str, str]],
+        dataset_name_cache: Dict[EpicsName, Dict[str, str]],
     ):
         # Only one filename - user must stop capture and set new FileName/FilePath
         # for new files
@@ -96,7 +96,7 @@ class HDF5Buffer:
         self.number_captured_setter_pipeline = number_captured_setter_pipeline
         self.number_captured_setter_pipeline.number_captured_setter(0)
 
-        self.capture_record_hdf_names = capture_record_hdf_names
+        self.dataset_name_cache = dataset_name_cache
 
         if (
             self.capture_mode == CaptureMode.LAST_N
@@ -119,7 +119,7 @@ class HDF5Buffer:
     def start_pipeline(self):
         self.pipeline = create_default_pipeline(
             iter([self.filepath]),
-            self.capture_record_hdf_names,
+            self.dataset_name_cache,
             self.number_captured_setter_pipeline,
         )
 
@@ -334,7 +334,7 @@ class HDF5RecordController:
     def __init__(
         self,
         client: AsyncioClient,
-        capture_record_hdf_name: Dict[str, Callable[[str], str]],
+        dataset_name_cache: Dict[str, Callable[[str], str]],
         record_prefix: str,
     ):
         if find_spec("h5py") is None:
@@ -342,7 +342,7 @@ class HDF5RecordController:
             return
 
         self._client = client
-        self.capture_record_hdf_name = capture_record_hdf_name
+        self.dataset_name_cache = dataset_name_cache
 
         path_length = os.pathconf("/", "PC_PATH_MAX")
         filename_length = os.pathconf("/", "PC_NAME_MAX")
@@ -669,7 +669,7 @@ class HDF5RecordController:
                 self._status_message_record.set,
                 self._num_received_record.set,
                 number_captured_setter_pipeline,
-                deepcopy(self.capture_record_hdf_name),
+                deepcopy(self.dataset_name_cache),
             )
             flush_period: float = self._flush_period_record.get()
             async for data in self._client.data(
