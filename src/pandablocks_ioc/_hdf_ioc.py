@@ -313,7 +313,7 @@ class HDF5Buffer:
 class HDF5RecordController:
     """Class to create and control the records that handle HDF5 processing"""
 
-    _DATA_PREFIX = "DATA"
+    DATA_PREFIX = "DATA"
 
     _client: AsyncioClient
 
@@ -349,7 +349,7 @@ class HDF5RecordController:
 
         # Create the records, including an uppercase alias for each
         # Naming convention and settings (mostly) copied from FSCN2 HDF5 records
-        directory_record_name = EpicsName(self._DATA_PREFIX + ":HDF_DIRECTORY")
+        directory_record_name = EpicsName(self.DATA_PREFIX + ":HDF_DIRECTORY")
         self._directory_record = builder.longStringOut(
             directory_record_name,
             length=path_length,
@@ -365,10 +365,10 @@ class HDF5RecordController:
             builder.longStringOut,
         )
         self._directory_record.add_alias(
-            record_prefix + ":" + self._DATA_PREFIX + ":HDFDirectory"
+            record_prefix + ":" + self.DATA_PREFIX + ":HDFDirectory"
         )
 
-        create_directory_record_name = EpicsName(self._DATA_PREFIX + ":CreateDirectory")
+        create_directory_record_name = EpicsName(self.DATA_PREFIX + ":CreateDirectory")
         self._create_directory_record = builder.longOut(
             create_directory_record_name,
             initial_value=0,
@@ -384,7 +384,7 @@ class HDF5RecordController:
             record_prefix + ":" + create_directory_record_name.upper()
         )
 
-        directory_exists_name = EpicsName(self._DATA_PREFIX + ":DirectoryExists")
+        directory_exists_name = EpicsName(self.DATA_PREFIX + ":DirectoryExists")
         self._directory_exists_record = builder.boolIn(
             directory_exists_name,
             ZNAM="No",
@@ -402,7 +402,7 @@ class HDF5RecordController:
             record_prefix + ":" + directory_exists_name.upper()
         )
 
-        file_name_record_name = EpicsName(self._DATA_PREFIX + ":HDF_FILE_NAME")
+        file_name_record_name = EpicsName(self.DATA_PREFIX + ":HDF_FILE_NAME")
         self._file_name_record = builder.longStringOut(
             file_name_record_name,
             length=filename_length,
@@ -417,12 +417,10 @@ class HDF5RecordController:
             builder.longStringOut,
         )
         self._file_name_record.add_alias(
-            record_prefix + ":" + self._DATA_PREFIX + ":HDFFileName"
+            record_prefix + ":" + self.DATA_PREFIX + ":HDFFileName"
         )
 
-        full_file_path_record_name = EpicsName(
-            self._DATA_PREFIX + ":HDF_FULL_FILE_PATH"
-        )
+        full_file_path_record_name = EpicsName(self.DATA_PREFIX + ":HDF_FULL_FILE_PATH")
         self._full_file_path_record = builder.longStringIn(
             full_file_path_record_name,
             length=path_length + 1 + filename_length,
@@ -435,10 +433,10 @@ class HDF5RecordController:
             builder.longStringIn,
         )
         self._full_file_path_record.add_alias(
-            record_prefix + ":" + self._DATA_PREFIX + ":HDFFullFilePath"
+            record_prefix + ":" + self.DATA_PREFIX + ":HDFFullFilePath"
         )
 
-        num_capture_record_name = EpicsName(self._DATA_PREFIX + ":NUM_CAPTURE")
+        num_capture_record_name = EpicsName(self.DATA_PREFIX + ":NUM_CAPTURE")
         self._num_capture_record = builder.longOut(
             num_capture_record_name,
             initial_value=0,  # Infinite capture
@@ -454,10 +452,10 @@ class HDF5RecordController:
         )
         # No validate - users are allowed to change this at any time
         self._num_capture_record.add_alias(
-            record_prefix + ":" + self._DATA_PREFIX + ":NumCapture"
+            record_prefix + ":" + self.DATA_PREFIX + ":NumCapture"
         )
 
-        num_captured_record_name = EpicsName(self._DATA_PREFIX + ":NUM_CAPTURED")
+        num_captured_record_name = EpicsName(self.DATA_PREFIX + ":NUM_CAPTURED")
         self._num_captured_record = builder.longIn(
             num_captured_record_name,
             initial_value=0,
@@ -471,10 +469,10 @@ class HDF5RecordController:
             builder.longIn,
         )
         self._num_captured_record.add_alias(
-            record_prefix + ":" + self._DATA_PREFIX + ":NumCaptured"
+            record_prefix + ":" + self.DATA_PREFIX + ":NumCaptured"
         )
 
-        num_received_record_name = EpicsName(self._DATA_PREFIX + ":NUM_RECEIVED")
+        num_received_record_name = EpicsName(self.DATA_PREFIX + ":NUM_RECEIVED")
         self._num_received_record = builder.longIn(
             num_received_record_name,
             initial_value=0,
@@ -488,10 +486,10 @@ class HDF5RecordController:
             builder.longIn,
         )
         self._num_received_record.add_alias(
-            record_prefix + ":" + self._DATA_PREFIX + ":NumReceived"
+            record_prefix + ":" + self.DATA_PREFIX + ":NumReceived"
         )
 
-        flush_period_record_name = EpicsName(self._DATA_PREFIX + ":FLUSH_PERIOD")
+        flush_period_record_name = EpicsName(self.DATA_PREFIX + ":FLUSH_PERIOD")
         self._flush_period_record = builder.aOut(
             flush_period_record_name,
             initial_value=1.0,
@@ -505,10 +503,10 @@ class HDF5RecordController:
             builder.aOut,
         )
         self._flush_period_record.add_alias(
-            record_prefix + ":" + self._DATA_PREFIX + ":FlushPeriod"
+            record_prefix + ":" + self.DATA_PREFIX + ":FlushPeriod"
         )
 
-        capture_control_record_name = EpicsName(self._DATA_PREFIX + ":CAPTURE")
+        capture_control_record_name = EpicsName(self.DATA_PREFIX + ":CAPTURE")
         self._capture_control_record = builder.boolOut(
             capture_control_record_name,
             ZNAM=ZNAM_STR,
@@ -523,10 +521,10 @@ class HDF5RecordController:
             self._capture_control_record,
         )
         self._capture_control_record.add_alias(
-            record_prefix + ":" + self._DATA_PREFIX + ":Capture"
+            record_prefix + ":" + self.DATA_PREFIX + ":Capture"
         )
 
-        capture_mode_record_name = EpicsName(self._DATA_PREFIX + ":CAPTURE_MODE")
+        capture_mode_record_name = EpicsName(self.DATA_PREFIX + ":CAPTURE_MODE")
         self._capture_mode_record = builder.mbbOut(
             capture_mode_record_name,
             *[capture_mode.name for capture_mode in CaptureMode],
@@ -540,10 +538,10 @@ class HDF5RecordController:
             builder.mbbOut,
         )
         self._capture_mode_record.add_alias(
-            record_prefix + ":" + self._DATA_PREFIX + ":CaptureMode"
+            record_prefix + ":" + self.DATA_PREFIX + ":CaptureMode"
         )
 
-        status_message_record_name = EpicsName(self._DATA_PREFIX + ":STATUS")
+        status_message_record_name = EpicsName(self.DATA_PREFIX + ":STATUS")
         self._status_message_record = builder.longStringIn(
             status_message_record_name,
             initial_value="OK",
@@ -557,7 +555,7 @@ class HDF5RecordController:
             builder.stringIn,
         )
         self._status_message_record.add_alias(
-            record_prefix + ":" + self._DATA_PREFIX + ":Status"
+            record_prefix + ":" + self.DATA_PREFIX + ":Status"
         )
 
     def _parameter_validate(self, record: RecordWrapper, new_val) -> bool:

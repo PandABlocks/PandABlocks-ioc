@@ -49,7 +49,7 @@ from ._pvi import (
     add_pcap_arm_pvi_info,
     add_positions_table_row,
 )
-from ._tables import TableRecordWrapper, TableUpdater
+from ._tables import ReadOnlyPvaTable, TableRecordWrapper, TableUpdater
 from ._types import (
     ONAM_STR,
     OUT_RECORD_FUNCTIONS,
@@ -508,17 +508,38 @@ class DatasetNameCache:
     def __init__(self):
         # A dictionary of record name to capture type to HDF dataset name
         # e.g {"COUNTER1.Out": {"Max": "SOME_OTHER_DATASET_NAME"}}
-        self.cache: Dict[EpicsName, Dict[str, str]] = {}
-        self.dataset_name_capture_mode_getters: Dict[
-            str, Tuple[Callable[[], str], Callable[[], str]]
-        ] = {}
+        self.cache: Dict[str, Dict[str, str]] = {}
+        self._record_name_to_dataset_name: Dict[EpicsName, str] = {}
+        self._record_name_to_capture_mode: Dict[EpicsName, str] = {}
 
-    def update(self, record_name: EpicsName):
-        capture_mode_getter, dataset_name_getter = (
-            self.dataset_name_capture_mode_getters[record_name]()
+        # A dictionary of dataset name to type and a  PVA table to hold this
+        self._dataset_name_to_type: Dict[str, np.dtype] = {}
+        _datasets_record_name = EpicsName(
+            HDF5RecordController.DATA_PREFIX + ":DATASETS"
         )
-        capture_mode, dataset_name = capture_mode_getter(), dataset_name_getter()
+        self._datasets_table = ReadOnlyPvaTable(_datasets_record_name, ["Name", "Type"])
+        self._datasets_table.add_row("Name", [], datatype=str, length=300)
+        self._datasets_table.add_row("Type", [], datatype=str, length=300)
 
+    def cache_dataset_name(self, record_name: EpicsName, dataset_name: str):
+        old_dataset_name = self._record_name_to_dataset_name.get(record_name, None)
+
+        self._record_name_to_dataset_name[record_name] = dataset_name
+
+        capture_mode = self._record_name_to_capture_mode.get(record_name, "No")
+        self.update_cache(record_name, dataset_name, capture_mode)
+
+        self.update_dataset_name_to_type(dataset_name, old_dataset_name)
+
+    def cache_capture_mode(self, record_name: EpicsName, capture_mode: str):
+        self._record_name_to_capture_mode[record_name] = capture_mode
+
+        dataset_name = self._record_name_to_dataset_name.get(record_name, None)
+        self.update_cache(record_name, dataset_name, capture_mode)
+
+    def update_cache(
+        self, record_name: EpicsName, dataset_name: Optional[str], capture_mode: str
+    ):
         field_name = record_name.replace(":", ".")
         # Throw away all the old settings
         self.cache[field_name] = capture_names = {}
@@ -531,6 +552,25 @@ class DatasetNameCache:
             if "Min Max" in capture_mode:
                 capture_names["Min"] = f"{dataset_name}-min"
                 capture_names["Max"] = f"{dataset_name}-min"
+
+    def update_dataset_name_to_type(
+        self, dataset_name: str, old_dataset_name: Optional[str]
+    ):
+        self._dataset_name_to_type.pop(old_dataset_name, None)
+        if dataset_name:  # Don't store for blank dataset names
+            """
+            self._dataset_name_to_type[dataset_name] = (
+                np.dtype("uint32")
+                if "TODO FIELD INFO" in record_name
+                else np.dtype("float64")
+            )
+            """
+            self._dataset_name_to_type[dataset_name] = np.dtype("float64")
+
+        self._datasets_table.update_row("Name", list(self._dataset_name_to_type.keys()))
+        self._datasets_table.update_row(
+            "Type", list(self._dataset_name_to_type.values())
+        )
 
 
 class IocRecordFactory:
@@ -566,13 +606,13 @@ class IocRecordFactory:
         self._client = client
         self._all_values_dict = all_values_dict
 
-        self._dataset_name_cache = DatasetNameCache()
-
         # Set the record prefix
         builder.SetDeviceName(self._record_prefix)
 
         # All records should be blocking
         builder.SetBlocking(True)
+
+        self._dataset_name_cache = DatasetNameCache()
 
     def _process_labels(
         self, labels: List[str], record_value: ScalarRecordValue
@@ -894,6 +934,7 @@ class IocRecordFactory:
         )
 
         capture_record_name = EpicsName(record_name + ":CAPTURE")
+        dataset_record_name = EpicsName(record_name + ":DATASET")
         labels, capture_index = self._process_labels(
             field_info.capture_labels, values[capture_record_name]
         )
@@ -905,9 +946,12 @@ class IocRecordFactory:
             PviGroup.CAPTURE,
             labels=labels,
             initial_value=capture_index,
-            on_update=lambda _: self._dataset_name_cache.update(record_name),
+            on_update=lambda new_capture_mode: (
+                self._dataset_name_cache.cache_capture_mode(
+                    record_name, new_capture_mode
+                )
+            ),
         )
-        dataset_record_name = EpicsName(record_name + ":DATASET")
         record_dict[dataset_record_name] = self._create_record_info(
             dataset_record_name,
             "Used to adjust the dataset name to one more scientifically relevant",
@@ -915,13 +959,11 @@ class IocRecordFactory:
             str,
             PviGroup.CAPTURE,
             initial_value="",
-            on_update=lambda _: self._dataset_name_cache.update(record_name),
-        )
-
-        # Add getters to cache so the client can use the dataset name
-        self._dataset_name_cache.dataset_name_capture_mode_getters[record_name] = (
-            record_dict[capture_record_name].record.get,
-            record_dict[dataset_record_name].record.get,
+            on_update=lambda new_dataset_name: (
+                self._dataset_name_cache.cache_dataset_name(
+                    record_name, new_dataset_name
+                )
+            ),
         )
 
         offset_record_name = EpicsName(record_name + ":OFFSET")

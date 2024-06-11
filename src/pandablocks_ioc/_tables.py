@@ -5,7 +5,7 @@ import typing
 from collections import OrderedDict
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Type
 
 import numpy as np
 from epicsdbbuilder import RecordName
@@ -71,6 +71,85 @@ class TableModeEnum(Enum):
     EDIT = 1  # Process all EPICS record updates, discard all PandA updates
     SUBMIT = 2  # Push EPICS records to PandA, overriding current PandA data
     DISCARD = 3  # Discard all EPICS records, re-fetch from PandA
+
+
+class ReadOnlyPvaTable:
+    def __init__(
+        self,
+        epics_table_name: EpicsName,
+        labels: List[str],
+    ):
+        self.epics_table_name = epics_table_name
+        self.pva_table_name = RecordName(epics_table_name)
+        self.rows = {}
+
+        block, field = self.epics_table_name.split(":", maxsplit=1)
+
+        columns: RecordWrapper = builder.WaveformOut(
+            self.epics_table_name + ":LABELS",
+            initial_value=np.array([k.encode() for k in labels]),
+        )
+        columns.add_info(
+            "Q:group",
+            {
+                self.pva_table_name: {
+                    "+id": "epics:nt/NTTable:1.0",
+                    "labels": {"+type": "plain", "+channel": "VAL"},
+                }
+            },
+        )
+        pv_rec = builder.longStringIn(
+            self.epics_table_name + ":PV",
+            initial_value=self.pva_table_name,
+        )
+        pv_rec.add_info(
+            "Q:group",
+            {
+                RecordName(f"{block}:PVI"): {
+                    f"pvi.{field.lower().replace(':', '_')}.rw": {
+                        "+channel": "VAL",
+                        "+type": "plain",
+                    }
+                },
+            },
+        )
+
+    def add_row(
+        self,
+        row_name: str,
+        initial_value: List,
+        datatype: Type = str,
+        length: Optional[int] = None,
+    ):
+        full_name = EpicsName(self.epics_table_name + ":" + row_name)
+        pva_row_name = row_name.replace(":", "_").lower()
+        length = length or len(initial_value)
+        initial_value = np.array(initial_value, dtype=datatype)
+
+        field_record: RecordWrapper = builder.WaveformIn(
+            full_name,
+            DESC="",  # Description not provided yet
+            initial_value=initial_value,
+            length=length,
+        )
+
+        field_pva_info = {
+            "+type": "plain",
+            "+channel": "VAL",
+            "+trigger": "",
+        }
+
+        pva_info = {f"value.{pva_row_name.lower()}": field_pva_info}
+
+        field_record.add_info(
+            "Q:group",
+            {self.pva_table_name: pva_info},
+        )
+        self.rows[row_name] = field_record
+
+    def update_row(self, row_name: str, new_value: List):
+        new_value_np = np.array(new_value)
+        self.rows[row_name].set(new_value_np)
 
 
 class TableUpdater:
