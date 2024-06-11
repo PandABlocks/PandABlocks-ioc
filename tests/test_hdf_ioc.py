@@ -228,15 +228,13 @@ async def hdf5_controller(
 
     test_prefix, hdf5_test_prefix = new_random_hdf5_prefix
 
-    dataset_name_getters = {
-        "COUNTER1": lambda: "some_other_dataset_name",
+    dataset_name_cache = {
+        "COUNTER1.OUT": {"Value": "some_other_dataset_name"},
         # these datasets haven't been overwritten, they should be the default
-        "COUNTER2": lambda: "",
-        "COUNTER3": lambda: "",
     }
 
     hdf5_controller = HDF5RecordController(
-        AsyncioClient("localhost"), dataset_name_getters, test_prefix
+        AsyncioClient("localhost"), dataset_name_cache, test_prefix
     )
 
     # When using tests w/o CA, need to manually set _directory_exists to 1

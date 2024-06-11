@@ -71,7 +71,7 @@ class HDF5Buffer:
         status_message_setter: Callable,
         number_received_setter: Callable,
         number_captured_setter_pipeline: NumCapturedSetter,
-        dataset_name_cache: Dict[EpicsName, Dict[str, str]],
+        dataset_name_cache: Dict[str, Dict[str, str]],
     ):
         # Only one filename - user must stop capture and set new FileName/FilePath
         # for new files
@@ -334,7 +334,7 @@ class HDF5RecordController:
     def __init__(
         self,
         client: AsyncioClient,
-        dataset_name_cache: Dict[str, Callable[[str], str]],
+        dataset_name_cache: Dict[str, Dict[str, str]],
         record_prefix: str,
     ):
         if find_spec("h5py") is None:

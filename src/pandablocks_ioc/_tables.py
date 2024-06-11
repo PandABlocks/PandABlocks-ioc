@@ -81,7 +81,7 @@ class ReadOnlyPvaTable:
     ):
         self.epics_table_name = epics_table_name
         self.pva_table_name = RecordName(epics_table_name)
-        self.rows = {}
+        self.rows: Dict[str, RecordWrapper] = {}
 
         block, field = self.epics_table_name.split(":", maxsplit=1)
 
@@ -124,12 +124,12 @@ class ReadOnlyPvaTable:
         full_name = EpicsName(self.epics_table_name + ":" + row_name)
         pva_row_name = row_name.replace(":", "_").lower()
         length = length or len(initial_value)
-        initial_value = np.array(initial_value, dtype=datatype)
+        initial_value_np = np.array(initial_value, dtype=datatype)
 
         field_record: RecordWrapper = builder.WaveformIn(
             full_name,
             DESC="",  # Description not provided yet
-            initial_value=initial_value,
+            initial_value=initial_value_np,
             length=length,
         )
 

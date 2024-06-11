@@ -526,29 +526,25 @@ class DatasetNameCache:
         self.cache[field_name] = capture_names = {}
         # Only consider explicitly named datsets
         if dataset_name and capture_mode != "No":
-            # The last capture option is the one that should take the dataset name
+            # Keep a reference to just the dataset name for `DATA:DATASETS`
+            self._record_name_to_dataset_name[record_name] = dataset_name
             capture_names[capture_mode.split(" ")[-1]] = dataset_name
-            # But also suffix -min and -max if both are present
+            # Suffix -min and -max if both are present
             if "Min Max" in capture_mode:
                 capture_names["Min"] = f"{dataset_name}-min"
                 capture_names["Max"] = f"{dataset_name}-min"
 
-            self._record_name_to_dataset_name[record_name] = dataset_name
         else:
             self._record_name_to_dataset_name.pop(record_name, None)
 
         self.update_dataset_name_to_type()
 
     def update_dataset_name_to_type(self):
-        self._datasets_table.update_row(
-            "Name", list(self._record_name_to_dataset_name.values())
-        )
+        dataset_name_list = list(self._record_name_to_dataset_name.values())
+        self._datasets_table.update_row("Name", dataset_name_list)
         self._datasets_table.update_row(
             "Type",
-            [
-                "uint32" if "EXT_OUT" in record_name else "float64"
-                for record_name in self._record_name_to_dataset_name.keys()
-            ],
+            ["float64"] * len(dataset_name_list),
         )
 
 
@@ -1062,16 +1058,30 @@ class IocRecordFactory:
         record_dict: Dict[EpicsName, RecordInfo] = {}
 
         # There is no record for the ext_out field itself - the only thing
-        # you do with them is to turn their Capture attribute on/off.
-        # The field itself has no value.
+        # you do with them is to turn their Capture attribute on/off, and give it
+        # an alternative dataset name
 
         capture_record_name = EpicsName(record_name + ":CAPTURE")
+        dataset_record_name = EpicsName(record_name + ":DATASET")
         labels, capture_index = self._process_labels(
             field_info.capture_labels, values[capture_record_name]
         )
+        record_dict[dataset_record_name] = self._create_record_info(
+            dataset_record_name,
+            "Used to adjust the dataset name to one more scientifically relevant",
+            builder.stringOut,
+            str,
+            PviGroup.OUTPUTS,
+            initial_value="",
+            on_update=lambda new_dataset_name: (
+                self._dataset_name_cache.update_cache(
+                    record_name,
+                    new_dataset_name,
+                    labels[record_dict[capture_record_name].record.get()],
+                )
+            ),
+        )
 
-        # TODO :DATASET on ext out, you don't need to add this to all
-        # position capture table, though we want it in `DATA:DATASETS`
         record_dict[capture_record_name] = self._create_record_info(
             capture_record_name,
             field_info.description,
@@ -1080,6 +1090,13 @@ class IocRecordFactory:
             PviGroup.OUTPUTS,
             labels=labels,
             initial_value=capture_index,
+            on_update=lambda new_capture_mode: (
+                self._dataset_name_cache.update_cache(
+                    record_name,
+                    record_dict[dataset_record_name].record.get(),
+                    labels[new_capture_mode],
+                )
+            ),
         )
 
         return record_dict

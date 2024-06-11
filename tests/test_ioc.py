@@ -219,18 +219,19 @@ def idfn(val):
             ),
             {
                 f"{TEST_RECORD}:CAPTURE": "Diff",
+                f"{TEST_RECORD}:DATASET": "MyDataset",
             },
-            [
-                f"{TEST_RECORD}:CAPTURE",
-            ],
+            [f"{TEST_RECORD}:CAPTURE", f"{TEST_RECORD}:DATASET"],
         ),
         (
             ExtOutFieldInfo("ext_out", "samples", None, capture_labels=["No", "Diff"]),
             {
                 f"{TEST_RECORD}:CAPTURE": "Diff",
+                f"{TEST_RECORD}:DATASET": "MyDataset",
             },
             [
                 f"{TEST_RECORD}:CAPTURE",
+                f"{TEST_RECORD}:DATASET",
             ],
         ),
         (
