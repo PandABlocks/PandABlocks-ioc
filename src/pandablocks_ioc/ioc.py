@@ -537,8 +537,6 @@ class DatasetNameCache:
         else:
             self._record_name_to_dataset_name.pop(record_name, None)
 
-        self.update_dataset_name_to_type()
-
     def update_dataset_name_to_type(self):
         dataset_name_list = list(self._record_name_to_dataset_name.values())
         self._datasets_table.update_row("Name", dataset_name_list)
@@ -913,6 +911,17 @@ class IocRecordFactory:
         labels, capture_index = self._process_labels(
             field_info.capture_labels, values[capture_record_name]
         )
+
+        capture_record_updater: _RecordUpdater
+
+        def capture_record_on_update(new_capture_mode):
+            self._dataset_name_cache.update_cache(
+                record_name,
+                record_dict[dataset_record_name].record.get(),
+                labels[new_capture_mode],
+            )
+            return capture_record_updater.update(new_capture_mode)
+
         record_dict[capture_record_name] = self._create_record_info(
             capture_record_name,
             "Capture options",
@@ -921,14 +930,20 @@ class IocRecordFactory:
             PviGroup.CAPTURE,
             labels=labels,
             initial_value=capture_index,
-            on_update=lambda new_capture_mode: (
-                self._dataset_name_cache.update_cache(
-                    record_name,
-                    record_dict[dataset_record_name].record.get(),
-                    labels[new_capture_mode],
-                )
-            ),
+            on_update=capture_record_on_update,
         )
+
+        capture_record_info = RecordInfo(
+            data_type_func=builder.mbbOut, labels=labels, is_in_record=False
+        )
+        capture_record_updater = _RecordUpdater(
+            capture_record_info,
+            self._record_prefix,
+            self._client,
+            self._all_values_dict,
+            labels if labels else None,
+        )
+
         record_dict[dataset_record_name] = self._create_record_info(
             dataset_record_name,
             "Used to adjust the dataset name to one more scientifically relevant",
@@ -1082,6 +1097,16 @@ class IocRecordFactory:
             ),
         )
 
+        capture_record_updater: _RecordUpdater
+
+        def capture_record_on_update(new_capture_mode):
+            self._dataset_name_cache.update_cache(
+                record_name,
+                record_dict[dataset_record_name].record.get(),
+                labels[new_capture_mode],
+            )
+            return capture_record_updater.update(new_capture_mode)
+
         record_dict[capture_record_name] = self._create_record_info(
             capture_record_name,
             field_info.description,
@@ -1090,13 +1115,17 @@ class IocRecordFactory:
             PviGroup.OUTPUTS,
             labels=labels,
             initial_value=capture_index,
-            on_update=lambda new_capture_mode: (
-                self._dataset_name_cache.update_cache(
-                    record_name,
-                    record_dict[dataset_record_name].record.get(),
-                    labels[new_capture_mode],
-                )
-            ),
+            on_update=capture_record_on_update,
+        )
+        capture_record_info = RecordInfo(
+            data_type_func=builder.mbbOut, labels=labels, is_in_record=False
+        )
+        capture_record_updater = _RecordUpdater(
+            capture_record_info,
+            self._record_prefix,
+            self._client,
+            self._all_values_dict,
+            labels if labels else None,
         )
 
         return record_dict
@@ -1860,7 +1889,10 @@ class IocRecordFactory:
             add_pcap_arm_pvi_info(PviGroup.INPUTS, pcap_arm_record)
 
             HDF5RecordController(
-                self._client, self._dataset_name_cache.cache, self._record_prefix
+                self._client,
+                self._dataset_name_cache.cache,
+                self._dataset_name_cache.update_dataset_name_to_type,
+                self._record_prefix,
             )
 
         return record_dict

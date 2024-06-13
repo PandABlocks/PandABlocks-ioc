@@ -234,7 +234,7 @@ async def hdf5_controller(
     }
 
     hdf5_controller = HDF5RecordController(
-        AsyncioClient("localhost"), dataset_name_cache, test_prefix
+        AsyncioClient("localhost"), dataset_name_cache, lambda: None, test_prefix
     )
 
     # When using tests w/o CA, need to manually set _directory_exists to 1
@@ -254,7 +254,7 @@ def subprocess_func(
     async def wrapper():
         builder.SetDeviceName(namespace_prefix)
         client = MockedAsyncioClient(standard_responses)
-        HDF5RecordController(client, {}, namespace_prefix)
+        HDF5RecordController(client, {}, lambda: None, namespace_prefix)
         dispatcher = asyncio_dispatcher.AsyncioDispatcher()
         builder.LoadDatabase()
         softioc.iocInit(dispatcher)

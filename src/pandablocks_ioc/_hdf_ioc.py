@@ -335,6 +335,7 @@ class HDF5RecordController:
         self,
         client: AsyncioClient,
         dataset_name_cache: Dict[str, Dict[str, str]],
+        datasets_record_updater: Callable,
         record_prefix: str,
     ):
         if find_spec("h5py") is None:
@@ -343,6 +344,7 @@ class HDF5RecordController:
 
         self._client = client
         self.dataset_name_cache = dataset_name_cache
+        self.datasets_record_updater = datasets_record_updater
 
         path_length = os.pathconf("/", "PC_PATH_MAX")
         filename_length = os.pathconf("/", "PC_NAME_MAX")
@@ -658,8 +660,10 @@ class HDF5RecordController:
                 self._num_captured_record.set
             )
 
-            # Get the dataset names, or use the record name if no
-            # dataset name is provided
+            # Update `DATA:DATASETS` to match the names of the datasets
+            # in the HDF5 file
+            self.datasets_record_updater()
+
             buffer = HDF5Buffer(
                 capture_mode,
                 filepath,
