@@ -890,11 +890,8 @@ class IocRecordFactory:
             on_update=capture_record_on_update,
         )
 
-        capture_record_info = RecordInfo(
-            data_type_func=builder.mbbOut, labels=labels, is_in_record=False
-        )
         capture_record_updater = _RecordUpdater(
-            capture_record_info,
+            record_dict[capture_record_name],
             self._record_prefix,
             self._client,
             self._all_values_dict,
@@ -1074,11 +1071,8 @@ class IocRecordFactory:
             initial_value=capture_index,
             on_update=capture_record_on_update,
         )
-        capture_record_info = RecordInfo(
-            data_type_func=builder.mbbOut, labels=labels, is_in_record=False
-        )
         capture_record_updater = _RecordUpdater(
-            capture_record_info,
+            record_dict[capture_record_name],
             self._record_prefix,
             self._client,
             self._all_values_dict,

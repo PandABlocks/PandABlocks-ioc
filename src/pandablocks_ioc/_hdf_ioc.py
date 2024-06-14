@@ -344,7 +344,7 @@ class DatasetNameCache:
             # Suffix -min and -max if both are present
             if "Min Max" in dataset.capture:
                 hdf_name["Min"] = f"{dataset.name}-min"
-                hdf_name["Max"] = f"{dataset.name}-min"
+                hdf_name["Max"] = f"{dataset.name}-max"
         return hdf_names
 
     def update_datasets_record(self):
