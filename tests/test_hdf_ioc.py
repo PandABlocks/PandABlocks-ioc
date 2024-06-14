@@ -38,6 +38,7 @@ from fixtures.mocked_panda import (
 )
 from pandablocks_ioc._hdf_ioc import (
     CaptureMode,
+    Dataset,
     HDF5Buffer,
     HDF5RecordController,
     NumCapturedSetter,
@@ -229,12 +230,11 @@ async def hdf5_controller(
     test_prefix, hdf5_test_prefix = new_random_hdf5_prefix
 
     dataset_name_cache = {
-        "COUNTER1.OUT": {"Value": "some_other_dataset_name"},
-        # these datasets haven't been overwritten, they should be the default
+        "COUNTER1:OUT": Dataset("some_other_dataset_name", "Value"),
     }
 
     hdf5_controller = HDF5RecordController(
-        AsyncioClient("localhost"), dataset_name_cache, lambda: None, test_prefix
+        AsyncioClient("localhost"), dataset_name_cache, test_prefix
     )
 
     # When using tests w/o CA, need to manually set _directory_exists to 1
@@ -254,7 +254,7 @@ def subprocess_func(
     async def wrapper():
         builder.SetDeviceName(namespace_prefix)
         client = MockedAsyncioClient(standard_responses)
-        HDF5RecordController(client, {}, lambda: None, namespace_prefix)
+        HDF5RecordController(client, {}, namespace_prefix)
         dispatcher = asyncio_dispatcher.AsyncioDispatcher()
         builder.LoadDatabase()
         softioc.iocInit(dispatcher)

@@ -3,7 +3,7 @@ import logging
 import os
 from asyncio import CancelledError
 from collections import deque
-from copy import deepcopy
+from dataclasses import dataclass
 from enum import Enum
 from importlib.util import find_spec
 from pathlib import Path
@@ -23,6 +23,7 @@ from softioc import alarm, builder
 from softioc.pythonSoftIoc import RecordWrapper
 
 from ._pvi import PviGroup, add_automatic_pvi_info, add_data_capture_pvi_info
+from ._tables import ReadOnlyPvaTable
 from ._types import ONAM_STR, ZNAM_STR, EpicsName
 
 HDFReceived = Union[ReadyData, StartData, FrameData, EndData]
@@ -310,6 +311,55 @@ class HDF5Buffer:
                 )
 
 
+@dataclass
+class Dataset:
+    name: str
+    capture: str
+
+
+class DatasetNameCache:
+    def __init__(self, datasets: Dict[str, Dataset], datasets_record_name: EpicsName):
+        self.datasets = datasets
+
+        self._datasets_table_record = ReadOnlyPvaTable(
+            datasets_record_name, ["Name", "Type"]
+        )
+        self._datasets_table_record.set_rows(
+            ["Name", "Type"], [[], []], length=300, default_data_type=str
+        )
+
+    def hdf_writer_names(self):
+        """Formats the current dataset names for use in the HDFWriter"""
+
+        hdf_names: Dict[str, Dict[str, str]] = {}
+        for record_name, dataset in self.datasets.items():
+            if not dataset.name or dataset.capture == "No":
+                continue
+
+            field_name = record_name.replace(":", ".")
+
+            hdf_names[field_name] = hdf_name = {}
+
+            hdf_name[dataset.capture.split(" ")[-1]] = dataset.name
+            # Suffix -min and -max if both are present
+            if "Min Max" in dataset.capture:
+                hdf_name["Min"] = f"{dataset.name}-min"
+                hdf_name["Max"] = f"{dataset.name}-min"
+        return hdf_names
+
+    def update_datasets_record(self):
+        dataset_name_list = [
+            dataset.name
+            for dataset in self.datasets.values()
+            if dataset.name and dataset.capture != "No"
+        ]
+        self._datasets_table_record.update_row("Name", dataset_name_list)
+        self._datasets_table_record.update_row(
+            "Type",
+            ["float64"] * len(dataset_name_list),
+        )
+
+
 class HDF5RecordController:
     """Class to create and control the records that handle HDF5 processing"""
 
@@ -334,8 +384,7 @@ class HDF5RecordController:
     def __init__(
         self,
         client: AsyncioClient,
-        dataset_name_cache: Dict[str, Dict[str, str]],
-        datasets_record_updater: Callable,
+        dataset_cache: Dict[str, Dataset],
         record_prefix: str,
     ):
         if find_spec("h5py") is None:
@@ -343,8 +392,10 @@ class HDF5RecordController:
             return
 
         self._client = client
-        self.dataset_name_cache = dataset_name_cache
-        self.datasets_record_updater = datasets_record_updater
+        _datasets_record_name = EpicsName(
+            HDF5RecordController.DATA_PREFIX + ":DATASETS"
+        )
+        self._datasets = DatasetNameCache(dataset_cache, _datasets_record_name)
 
         path_length = os.pathconf("/", "PC_PATH_MAX")
         filename_length = os.pathconf("/", "PC_NAME_MAX")
@@ -662,7 +713,7 @@ class HDF5RecordController:
 
             # Update `DATA:DATASETS` to match the names of the datasets
             # in the HDF5 file
-            self.datasets_record_updater()
+            self._datasets.update_datasets_record()
 
             buffer = HDF5Buffer(
                 capture_mode,
@@ -671,7 +722,7 @@ class HDF5RecordController:
                 self._status_message_record.set,
                 self._num_received_record.set,
                 number_captured_setter_pipeline,
-                deepcopy(self.dataset_name_cache),
+                self._datasets.hdf_writer_names(),
             )
             flush_period: float = self._flush_period_record.get()
             async for data in self._client.data(

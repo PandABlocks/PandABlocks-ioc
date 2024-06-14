@@ -114,38 +114,39 @@ class ReadOnlyPvaTable:
             },
         )
 
-    def add_row(
+    def set_rows(
         self,
-        row_name: str,
-        initial_value: List,
-        datatype: Type = str,
+        row_names: List[str],
+        initial_values: List[List],
         length: Optional[int] = None,
+        default_data_type: Optional[Type] = None,
     ):
-        full_name = EpicsName(self.epics_table_name + ":" + row_name)
-        pva_row_name = row_name.replace(":", "_").lower()
-        length = length or len(initial_value)
-        initial_value_np = np.array(initial_value, dtype=datatype)
+        for idx, (row_name, initial_value) in enumerate(zip(row_names, initial_values)):
+            full_name = EpicsName(self.epics_table_name + ":" + row_name)
+            pva_row_name = row_name.replace(":", "_").lower()
+            dtype = type(initial_value[0]) if initial_value else default_data_type
+            initial_value_np = np.array(initial_value, dtype=dtype)
 
-        field_record: RecordWrapper = builder.WaveformIn(
-            full_name,
-            DESC="",  # Description not provided yet
-            initial_value=initial_value_np,
-            length=length,
-        )
+            field_record: RecordWrapper = builder.WaveformIn(
+                full_name,
+                DESC="",  # Description not provided yet
+                initial_value=initial_value_np,
+                length=length or len(initial_value),
+            )
 
-        field_pva_info = {
-            "+type": "plain",
-            "+channel": "VAL",
-            "+trigger": "",
-        }
+            field_pva_info = {
+                "+type": "plain",
+                "+channel": "VAL",
+                "+trigger": "*" if idx == len(row_names) - 1 else "",
+            }
 
-        pva_info = {f"value.{pva_row_name.lower()}": field_pva_info}
+            pva_info = {f"value.{pva_row_name.lower()}": field_pva_info}
 
-        field_record.add_info(
-            "Q:group",
-            {self.pva_table_name: pva_info},
-        )
-        self.rows[row_name] = field_record
+            field_record.add_info(
+                "Q:group",
+                {self.pva_table_name: pva_info},
+            )
+            self.rows[row_name] = field_record
 
     def update_row(self, row_name: str, new_value: List):
         new_value_np = np.array(new_value)
