@@ -41,7 +41,7 @@ from softioc.imports import db_put_field
 from softioc.pythonSoftIoc import RecordWrapper
 
 from ._connection_status import ConnectionStatus, Statuses
-from ._hdf_ioc import HDF5RecordController
+from ._hdf_ioc import Dataset, HDF5RecordController
 from ._pvi import (
     Pvi,
     PviGroup,
@@ -543,6 +543,8 @@ class IocRecordFactory:
         # All records should be blocking
         builder.SetBlocking(True)
 
+        self._dataset_cache: Dict[str, Dataset] = {}
+
     def _process_labels(
         self, labels: List[str], record_value: ScalarRecordValue
     ) -> Tuple[List[str], int]:
@@ -863,9 +865,20 @@ class IocRecordFactory:
         )
 
         capture_record_name = EpicsName(record_name + ":CAPTURE")
+        dataset_record_name = EpicsName(record_name + ":DATASET")
         labels, capture_index = self._process_labels(
             field_info.capture_labels, values[capture_record_name]
         )
+
+        capture_record_updater: _RecordUpdater
+
+        def capture_record_on_update(new_capture_mode):
+            self._dataset_cache[record_name] = Dataset(
+                record_dict[dataset_record_name].record.get(),
+                labels[new_capture_mode],
+            )
+            return capture_record_updater.update(new_capture_mode)
+
         record_dict[capture_record_name] = self._create_record_info(
             capture_record_name,
             "Capture options",
@@ -874,6 +887,31 @@ class IocRecordFactory:
             PviGroup.CAPTURE,
             labels=labels,
             initial_value=capture_index,
+            on_update=capture_record_on_update,
+        )
+
+        capture_record_updater = _RecordUpdater(
+            record_dict[capture_record_name],
+            self._record_prefix,
+            self._client,
+            self._all_values_dict,
+            labels if labels else None,
+        )
+
+        def dataset_record_on_update(new_dataset_name):
+            self._dataset_cache[record_name] = Dataset(
+                new_dataset_name,
+                labels[record_dict[capture_record_name].record.get()],
+            )
+
+        record_dict[dataset_record_name] = self._create_record_info(
+            dataset_record_name,
+            "Used to adjust the dataset name to one more scientifically relevant",
+            builder.stringOut,
+            str,
+            PviGroup.CAPTURE,
+            initial_value="",
+            on_update=dataset_record_on_update,
         )
 
         offset_record_name = EpicsName(record_name + ":OFFSET")
@@ -957,6 +995,13 @@ class IocRecordFactory:
             + ":"
             + units_record_name.split(":")[-1]
         )
+        record_dict[dataset_record_name].record.add_alias(
+            self._record_prefix
+            + ":"
+            + positions_record_name
+            + ":"
+            + dataset_record_name.split(":")[-1]
+        )
 
         self._pos_out_row_counter += 1
         add_positions_table_row(
@@ -965,6 +1010,7 @@ class IocRecordFactory:
             units_record_name,
             scale_record_name,
             offset_record_name,
+            dataset_record_name,
             capture_record_name,
         )
 
@@ -981,13 +1027,40 @@ class IocRecordFactory:
         record_dict: Dict[EpicsName, RecordInfo] = {}
 
         # There is no record for the ext_out field itself - the only thing
-        # you do with them is to turn their Capture attribute on/off.
-        # The field itself has no value.
+        # you do with them is to turn their Capture attribute on/off, and give it
+        # an alternative dataset name
 
         capture_record_name = EpicsName(record_name + ":CAPTURE")
+        dataset_record_name = EpicsName(record_name + ":DATASET")
         labels, capture_index = self._process_labels(
             field_info.capture_labels, values[capture_record_name]
         )
+
+        def dataset_record_on_update(new_dataset_name):
+            self._dataset_cache[record_name] = Dataset(
+                new_dataset_name,
+                labels[record_dict[capture_record_name].record.get()],
+            )
+
+        record_dict[dataset_record_name] = self._create_record_info(
+            dataset_record_name,
+            "Used to adjust the dataset name to one more scientifically relevant",
+            builder.stringOut,
+            str,
+            PviGroup.OUTPUTS,
+            initial_value="",
+            on_update=dataset_record_on_update,
+        )
+
+        capture_record_updater: _RecordUpdater
+
+        def capture_record_on_update(new_capture_mode):
+            self._dataset_cache[record_name] = Dataset(
+                record_dict[dataset_record_name].record.get(),
+                labels[new_capture_mode],
+            )
+            return capture_record_updater.update(new_capture_mode)
+
         record_dict[capture_record_name] = self._create_record_info(
             capture_record_name,
             field_info.description,
@@ -996,6 +1069,14 @@ class IocRecordFactory:
             PviGroup.OUTPUTS,
             labels=labels,
             initial_value=capture_index,
+            on_update=capture_record_on_update,
+        )
+        capture_record_updater = _RecordUpdater(
+            record_dict[capture_record_name],
+            self._record_prefix,
+            self._client,
+            self._all_values_dict,
+            labels if labels else None,
         )
 
         return record_dict
@@ -1758,7 +1839,11 @@ class IocRecordFactory:
 
             add_pcap_arm_pvi_info(PviGroup.INPUTS, pcap_arm_record)
 
-            HDF5RecordController(self._client, self._record_prefix)
+            HDF5RecordController(
+                self._client,
+                self._dataset_cache,
+                self._record_prefix,
+            )
 
         return record_dict
 

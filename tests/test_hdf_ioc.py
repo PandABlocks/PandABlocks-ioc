@@ -38,6 +38,7 @@ from fixtures.mocked_panda import (
 )
 from pandablocks_ioc._hdf_ioc import (
     CaptureMode,
+    Dataset,
     HDF5Buffer,
     HDF5RecordController,
     NumCapturedSetter,
@@ -228,7 +229,13 @@ async def hdf5_controller(
 
     test_prefix, hdf5_test_prefix = new_random_hdf5_prefix
 
-    hdf5_controller = HDF5RecordController(AsyncioClient("localhost"), test_prefix)
+    dataset_name_cache = {
+        "COUNTER1:OUT": Dataset("some_other_dataset_name", "Value"),
+    }
+
+    hdf5_controller = HDF5RecordController(
+        AsyncioClient("localhost"), dataset_name_cache, test_prefix
+    )
 
     # When using tests w/o CA, need to manually set _directory_exists to 1
     hdf5_controller._directory_exists_record.set(1)
@@ -247,7 +254,7 @@ def subprocess_func(
     async def wrapper():
         builder.SetDeviceName(namespace_prefix)
         client = MockedAsyncioClient(standard_responses)
-        HDF5RecordController(client, namespace_prefix)
+        HDF5RecordController(client, {}, namespace_prefix)
         dispatcher = asyncio_dispatcher.AsyncioDispatcher()
         builder.LoadDatabase()
         softioc.iocInit(dispatcher)
@@ -619,7 +626,7 @@ async def test_hdf5_file_writing_last_n_endreason_not_ok(
 
     # Initially Status should be "Dir exists and is writable"
     val = await caget(hdf5_test_prefix + ":Status", datatype=DBR_CHAR_STR)
-    assert val == "OK"
+    assert val == "Dir exists and is writable"
 
     await caput(hdf5_test_prefix + ":Capture", 1, wait=True, timeout=TIMEOUT)
 
@@ -762,6 +769,7 @@ def test_hdf_buffer_forever(differently_sized_framedata, tmp_path):
         status_output.append,
         num_received_output.append,
         num_captured_setter_pipeline,
+        {},
     )
     buffer.put_data_to_file = frames_written_to_file.append
 
@@ -805,6 +813,7 @@ def test_hdf_buffer_last_n(differently_sized_framedata, tmp_path):
         status_output.append,
         num_received_output.append,
         num_captured_setter_pipeline,
+        {},
     )
     buffer.put_data_to_file = frames_written_to_file.append
 
@@ -881,6 +890,7 @@ def test_hdf_buffer_last_n_large_data(tmp_path):
         status_output.append,
         num_received_output.append,
         num_captured_setter_pipeline,
+        {},
     )
     buffer.put_data_to_file = frames_written_to_file.append
 
