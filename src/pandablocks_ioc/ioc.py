@@ -543,7 +543,9 @@ class IocRecordFactory:
         # All records should be blocking
         builder.SetBlocking(True)
 
-        self._dataset_cache: Dict[str, Dataset] = {}
+        # A dataset cache for storing dataset names and capture modes for different
+        # capture records
+        self._dataset_cache: Dict[EpicsName, Dataset] = {}
 
     def _process_labels(
         self, labels: List[str], record_value: ScalarRecordValue
@@ -890,6 +892,9 @@ class IocRecordFactory:
             on_update=capture_record_on_update,
         )
 
+        # For now we have to make a `_RecordUpdater`` here and
+        # combine it with `on_update`.
+        # https://github.com/PandABlocks/PandABlocks-ioc/issues/121
         capture_record_updater = _RecordUpdater(
             record_dict[capture_record_name],
             self._record_prefix,
@@ -1071,6 +1076,9 @@ class IocRecordFactory:
             initial_value=capture_index,
             on_update=capture_record_on_update,
         )
+        # For now we have to make a `_RecordUpdater`` here and
+        # combine it with `on_update`.
+        # https://github.com/PandABlocks/PandABlocks-ioc/issues/121
         capture_record_updater = _RecordUpdater(
             record_dict[capture_record_name],
             self._record_prefix,

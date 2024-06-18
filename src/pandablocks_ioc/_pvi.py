@@ -216,7 +216,7 @@ def add_positions_table_row(
             name=epics_to_pvi_name(capture_record_name),
             label=capture_record_name,
             pv=capture_record_name,
-            widget=TextWrite(),
+            widget=ComboBox(),
         ),
     ]
 

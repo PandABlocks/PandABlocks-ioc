@@ -106,7 +106,7 @@ class ReadOnlyPvaTable:
             "Q:group",
             {
                 RecordName(f"{block}:PVI"): {
-                    f"pvi.{field.lower().replace(':', '_')}.rw": {
+                    f"pvi.{field.lower().replace(':', '_')}.r": {
                         "+channel": "VAL",
                         "+type": "plain",
                     }

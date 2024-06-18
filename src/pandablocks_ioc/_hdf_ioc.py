@@ -24,14 +24,14 @@ from softioc.pythonSoftIoc import RecordWrapper
 
 from ._pvi import PviGroup, add_automatic_pvi_info, add_data_capture_pvi_info
 from ._tables import ReadOnlyPvaTable
-from ._types import ONAM_STR, ZNAM_STR, EpicsName
+from ._types import ONAM_STR, ZNAM_STR, EpicsName, epics_to_panda_name
 
 HDFReceived = Union[ReadyData, StartData, FrameData, EndData]
 
 
 class CaptureMode(Enum):
     """
-    The mode which the circular buffer will use to flush
+    The mode which the circular buffer will use to flush.
     """
 
     #: Wait till N frames are recieved then write them
@@ -313,13 +313,20 @@ class HDF5Buffer:
 
 @dataclass
 class Dataset:
+    """A dataset name and capture mode"""
+
     name: str
     capture: str
 
 
 class DatasetNameCache:
-    def __init__(self, datasets: Dict[str, Dataset], datasets_record_name: EpicsName):
-        self.datasets = datasets
+    """Used for outputing formatted dataset names in the HDF5 writer, and creating
+    and updating the HDF5 `DATASETS` table record."""
+
+    def __init__(
+        self, datasets: Dict[EpicsName, Dataset], datasets_record_name: EpicsName
+    ):
+        self._datasets = datasets
 
         self._datasets_table_record = ReadOnlyPvaTable(
             datasets_record_name, ["Name", "Type"]
@@ -332,11 +339,11 @@ class DatasetNameCache:
         """Formats the current dataset names for use in the HDFWriter"""
 
         hdf_names: Dict[str, Dict[str, str]] = {}
-        for record_name, dataset in self.datasets.items():
+        for record_name, dataset in self._datasets.items():
             if not dataset.name or dataset.capture == "No":
                 continue
 
-            field_name = record_name.replace(":", ".")
+            field_name = epics_to_panda_name(record_name)
 
             hdf_names[field_name] = hdf_name = {}
 
@@ -350,7 +357,7 @@ class DatasetNameCache:
     def update_datasets_record(self):
         dataset_name_list = [
             dataset.name
-            for dataset in self.datasets.values()
+            for dataset in self._datasets.values()
             if dataset.name and dataset.capture != "No"
         ]
         self._datasets_table_record.update_row("Name", dataset_name_list)
@@ -384,7 +391,7 @@ class HDF5RecordController:
     def __init__(
         self,
         client: AsyncioClient,
-        dataset_cache: Dict[str, Dataset],
+        dataset_cache: Dict[EpicsName, Dataset],
         record_prefix: str,
     ):
         if find_spec("h5py") is None:

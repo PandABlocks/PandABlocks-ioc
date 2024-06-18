@@ -13,7 +13,7 @@ classifiers = [
 description = "Create an IOC from a PandA"
 dependencies = [
     "setuptools>=64",
-    "numpy",
+    "numpy<2",    # until https://github.com/mdavidsaver/p4p/issues/145 is fixed
     "click",
     "h5py",
     "softioc>=4.4.0",
