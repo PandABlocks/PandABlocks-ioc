@@ -39,10 +39,12 @@ from fixtures.mocked_panda import (
 from pandablocks_ioc._hdf_ioc import (
     CaptureMode,
     Dataset,
+    DatasetNameCache,
     HDF5Buffer,
     HDF5RecordController,
     NumCapturedSetter,
 )
+from pandablocks_ioc._types import EpicsName
 
 NAMESPACE_PREFIX = "HDF-RECORD-PREFIX"
 
@@ -230,7 +232,7 @@ async def hdf5_controller(
     test_prefix, hdf5_test_prefix = new_random_hdf5_prefix
 
     dataset_name_cache = {
-        "COUNTER1:OUT": Dataset("some_other_dataset_name", "Value"),
+        EpicsName("COUNTER1:OUT"): Dataset("some_other_dataset_name", "Value"),
     }
 
     hdf5_controller = HDF5RecordController(
@@ -1308,3 +1310,41 @@ def test_hdf_capture_validate_exception(
     )
 
     assert hdf5_controller._capture_validate(None, 1) is False
+
+
+def test_dataset_name_cache():
+    with patch(
+        "pandablocks_ioc._hdf_ioc.ReadOnlyPvaTable", autospec=True
+    ) as mock_table:
+        mock_table_instance = MagicMock()
+        mock_table.return_value = mock_table_instance
+
+        # Initialize DatasetNameCache
+        datasets = {
+            "TEST1:OUT": Dataset("", "Value"),
+            "TEST2:OUT": Dataset("test2", "No"),
+            "TEST3:OUT": Dataset("test3", "Value"),
+            "TEST4:OUT": Dataset("test4", "Min Max Mean"),
+            "TEST5:OUT": Dataset("test5", "Min Max"),
+        }
+        cache = DatasetNameCache(datasets, "record_name")
+
+        # Check that set_rows was called once with the correct arguments
+        mock_table_instance.set_rows.assert_called_once_with(
+            ["Name", "Type"], [[], []], length=300, default_data_type=str
+        )
+        cache.update_datasets_record()
+
+        # Check that update_row was called with the correct arguments
+        mock_table_instance.update_row.assert_any_call(
+            "Name", ["test3", "test4", "test5"]
+        )
+        mock_table_instance.update_row.assert_any_call(
+            "Type", ["float64", "float64", "float64"]
+        )
+
+        assert cache.hdf_writer_names() == {
+            "TEST3.OUT": {"Value": "test3"},
+            "TEST4.OUT": {"Mean": "test4", "Min": "test4-min", "Max": "test4-max"},
+            "TEST5.OUT": {"Min": "test5-min", "Max": "test5-max"},
+        }
