@@ -13,12 +13,12 @@ classifiers = [
 description = "Create an IOC from a PandA"
 dependencies = [
     "setuptools>=64",
-    "numpy<2",    # until https://github.com/mdavidsaver/p4p/issues/145 is fixed
+    "numpy<3",    # until https://github.com/mdavidsaver/p4p/issues/145 is fixed
     "click",
     "h5py",
     "softioc>=4.4.0",
     "pandablocks~=0.9.0",
-    "pvi~=0.7.0",
+    "pvi>=0.7,<0.10",
     "typing-extensions;python_version<'3.8'",
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
@@ -39,7 +39,7 @@ dev = [
     "p4p",
     "pydata-sphinx-theme>=0.12",
     "pytest>=8.2.0",
-    "pytest-asyncio~=0.21.2",    # https://github.com/PandABlocks/PandABlocks-ioc/issues/84
+    "pytest-asyncio>=0.21.2,<0.24.0",    # https://github.com/PandABlocks/PandABlocks-ioc/issues/84
     "pytest-cov",
     "ruff",
     "sphinx-autobuild",
