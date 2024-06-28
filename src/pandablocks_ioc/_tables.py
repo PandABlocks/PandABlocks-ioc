@@ -503,8 +503,16 @@ class TableUpdater:
                     field_data, field_name, field_record.field
                 )
 
-                # Must skip processing as the validate method would reject the update
-                field_record.record_info.record.set(waveform_val, process=False)
+                # This check prevents an infrequent race condition that occurs when the
+                # table is updated with a value after the record is in the process of
+                # being updated already, resulting in the rejection of the second
+                # update's value.
+                if not np.array_equal(
+                    field_record.record_info.record.get(), waveform_val
+                ):
+                    # Must skip processing as the validate method would
+                    # reject the update
+                    field_record.record_info.record.set(waveform_val, process=False)
 
         else:
             # No other mode allows PandA updates to EPICS records

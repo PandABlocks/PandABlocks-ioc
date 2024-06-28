@@ -449,6 +449,12 @@ def test_table_updater_update_table(
 ):
     """Test that update_table updates records with the new values"""
 
+    outb1 = table_updater.table_fields_records["OUTB1"]
+    table_updater.table_fields_records["OUTB1"] = table_updater.table_fields_records[
+        "OUTA1"
+    ]
+    table_updater.table_fields_records["OUTA1"] = outb1
+
     table_updater.update_table(table_data_1)
 
     table_updater.mode_record_info.record.get.assert_called_once()
@@ -462,7 +468,11 @@ def test_table_updater_update_table(
         # numpy arrays don't play nice with mock's equality comparisons, do it ourself
         called_args = record_info.record.set.call_args
 
-        numpy.testing.assert_array_equal(data, called_args[0][0])
+        if field_name in ("OUTA1", "OUTB1"):
+            numpy.testing.assert_array_equal(data, called_args[0][0])
+        else:
+            # Set isn't called on a record which doesn't change
+            assert called_args is None
 
 
 def test_table_updater_update_table_not_view(
