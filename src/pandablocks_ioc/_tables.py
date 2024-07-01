@@ -1,6 +1,8 @@
 # IOC Table record support
 
 import logging
+import threading
+import time
 import typing
 from collections import OrderedDict
 from dataclasses import dataclass
@@ -184,6 +186,9 @@ class TableUpdater:
         self.client = client
         self.table_name = table_name
         self.field_info = field_info
+        self.mode_lock = threading.Lock()
+        self.cached_mode = TableModeEnum.VIEW
+        self.update_in_progress = False
         pva_table_name = RecordName(table_name)
 
         # Make a labels field
@@ -292,12 +297,30 @@ class TableUpdater:
         labels = [x.name for x in TableModeEnum]
         mode_record_name = EpicsName(table_name + ":" + "MODE")
 
+        def wait_for_mode_lock(record: RecordWrapper, new_val):
+            mode = TableModeEnum(new_val)
+            print(
+                time.time(),
+                "WAITING FOR MODE LOCK FROM VALIDATE OLD",
+                self.cached_mode,
+                "NEW",
+                mode,
+            )
+            with self.mode_lock:
+                if mode == TableModeEnum.EDIT:
+                    if self.update_in_progress:
+                        return False
+                self.cached_mode = mode
+            print(time.time(), "OUTSIDE LOCK FROM VALIDATE")
+            return True
+
         mode_record: RecordWrapper = builder.mbbOut(
             mode_record_name,
             *labels,
             DESC="Controls PandA <-> EPICS data interface",
             initial_value=TableModeEnum.VIEW.value,
             on_update=self.update_mode,
+            validate=wait_for_mode_lock,
         )
         pvi_name = epics_to_pvi_name(mode_record_name)
         Pvi.add_pvi_info(
@@ -352,32 +375,34 @@ class TableUpdater:
             bool: `True` to allow record update, `False` otherwise.
         """
 
-        record_val = self.mode_record_info.record.get()
+        print(time.time(), "VALIDATING WAVEFORM", record.name, new_val)
+        record_val = self.cached_mode
+        print(time.time(), "    WITH RECORD VALUE", record_val)
 
-        if record_val == TableModeEnum.VIEW.value:
-            logging.debug(
+        if record_val == TableModeEnum.VIEW:
+            logging.error(
                 f"{self.table_name} MODE record is VIEW, stopping update "
                 f"to {record.name}"
             )
             return False
-        elif record_val == TableModeEnum.EDIT.value:
+        elif record_val == TableModeEnum.EDIT:
             logging.debug(
                 f"{self.table_name} MODE record is EDIT, allowing update "
                 f"to {record.name}"
             )
             return True
-        elif record_val == TableModeEnum.SUBMIT.value:
+        elif record_val == TableModeEnum.SUBMIT:
             # SUBMIT only present when currently writing out data to PandA.
             logging.warning(
                 f"Update of record {record.name} attempted while MODE was SUBMIT."
-                "New value will be discarded"
+                "New will be discarded"
             )
             return False
-        elif record_val == TableModeEnum.DISCARD.value:
+        elif record_val == TableModeEnum.DISCARD:
             # DISCARD only present when currently overriding local data with PandA data
             logging.warning(
                 f"Update of record {record.name} attempted while MODE was DISCARD."
-                "New value will be discarded"
+                "New will be discarded"
             )
             return False
         else:
@@ -392,6 +417,13 @@ class TableUpdater:
         and replacing record data."""
 
         assert self.mode_record_info.labels
+        print(
+            time.time(),
+            "UPDATING MODE RECORD",
+            self.mode_record_info.record.name,
+            "WITH",
+            new_val,
+        )
 
         packed_data: List[str] = []
         new_label = self.mode_record_info.labels[new_val]
@@ -410,7 +442,15 @@ class TableUpdater:
                 packed_data = table_to_words(table, self.field_info)
 
                 panda_field_name = epics_to_panda_name(self.table_name)
+                print(
+                    time.time(),
+                    "SENDING",
+                    panda_field_name,
+                    [x for x in packed_data if int(x) % 1111 == 0],
+                )
                 await self.client.send(Put(panda_field_name, packed_data))
+                self.sent_data = packed_data
+                print(time.time(), "DONE SENDING", panda_field_name, "TO PANDA")
 
             except Exception:
                 logging.exception(
@@ -491,9 +531,22 @@ class TableUpdater:
             new_values: The list of new values from the PandA
         """
 
-        curr_mode = TableModeEnum(self.mode_record_info.record.get())
+        if self.sent_data:
+            if new_values == self.sent_data:
+                print("============================ >>>>")
+                return
+        print(time.time(), "WAITING FOR MODE LOCK FROM UPDATE_TABLE")
+        print(time.time(), "CURRENT MODE (DURING UPDATE)", self.cached_mode)
+        with self.mode_lock:
+            if self.cached_mode == TableModeEnum.EDIT:
+                logging.warning(
+                    f"Update of table {self.table_name} attempted when MODE "
+                    "was not VIEW. New value will be discarded"
+                )
+            else:
+                self.update_in_progress = True
 
-        if curr_mode == TableModeEnum.VIEW:
+        if self.update_in_progress:
             field_data = words_to_table(new_values, self.field_info)
 
             for field_name, field_record in self.table_fields_records.items():
@@ -503,20 +556,10 @@ class TableUpdater:
                     field_data, field_name, field_record.field
                 )
 
-                # This check prevents an infrequent race condition that occurs when the
-                # table is updated with a value after the record is in the process of
-                # being updated already, resulting in the rejection of the second
-                # update's value.
-                if not np.array_equal(
-                    field_record.record_info.record.get(), waveform_val
-                ):
-                    # Must skip processing as the validate method would
-                    # reject the update
-                    field_record.record_info.record.set(waveform_val, process=False)
+                # Must skip processing as the validate method would
+                # reject the update
+                field_record.record_info.record.set(waveform_val, process=False)
 
-        else:
-            # No other mode allows PandA updates to EPICS records
-            logging.warning(
-                f"Update of table {self.table_name} attempted when MODE "
-                "was not VIEW. New value will be discarded"
-            )
+        print(time.time(), "OUTSIDE LOCK IN UPDATE_TABLE")
+        with self.mode_lock:
+            self.update_in_progress = False
