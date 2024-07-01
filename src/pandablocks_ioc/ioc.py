@@ -4,7 +4,6 @@ import inspect
 import logging
 import re
 from dataclasses import dataclass
-from pprint import pprint
 from string import digits
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -1985,8 +1984,6 @@ async def update(
     # Fairly arbitrary choice of timeout time
     timeout = 10 * poll_period
 
-    import time
-
     while True:
         try:
             for record, value in fields_to_reset:
@@ -1994,9 +1991,7 @@ async def update(
                 fields_to_reset.remove((record, value))
 
             try:
-                print(time.time(), "Sending *CHANGES")
                 changes = await client.send(GetChanges(ChangeGroup.ALL, True), timeout)
-                print(time.time(), "Done Sending *CHANGES")
             except asyncio.TimeoutError:
                 # Indicates PandA did not reply within the timeout
                 logging.error(
@@ -2112,14 +2107,7 @@ async def update(
 
                 mode_record = all_records[mode_record_name].record
                 assert isinstance(mode_record, TableRecordWrapper)
-                print(
-                    time.time(),
-                    "Updating table",
-                    table_field,
-                    [x for x in value_list if int(x) and int(x) % 1111 == 0],
-                )
                 mode_record.update_table(value_list)
-                print(time.time(), "Finished table Update", table_field)
 
             await asyncio.sleep(poll_period)
         # Only here for testing purposes

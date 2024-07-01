@@ -2,7 +2,6 @@
 
 import logging
 import threading
-import time
 import typing
 from collections import OrderedDict
 from dataclasses import dataclass
@@ -187,8 +186,8 @@ class TableUpdater:
         self.table_name = table_name
         self.field_info = field_info
         self.mode_lock = threading.Lock()
-        self.cached_mode = TableModeEnum.VIEW
         self.update_in_progress = False
+        self.sent_data: List[str] = []
         pva_table_name = RecordName(table_name)
 
         # Make a labels field
@@ -299,19 +298,9 @@ class TableUpdater:
 
         def wait_for_mode_lock(record: RecordWrapper, new_val):
             mode = TableModeEnum(new_val)
-            print(
-                time.time(),
-                "WAITING FOR MODE LOCK FROM VALIDATE OLD",
-                self.cached_mode,
-                "NEW",
-                mode,
-            )
             with self.mode_lock:
-                if mode == TableModeEnum.EDIT:
-                    if self.update_in_progress:
-                        return False
-                self.cached_mode = mode
-            print(time.time(), "OUTSIDE LOCK FROM VALIDATE")
+                if mode == TableModeEnum.EDIT and self.update_in_progress:
+                    return False
             return True
 
         mode_record: RecordWrapper = builder.mbbOut(
@@ -375,30 +364,28 @@ class TableUpdater:
             bool: `True` to allow record update, `False` otherwise.
         """
 
-        print(time.time(), "VALIDATING WAVEFORM", record.name, new_val)
-        record_val = self.cached_mode
-        print(time.time(), "    WITH RECORD VALUE", record_val)
+        record_val = self.mode_record_info.record.get()
 
-        if record_val == TableModeEnum.VIEW:
+        if record_val == TableModeEnum.VIEW.value:
             logging.error(
                 f"{self.table_name} MODE record is VIEW, stopping update "
                 f"to {record.name}"
             )
             return False
-        elif record_val == TableModeEnum.EDIT:
+        elif record_val == TableModeEnum.EDIT.value:
             logging.debug(
                 f"{self.table_name} MODE record is EDIT, allowing update "
                 f"to {record.name}"
             )
             return True
-        elif record_val == TableModeEnum.SUBMIT:
+        elif record_val == TableModeEnum.SUBMIT.value:
             # SUBMIT only present when currently writing out data to PandA.
             logging.warning(
                 f"Update of record {record.name} attempted while MODE was SUBMIT."
                 "New will be discarded"
             )
             return False
-        elif record_val == TableModeEnum.DISCARD:
+        elif record_val == TableModeEnum.DISCARD.value:
             # DISCARD only present when currently overriding local data with PandA data
             logging.warning(
                 f"Update of record {record.name} attempted while MODE was DISCARD."
@@ -417,13 +404,6 @@ class TableUpdater:
         and replacing record data."""
 
         assert self.mode_record_info.labels
-        print(
-            time.time(),
-            "UPDATING MODE RECORD",
-            self.mode_record_info.record.name,
-            "WITH",
-            new_val,
-        )
 
         packed_data: List[str] = []
         new_label = self.mode_record_info.labels[new_val]
@@ -442,15 +422,8 @@ class TableUpdater:
                 packed_data = table_to_words(table, self.field_info)
 
                 panda_field_name = epics_to_panda_name(self.table_name)
-                print(
-                    time.time(),
-                    "SENDING",
-                    panda_field_name,
-                    [x for x in packed_data if int(x) % 1111 == 0],
-                )
                 await self.client.send(Put(panda_field_name, packed_data))
                 self.sent_data = packed_data
-                print(time.time(), "DONE SENDING", panda_field_name, "TO PANDA")
 
             except Exception:
                 logging.exception(
@@ -531,14 +504,13 @@ class TableUpdater:
             new_values: The list of new values from the PandA
         """
 
-        if self.sent_data:
-            if new_values == self.sent_data:
-                print("============================ >>>>")
-                return
-        print(time.time(), "WAITING FOR MODE LOCK FROM UPDATE_TABLE")
-        print(time.time(), "CURRENT MODE (DURING UPDATE)", self.cached_mode)
+        if self.sent_data == new_values:
+            # Received changes back from the panda that were updated
+            # from this method already
+            return
+
         with self.mode_lock:
-            if self.cached_mode == TableModeEnum.EDIT:
+            if TableModeEnum(self.mode_record_info.record.get()) == TableModeEnum.EDIT:
                 logging.warning(
                     f"Update of table {self.table_name} attempted when MODE "
                     "was not VIEW. New value will be discarded"
@@ -560,6 +532,5 @@ class TableUpdater:
                 # reject the update
                 field_record.record_info.record.set(waveform_val, process=False)
 
-        print(time.time(), "OUTSIDE LOCK IN UPDATE_TABLE")
         with self.mode_lock:
             self.update_in_progress = False
