@@ -86,9 +86,6 @@ def table_updater(
         table_field_info,
         table_data_1_dict,
     )
-    mocked_mode_record.set.side_effect = (
-        lambda value, **kwargs: updater._wait_for_mode_lock(None, value)
-    )
 
     # Put mocks into TableUpdater
     updater.mode_record_info = mode_record_info
@@ -504,5 +501,22 @@ async def test_table_update_skips_data_sent_from_ioc_once_received_back(
     table_updater.update_table(table_data_1)
     await table_updater.update_mode(TableModeEnum.SUBMIT.value)
     table_updater.update_table(table_data_1)
+    assert table_updater._sent_data == table_data_1
     for field_record in table_updater.table_fields_records.values():
+        assert isinstance(field_record.record_info, RecordInfo)
         field_record.record_info.record.set.assert_called_once()
+
+
+async def test_table_update_mode_thread_lock(table_updater):
+    async def some_other_mode_update_from_panda():
+        with table_updater._mode_lock:
+            table_updater._update_in_progress = True
+        await asyncio.sleep(0.1)
+
+    async def ioc_update_mode_record():
+        # Enough time for the above coroutine to grab the lock
+        await asyncio.sleep(0.05)
+        assert table_updater._wait_for_mode_lock(None, TableModeEnum.EDIT) is False
+
+    assert table_updater._wait_for_mode_lock(None, TableModeEnum.EDIT) is True
+    await asyncio.gather(some_other_mode_update_from_panda(), ioc_update_mode_record())

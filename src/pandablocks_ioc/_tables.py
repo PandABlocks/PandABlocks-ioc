@@ -185,9 +185,9 @@ class TableUpdater:
         self.client = client
         self.table_name = table_name
         self.field_info = field_info
-        self.mode_lock = threading.Lock()
-        self.update_in_progress = False
-        self.sent_data: List[str] = []
+        self._mode_lock = threading.Lock()
+        self._sent_data: List[str] = []
+        self._update_in_progress = False
         pva_table_name = RecordName(table_name)
 
         # Make a labels field
@@ -345,10 +345,13 @@ class TableUpdater:
                 },
             )
 
+    def __del__(self):
+        self._mode_lock.release()
+
     def _wait_for_mode_lock(self, record: RecordWrapper, new_val):
         mode = TableModeEnum(new_val)
-        with self.mode_lock:
-            if mode == TableModeEnum.EDIT and self.update_in_progress:
+        with self._mode_lock:
+            if mode == TableModeEnum.EDIT and self._update_in_progress:
                 return False
         return True
 
@@ -423,7 +426,7 @@ class TableUpdater:
 
                 panda_field_name = epics_to_panda_name(self.table_name)
                 await self.client.send(Put(panda_field_name, packed_data))
-                self.sent_data = packed_data
+                self._sent_data = packed_data
 
             except Exception:
                 logging.exception(
@@ -504,21 +507,21 @@ class TableUpdater:
             new_values: The list of new values from the PandA
         """
 
-        if self.sent_data == new_values:
+        if self._sent_data == new_values:
             # Received changes back from the panda that were updated
             # from this method already
             return
 
-        with self.mode_lock:
+        with self._mode_lock:
             if TableModeEnum(self.mode_record_info.record.get()) == TableModeEnum.EDIT:
                 logging.warning(
                     f"Update of table {self.table_name} attempted when MODE "
                     "was not VIEW. New value will be discarded"
                 )
             else:
-                self.update_in_progress = True
+                self._update_in_progress = True
 
-        if self.update_in_progress:
+        if self._update_in_progress:
             field_data = words_to_table(new_values, self.field_info)
 
             for field_name, field_record in self.table_fields_records.items():
@@ -532,5 +535,5 @@ class TableUpdater:
                 # reject the update
                 field_record.record_info.record.set(waveform_val, process=False)
 
-        with self.mode_lock:
-            self.update_in_progress = False
+        with self._mode_lock:
+            self._update_in_progress = False
