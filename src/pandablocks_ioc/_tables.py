@@ -296,20 +296,13 @@ class TableUpdater:
         labels = [x.name for x in TableModeEnum]
         mode_record_name = EpicsName(table_name + ":" + "MODE")
 
-        def wait_for_mode_lock(record: RecordWrapper, new_val):
-            mode = TableModeEnum(new_val)
-            with self.mode_lock:
-                if mode == TableModeEnum.EDIT and self.update_in_progress:
-                    return False
-            return True
-
         mode_record: RecordWrapper = builder.mbbOut(
             mode_record_name,
             *labels,
             DESC="Controls PandA <-> EPICS data interface",
             initial_value=TableModeEnum.VIEW.value,
             on_update=self.update_mode,
-            validate=wait_for_mode_lock,
+            validate=self._wait_for_mode_lock,
         )
         pvi_name = epics_to_pvi_name(mode_record_name)
         Pvi.add_pvi_info(
@@ -351,6 +344,13 @@ class TableUpdater:
                     }
                 },
             )
+
+    def _wait_for_mode_lock(self, record: RecordWrapper, new_val):
+        mode = TableModeEnum(new_val)
+        with self.mode_lock:
+            if mode == TableModeEnum.EDIT and self.update_in_progress:
+                return False
+        return True
 
     def validate_waveform(self, record: RecordWrapper, new_val) -> bool:
         """Controls whether updates to the waveform records are processed, based on the

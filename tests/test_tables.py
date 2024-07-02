@@ -86,6 +86,9 @@ def table_updater(
         table_field_info,
         table_data_1_dict,
     )
+    mocked_mode_record.set.side_effect = (
+        lambda value, **kwargs: updater._wait_for_mode_lock(None, value)
+    )
 
     # Put mocks into TableUpdater
     updater.mode_record_info = mode_record_info
@@ -487,3 +490,19 @@ def test_table_updater_update_table_not_view(
         record_info = table_updater.table_fields_records[field_name].record_info
         assert record_info
         record_info.record.set.assert_not_called()
+
+
+async def test_table_update_skips_data_sent_from_ioc_once_received_back(
+    table_updater: TableUpdater,
+    table_data_1: List[str],
+):
+    """A test that once the ioc sets table values, it won't attempt to
+    set the same values once they come back from the panda"""
+
+    await table_updater.update_mode(TableModeEnum.VIEW.value)
+    await table_updater.update_mode(TableModeEnum.EDIT.value)
+    table_updater.update_table(table_data_1)
+    await table_updater.update_mode(TableModeEnum.SUBMIT.value)
+    table_updater.update_table(table_data_1)
+    for field_record in table_updater.table_fields_records.values():
+        field_record.record_info.record.set.assert_called_once()
