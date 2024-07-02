@@ -12,6 +12,7 @@ from numpy import ndarray
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import GetMultiline, Put
 from pandablocks.responses import TableFieldDetails, TableFieldInfo
+from pandablocks.utils import words_to_table
 from softioc import alarm
 
 from fixtures.mocked_panda import TIMEOUT, command_to_key, multiprocessing_queue_to_list
@@ -520,3 +521,29 @@ async def test_table_update_mode_thread_lock(table_updater):
 
     assert table_updater._wait_for_mode_lock(None, TableModeEnum.EDIT) is True
     await asyncio.gather(some_other_mode_update_from_panda(), ioc_update_mode_record())
+
+
+async def test_table_changed_back_correctly(table_updater, table_data_1, table_data_2):
+    table_unpacked_data_1 = words_to_table(
+        table_data_1, table_updater.field_info, convert_enum_indices=True
+    )
+    table_unpacked_data_2 = words_to_table(
+        table_data_2, table_updater.field_info, convert_enum_indices=True
+    )
+
+    def assert_last_table_data_set_equaled(table_unpacked_data):
+        for row, field_record in zip(
+            table_unpacked_data.values(), table_updater.table_fields_records.values()
+        ):
+            assert numpy.array_equal(
+                row, field_record.record_info.record.set.call_args[0][-1]
+            )
+
+    table_updater.update_table(table_data_1)
+    await table_updater.update_mode(TableModeEnum.SUBMIT.value)
+    table_updater.update_table(table_data_1)
+    assert_last_table_data_set_equaled(table_unpacked_data_1)
+    table_updater.update_table(table_data_2)
+    assert_last_table_data_set_equaled(table_unpacked_data_2)
+    table_updater.update_table(table_data_1)
+    assert_last_table_data_set_equaled(table_unpacked_data_1)

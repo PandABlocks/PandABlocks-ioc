@@ -512,6 +512,8 @@ class TableUpdater:
             # from this method already
             return
 
+        self._sent_data = []
+
         with self._mode_lock:
             if TableModeEnum(self.mode_record_info.record.get()) == TableModeEnum.EDIT:
                 logging.warning(
