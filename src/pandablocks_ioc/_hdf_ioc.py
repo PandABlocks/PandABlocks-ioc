@@ -428,7 +428,7 @@ class HDF5RecordController:
             record_prefix + ":" + self.DATA_PREFIX + ":HDFDirectory"
         )
 
-        create_directory_record_name = EpicsName(self.DATA_PREFIX + ":CreateDirectory")
+        create_directory_record_name = EpicsName(self.DATA_PREFIX + ":CREATE_DIRECTORY")
         self._create_directory_record = builder.longOut(
             create_directory_record_name,
             initial_value=0,
@@ -441,10 +441,10 @@ class HDF5RecordController:
             builder.longOut,
         )
         self._create_directory_record.add_alias(
-            record_prefix + ":" + create_directory_record_name.upper()
+            record_prefix + ":" + self.DATA_PREFIX + ":CreateDirectory"
         )
 
-        directory_exists_name = EpicsName(self.DATA_PREFIX + ":DirectoryExists")
+        directory_exists_name = EpicsName(self.DATA_PREFIX + ":DIRECTORY_EXISTS")
         self._directory_exists_record = builder.boolIn(
             directory_exists_name,
             ZNAM="No",
@@ -459,7 +459,7 @@ class HDF5RecordController:
             builder.boolIn,
         )
         self._directory_exists_record.add_alias(
-            record_prefix + ":" + directory_exists_name.upper()
+            record_prefix + ":" + self.DATA_PREFIX + ":DirectoryExists"
         )
 
         file_name_record_name = EpicsName(self.DATA_PREFIX + ":HDF_FILE_NAME")
