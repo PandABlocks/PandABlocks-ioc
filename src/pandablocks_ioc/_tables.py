@@ -236,7 +236,11 @@ class TableUpdater:
         Pvi.add_pvi_info(
             table_name,
             pvi_group,
-            SignalRW(name=pvi_table_name, pv=table_name, widget=TableWrite(widgets=[])),
+            SignalRW(
+                name=pvi_table_name,
+                write_pv=table_name,
+                write_widget=TableWrite(widgets=[]),
+            ),
         )
 
         # Note that the table_updater's table_fields are guaranteed sorted in bit order,
@@ -308,7 +312,7 @@ class TableUpdater:
         Pvi.add_pvi_info(
             mode_record_name,
             pvi_group,
-            SignalRW(name=pvi_name, pv=mode_record_name, widget=ComboBox()),
+            SignalRW(name=pvi_name, write_pv=mode_record_name, write_widget=ComboBox()),
         )
 
         self.mode_record_info = RecordInfo(lambda x: x, labels, False)

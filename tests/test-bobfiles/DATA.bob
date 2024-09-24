@@ -1,7 +1,7 @@
 <display version="2.0.0">
-  <name>Display</name>
+  <name>DATA</name>
   <x>0</x>
-  <y>0</y>
+  <y use_class="true">0</y>
   <width>506</width>
   <height>463</height>
   <grid_step_x>4</grid_step_x>
@@ -9,7 +9,7 @@
   <widget type="label" version="2.0.0">
     <name>Title</name>
     <class>TITLE</class>
-    <text>DATA - TEST_PREFIX:</text>
+    <text>DATA</text>
     <x use_class="true">0</x>
     <y use_class="true">0</y>
     <width>506</width>
@@ -39,10 +39,11 @@
       <y>0</y>
       <width>250</width>
       <height>20</height>
+      <tooltip>$(text)</tooltip>
     </widget>
     <widget type="textentry" version="3.0.0">
       <name>TextEntry</name>
-      <pv_name>TEST_PREFIX:DATA:HDF_DIRECTORY</pv_name>
+      <pv_name>DATA:HDF_DIRECTORY</pv_name>
       <x>255</x>
       <y>0</y>
       <width>205</width>
@@ -57,10 +58,11 @@
       <y>25</y>
       <width>250</width>
       <height>20</height>
+      <tooltip>$(text)</tooltip>
     </widget>
     <widget type="textentry" version="3.0.0">
       <name>TextEntry</name>
-      <pv_name>TEST_PREFIX:DATA:CREATE_DIRECTORY</pv_name>
+      <pv_name>DATA:CREATE_DIRECTORY</pv_name>
       <x>255</x>
       <y>25</y>
       <width>205</width>
@@ -74,10 +76,11 @@
       <y>50</y>
       <width>250</width>
       <height>20</height>
+      <tooltip>$(text)</tooltip>
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>TextUpdate</name>
-      <pv_name>TEST_PREFIX:DATA:DIRECTORY_EXISTS</pv_name>
+      <pv_name>DATA:DIRECTORY_EXISTS</pv_name>
       <x>255</x>
       <y>50</y>
       <width>205</width>
@@ -95,10 +98,11 @@
       <y>75</y>
       <width>250</width>
       <height>20</height>
+      <tooltip>$(text)</tooltip>
     </widget>
     <widget type="textentry" version="3.0.0">
       <name>TextEntry</name>
-      <pv_name>TEST_PREFIX:DATA:HDF_FILE_NAME</pv_name>
+      <pv_name>DATA:HDF_FILE_NAME</pv_name>
       <x>255</x>
       <y>75</y>
       <width>205</width>
@@ -113,10 +117,11 @@
       <y>100</y>
       <width>250</width>
       <height>20</height>
+      <tooltip>$(text)</tooltip>
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>TextUpdate</name>
-      <pv_name>TEST_PREFIX:DATA:HDF_FULL_FILE_PATH</pv_name>
+      <pv_name>DATA:HDF_FULL_FILE_PATH</pv_name>
       <x>255</x>
       <y>100</y>
       <width>205</width>
@@ -126,7 +131,6 @@
       </font>
       </font>
       <horizontal_alignment>1</horizontal_alignment>
-      <format>6</format>
     </widget>
   </widget>
   <widget type="group" version="2.0.0">
@@ -143,10 +147,11 @@
       <y>0</y>
       <width>250</width>
       <height>20</height>
+      <tooltip>$(text)</tooltip>
     </widget>
     <widget type="textentry" version="3.0.0">
       <name>TextEntry</name>
-      <pv_name>TEST_PREFIX:DATA:NUM_CAPTURE</pv_name>
+      <pv_name>DATA:NUM_CAPTURE</pv_name>
       <x>255</x>
       <y>0</y>
       <width>205</width>
@@ -160,10 +165,11 @@
       <y>25</y>
       <width>250</width>
       <height>20</height>
+      <tooltip>$(text)</tooltip>
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>TextUpdate</name>
-      <pv_name>TEST_PREFIX:DATA:NUM_CAPTURED</pv_name>
+      <pv_name>DATA:NUM_CAPTURED</pv_name>
       <x>255</x>
       <y>25</y>
       <width>205</width>
@@ -181,10 +187,11 @@
       <y>50</y>
       <width>250</width>
       <height>20</height>
+      <tooltip>$(text)</tooltip>
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>TextUpdate</name>
-      <pv_name>TEST_PREFIX:DATA:NUM_RECEIVED</pv_name>
+      <pv_name>DATA:NUM_RECEIVED</pv_name>
       <x>255</x>
       <y>50</y>
       <width>205</width>
@@ -202,10 +209,11 @@
       <y>75</y>
       <width>250</width>
       <height>20</height>
+      <tooltip>$(text)</tooltip>
     </widget>
     <widget type="textentry" version="3.0.0">
       <name>TextEntry</name>
-      <pv_name>TEST_PREFIX:DATA:FLUSH_PERIOD</pv_name>
+      <pv_name>DATA:FLUSH_PERIOD</pv_name>
       <x>255</x>
       <y>75</y>
       <width>205</width>
@@ -219,10 +227,11 @@
       <y>100</y>
       <width>250</width>
       <height>20</height>
+      <tooltip>$(text)</tooltip>
     </widget>
     <widget type="action_button" version="3.0.0">
       <name>WritePV</name>
-      <pv_name>TEST_PREFIX:DATA:CAPTURE</pv_name>
+      <pv_name>DATA:CAPTURE</pv_name>
       <actions>
         <action type="write_pv">
           <pv_name>$(pv_name)</pv_name>
@@ -235,11 +244,11 @@
       <y>100</y>
       <width>65</width>
       <height>20</height>
-      <tooltip>$(actions)</tooltip>
+      <tooltip>DATA:CAPTURE = 1</tooltip>
     </widget>
     <widget type="action_button" version="3.0.0">
       <name>WritePV</name>
-      <pv_name>TEST_PREFIX:DATA:CAPTURE</pv_name>
+      <pv_name>DATA:CAPTURE</pv_name>
       <actions>
         <action type="write_pv">
           <pv_name>$(pv_name)</pv_name>
@@ -252,11 +261,11 @@
       <y>100</y>
       <width>65</width>
       <height>20</height>
-      <tooltip>$(actions)</tooltip>
+      <tooltip>DATA:CAPTURE = 0</tooltip>
     </widget>
     <widget type="led" version="2.0.0">
       <name>LED</name>
-      <pv_name>TEST_PREFIX:DATA:CAPTURE</pv_name>
+      <pv_name>DATA:CAPTURE</pv_name>
       <x>417</x>
       <y>100</y>
       <width>20</width>
@@ -269,10 +278,11 @@
       <y>125</y>
       <width>250</width>
       <height>20</height>
+      <tooltip>$(text)</tooltip>
     </widget>
     <widget type="combo" version="2.0.0">
       <name>ComboBox</name>
-      <pv_name>TEST_PREFIX:DATA:CAPTURE_MODE</pv_name>
+      <pv_name>DATA:CAPTURE_MODE</pv_name>
       <x>255</x>
       <y>125</y>
       <width>205</width>
@@ -285,6 +295,7 @@
       <y>150</y>
       <width>250</width>
       <height>20</height>
+      <tooltip>$(text)</tooltip>
     </widget>
     <widget type="action_button" version="3.0.0">
       <name>OpenDisplay</name>
@@ -295,7 +306,7 @@
           <description>Open Display</description>
         </action>
       </actions>
-      <text>All Postion Capture Parameters</text>
+      <text>SubScreen</text>
       <x>255</x>
       <y>150</y>
       <width>205</width>
@@ -317,10 +328,11 @@
       <y>0</y>
       <width>250</width>
       <height>20</height>
+      <tooltip>$(text)</tooltip>
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>TextUpdate</name>
-      <pv_name>TEST_PREFIX:DATA:STATUS</pv_name>
+      <pv_name>DATA:STATUS</pv_name>
       <x>255</x>
       <y>0</y>
       <width>205</width>
@@ -330,7 +342,6 @@
       </font>
       </font>
       <horizontal_alignment>1</horizontal_alignment>
-      <format>6</format>
     </widget>
   </widget>
 </display>

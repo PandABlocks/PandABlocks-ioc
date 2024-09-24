@@ -82,8 +82,9 @@ def add_data_capture_pvi_info(
 ):
     component = SignalRW(
         name=epics_to_pvi_name(data_capture_record_name),
-        pv=data_capture_record_name,
-        widget=ButtonPanel(actions={"Start": "1", "Stop": "0"}),
+        read_pv=data_capture_record_name,
+        write_pv=data_capture_record_name,
+        write_widget=ButtonPanel(actions={"Start": "1", "Stop": "0"}),
         read_widget=LED(),
     )
     add_pvi_info_to_record(data_capture_pvi_record, data_capture_record_name, "rw")
@@ -96,8 +97,9 @@ def add_pcap_arm_pvi_info(group: PviGroup, pcap_arm_pvi_record: RecordWrapper):
     pcap_arm_record_name = EpicsName("PCAP:ARM")
     component = SignalRW(
         name=epics_to_pvi_name(pcap_arm_record_name),
-        pv=pcap_arm_record_name,
-        widget=ButtonPanel(actions={"Arm": "1", "Disarm": "0"}),
+        read_pv=pcap_arm_record_name,
+        write_pv=pcap_arm_record_name,
+        write_widget=ButtonPanel(actions={"Arm": "1", "Disarm": "0"}),
         read_widget=LED(),
     )
     add_pvi_info_to_record(pcap_arm_pvi_record, pcap_arm_record_name, "rw")
@@ -122,14 +124,15 @@ def add_automatic_pvi_info(
         if record_name == "PCAP:ARM":
             component = SignalRW(
                 name=pvi_name,
-                pv=record_name,
+                read_pv=record_name,
+                # write_pv=record_name,
                 widget=ButtonPanel(actions={"Arm": "1", "Disarm": "0"}),
                 read_widget=LED(),
             )
             access = "rw"
 
         else:
-            component = SignalX(name=pvi_name, pv=record_name, value="")
+            component = SignalX(name=pvi_name, write_pv=record_name, value="")
             access = "x"
     elif writeable:
         if useComboBox:
@@ -142,8 +145,7 @@ def add_automatic_pvi_info(
                 widget = TextWrite(format=TextFormat.string)
             else:
                 widget = TextWrite(format=None)
-
-        component = SignalRW(name=pvi_name, pv=record_name, widget=widget)
+        component = SignalRW(name=pvi_name, write_pv=record_name, write_widget=widget)
         access = "rw"
     else:
         if record_creation_func in (
@@ -154,7 +156,8 @@ def add_automatic_pvi_info(
         else:
             widget = TextRead(format=None)
 
-        component = SignalR(name=pvi_name, pv=record_name, widget=widget)
+        component = SignalR(name=pvi_name, read_pv=record_name)
+        # , read_widget=widget
         access = "r"
 
     add_pvi_info_to_record(record, record_name, access)
@@ -185,38 +188,38 @@ def add_positions_table_row(
         SignalR(
             name=epics_to_pvi_name(value_record_name),
             label=value_record_name,
-            pv=value_record_name,
-            widget=TextRead(),
+            read_pv=value_record_name,
+            read_widget=TextRead(),
         ),
         SignalRW(
             name=epics_to_pvi_name(units_record_name),
             label=units_record_name,
-            pv=units_record_name,
-            widget=TextWrite(),
+            write_pv=units_record_name,
+            write_widget=TextWrite(),
         ),
         SignalRW(
             name=epics_to_pvi_name(scale_record_name),
             label=scale_record_name,
-            pv=scale_record_name,
-            widget=TextWrite(),
+            write_pv=scale_record_name,
+            write_widget=TextWrite(),
         ),
         SignalRW(
             name=epics_to_pvi_name(offset_record_name),
             label=offset_record_name,
-            pv=offset_record_name,
-            widget=TextWrite(),
+            write_pv=offset_record_name,
+            write_widget=TextWrite(),
         ),
         SignalRW(
             name=epics_to_pvi_name(dataset_record_name),
             label=dataset_record_name,
-            pv=dataset_record_name,
-            widget=TextWrite(),
+            write_pv=dataset_record_name,
+            write_widget=TextWrite(),
         ),
         SignalRW(
             name=epics_to_pvi_name(capture_record_name),
             label=capture_record_name,
-            pv=capture_record_name,
-            widget=ComboBox(),
+            write_pv=capture_record_name,
+            write_widget=ComboBox(),
         ),
     ]
 
@@ -375,4 +378,4 @@ class Pvi:
 
                 Pvi.add_general_device_refs_to_groups(device)
 
-                formatter.format(device, record_prefix + ":", bobfile_path)
+                formatter.format(device, bobfile_path)

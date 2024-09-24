@@ -1,7 +1,7 @@
 <display version="2.0.0">
-  <name>Display</name>
+  <name>index</name>
   <x>0</x>
-  <y>0</y>
+  <y use_class="true">0</y>
   <width>488</width>
   <height>130</height>
   <grid_step_x>4</grid_step_x>
@@ -9,7 +9,7 @@
   <widget type="label" version="2.0.0">
     <name>Title</name>
     <class>TITLE</class>
-    <text>index - TEST_PREFIX:</text>
+    <text>index</text>
     <x use_class="true">0</x>
     <y use_class="true">0</y>
     <width>488</width>
@@ -32,6 +32,7 @@
     <y>30</y>
     <width>250</width>
     <height>20</height>
+    <tooltip>$(text)</tooltip>
   </widget>
   <widget type="action_button" version="3.0.0">
     <name>OpenDisplay</name>
@@ -42,7 +43,7 @@
         <description>Open Display</description>
       </action>
     </actions>
-    <text>PCAP</text>
+    <text>SubScreen</text>
     <x>278</x>
     <y>30</y>
     <width>205</width>
@@ -56,6 +57,7 @@
     <y>55</y>
     <width>250</width>
     <height>20</height>
+    <tooltip>$(text)</tooltip>
   </widget>
   <widget type="action_button" version="3.0.0">
     <name>OpenDisplay</name>
@@ -66,7 +68,7 @@
         <description>Open Display</description>
       </action>
     </actions>
-    <text>DATA</text>
+    <text>SubScreen</text>
     <x>278</x>
     <y>55</y>
     <width>205</width>
@@ -80,6 +82,7 @@
     <y>80</y>
     <width>250</width>
     <height>20</height>
+    <tooltip>$(text)</tooltip>
   </widget>
   <widget type="action_button" version="3.0.0">
     <name>OpenDisplay</name>
@@ -90,7 +93,7 @@
         <description>Open Display</description>
       </action>
     </actions>
-    <text>SEQ</text>
+    <text>SubScreen</text>
     <x>278</x>
     <y>80</y>
     <width>205</width>
@@ -104,6 +107,7 @@
     <y>105</y>
     <width>250</width>
     <height>20</height>
+    <tooltip>$(text)</tooltip>
   </widget>
   <widget type="action_button" version="3.0.0">
     <name>OpenDisplay</name>
@@ -114,7 +118,7 @@
         <description>Open Display</description>
       </action>
     </actions>
-    <text>PULSE</text>
+    <text>SubScreen</text>
     <x>278</x>
     <y>105</y>
     <width>205</width>
