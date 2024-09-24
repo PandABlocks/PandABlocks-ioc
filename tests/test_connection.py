@@ -16,7 +16,6 @@ from pandablocks.commands import (
     GetBlockInfo,
     GetChanges,
     GetFieldInfo,
-    GetLine,
     Put,
     TimeFieldInfo,
 )
@@ -79,13 +78,8 @@ def panda_disconnect_responses(table_field_info, table_data_1, table_data_2):
                     units_labels=["min", "s", "ms", "ns"],
                     subtype=None,
                     description="EGU Desc",
-                    min_val=8e-06,
                 )
             },
-        ),
-        # DRVL changing from 8e-06 ms to minutes
-        command_to_key(GetLine(field="PULSE.DELAY.MIN")): chain(
-            ["8e-09"], repeat("1.333333333e-10")
         ),
         command_to_key(GetFieldInfo(block="SEQ", extended_metadata=True)): repeat(
             {"TABLE": table_field_info}
@@ -110,7 +104,6 @@ def panda_disconnect_responses(table_field_info, table_data_1, table_data_2):
                     "*METADATA.LABEL_PCAP1": "PcapMetadataLabel",
                     "PULSE.DELAY": "100",
                     "PULSE.DELAY.UNITS": "ms",
-                    "PULSE.DELAY.MIN": "8e-06",
                 },
                 multiline_values={"SEQ.TABLE": table_data_1},
             ),
