@@ -16,7 +16,6 @@ from pandablocks.commands import (
     GetBlockInfo,
     GetChanges,
     GetFieldInfo,
-    GetLine,
     Put,
 )
 from pandablocks.responses import (
@@ -62,7 +61,6 @@ from ._types import (
     ScalarRecordValue,
     check_num_labels,
     device_and_record_to_panda_name,
-    epics_to_panda_name,
     panda_to_epics_name,
     trim_description,
     trim_string_value,
@@ -422,10 +420,7 @@ class _WriteRecordUpdater(_RecordUpdater):
 
 @dataclass
 class _TimeRecordUpdater(_RecordUpdater):
-    """Set the EGU and DRVL values on a record when the UNITS sub-record is updated.
-
-    DRVL will only be updated if the `is_type_time` flag is True - fields with a subtype
-    of `time` do not have a `MIN` attribute."""
+    """Set the EGU values on a record when the UNITS sub-record is updated."""
 
     base_record: RecordWrapper
     is_type_time: bool
@@ -439,9 +434,6 @@ class _TimeRecordUpdater(_RecordUpdater):
 
     async def update_parent_record(self, new_val):
         self.update_egu(new_val)
-
-        if self.is_type_time:
-            await self.update_drvl()
 
     def update_egu(self, new_val) -> None:
         assert self.labels
@@ -460,31 +452,6 @@ class _TimeRecordUpdater(_RecordUpdater):
             f"{self.base_record.name}.EGU",
             fields.DBF_STRING,
             array.ctypes.data,
-            1,
-        )
-
-    async def update_drvl(self) -> None:
-        # The MIN attribute of a TIME type is automatically updated when the
-        # UNITS record is updated. Retrieve the new value and set it into DRVL.
-
-        # Remove the EPICS name prefix
-        record_name = self.record_info.record.name.replace(
-            self.record_prefix + ":", "", 1
-        )
-
-        # Trim off the last component to find the base record
-        base_record_name = record_name.rsplit(":", maxsplit=1)[0]
-
-        panda_field_name = epics_to_panda_name(base_record_name)
-
-        new_min = await self.client.send(GetLine(f"{panda_field_name}.MIN"))
-
-        new_min_float = np.require(new_min, dtype=np.float64)
-
-        db_put_field(
-            f"{self.base_record.name}.DRVL",
-            fields.DBF_DOUBLE,
-            new_min_float.ctypes.data,
             1,
         )
 
@@ -775,9 +742,6 @@ class IocRecordFactory:
             builder.aOut,
             initial_value=values[record_name],
         )
-
-        # MIN attribute is the DRVL field in EPICS
-        record_dict[record_name].record.DRVL = field_info.min_val
 
         return record_dict
 

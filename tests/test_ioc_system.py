@@ -82,7 +82,6 @@ async def test_introspect_panda(
         "PCAP:LABEL": "PcapMetadataLabel",
         "PULSE:DELAY": "100",
         "PCAP:ARM": "0",
-        "PULSE:DELAY:MIN": "8e-06",
         "PULSE:DELAY:UNITS": "ms",
         "SEQ:TABLE": table_data_1,
     }
@@ -225,23 +224,11 @@ async def test_create_softioc_time_panda_changes(mocked_panda_standard_responses
             test_prefix + ":PULSE:DELAY:UNITS", units_queue.put, datatype=str
         )
         assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "ms"
-
-        drvl_queue = asyncio.Queue()
-        m3 = camonitor(
-            test_prefix + ":PULSE:DELAY.DRVL",
-            drvl_queue.put,
-        )
-        # The units value changes from ms to s in the test Client, which causes
-        # the DRVL value to change from 8e-06 to 8e-09, consistent to ms to s.
-
-        assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 8e-06
         assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "s"
         assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "s"
-        assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 8e-09
     finally:
         m1.close()
         m2.close()
-        m3.close()
 
 
 async def test_create_softioc_time_epics_changes(
@@ -271,17 +258,8 @@ async def test_create_softioc_time_epics_changes(
             test_prefix + ":PULSE:DELAY:UNITS", units_queue.put, datatype=str
         )
         assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "ms"
-
-        drvl_queue = asyncio.Queue()
-        m3 = camonitor(
-            test_prefix + ":PULSE:DELAY.DRVL",
-            drvl_queue.put,
-        )
-        assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 8e-06
-
         assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "s"
         assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "s"
-        assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 8e-09
 
         # Change the UNITS to "min"
         assert await caput(
@@ -290,12 +268,10 @@ async def test_create_softioc_time_epics_changes(
 
         assert await asyncio.wait_for(egu_queue.get(), TIMEOUT) == "min"
         assert await asyncio.wait_for(units_queue.get(), TIMEOUT) == "min"
-        assert await asyncio.wait_for(drvl_queue.get(), TIMEOUT) == 1.333333333e-10
 
     finally:
         m1.close()
         m2.close()
-        m3.close()
 
 
 async def test_softioc_records_block(mocked_panda_standard_responses):
