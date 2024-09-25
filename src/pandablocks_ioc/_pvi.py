@@ -124,9 +124,8 @@ def add_automatic_pvi_info(
         if record_name == "PCAP:ARM":
             component = SignalRW(
                 name=pvi_name,
-                read_pv=record_name,
-                # write_pv=record_name,
-                widget=ButtonPanel(actions={"Arm": "1", "Disarm": "0"}),
+                write_pv=record_name,
+                write_widget=ButtonPanel(actions={"Arm": "1", "Disarm": "0"}),
                 read_widget=LED(),
             )
             access = "rw"
@@ -156,8 +155,7 @@ def add_automatic_pvi_info(
         else:
             widget = TextRead(format=None)
 
-        component = SignalR(name=pvi_name, read_pv=record_name)
-        # , read_widget=widget
+        component = SignalR(name=pvi_name, read_pv=record_name, read_widget=widget)
         access = "r"
 
     add_pvi_info_to_record(record, record_name, access)
