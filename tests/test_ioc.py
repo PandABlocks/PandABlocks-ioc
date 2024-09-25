@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from mock.mock import MagicMock, call
 from pandablocks.asyncio import AsyncioClient
-from pandablocks.commands import GetLine, Put
+from pandablocks.commands import Put
 from pandablocks.responses import (
     BitMuxFieldInfo,
     BitOutFieldInfo,
@@ -135,7 +135,6 @@ def idfn(val):
                 None,
                 None,
                 units_labels=["s", "ms", "min"],
-                min_val=8e-09,
             ),
             {
                 f"{TEST_RECORD}": "0.1",
@@ -654,29 +653,6 @@ async def test_time_record_updater_update_egu(
     # to a memory address so will always vary
     put_field_args = db_put_field.call_args.args
     expected_args = [test_prefix + ":BASE:RECORD.EGU", fields.DBF_STRING, 1]
-    for arg in expected_args:
-        assert arg in put_field_args
-    assert isinstance(put_field_args[2], int)
-
-
-@patch("pandablocks_ioc.ioc.db_put_field")
-async def test_time_record_updater_update_drvl(
-    db_put_field: MagicMock, mocked_time_record_updater: Tuple[_TimeRecordUpdater, str]
-):
-    """Test that _TimeRecordUpdater.update_drvl works correctly"""
-
-    time_record_updater, test_prefix = mocked_time_record_updater
-    await time_record_updater.update_drvl()
-
-    time_record_updater.client.send.assert_called_once_with(GetLine("TEST.MIN"))
-
-    db_put_field.assert_called_once()
-
-    # Check the expected arguments are passed to db_put_field.
-    # Note we don't check the value of `array.ctypes.data` parameter as it's a pointer
-    # to a memory address so will always vary
-    put_field_args = db_put_field.call_args.args
-    expected_args = [test_prefix + ":BASE:RECORD.DRVL", fields.DBF_DOUBLE, 1]
     for arg in expected_args:
         assert arg in put_field_args
     assert isinstance(put_field_args[2], int)
