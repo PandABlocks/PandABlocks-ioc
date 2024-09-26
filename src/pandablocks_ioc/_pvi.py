@@ -92,7 +92,7 @@ def add_data_capture_pvi_info(
         record_name=data_capture_record_name, group=group, component=component
     )
 
-
+#arm_epics_name: EpicsName, 
 def add_pcap_arm_pvi_info(group: PviGroup, pcap_arm_pvi_record: RecordWrapper):
     pcap_arm_record_name = EpicsName("PCAP:ARM")
     component = SignalRW(
@@ -123,7 +123,7 @@ def add_automatic_pvi_info(
     if record_creation_func == builder.Action:
         if record_name == "PCAP:ARM":
             component = SignalRW(
-                name=pvi_name,
+                name=f"{Pvi.record_prefix}:pvi_name",
                 write_pv=record_name,
                 write_widget=ButtonPanel(actions={"Arm": "1", "Disarm": "0"}),
                 read_widget=LED(),
@@ -240,6 +240,7 @@ class Pvi:
 
     _screens_dir: Optional[Path] = None
     _clear_bobfiles: bool = False
+    record_prefix: Optional[str] = None
 
     # We may want general device refs, e.g every CAPTURE group having a reference
     # to the positions table
@@ -265,15 +266,16 @@ class Pvi:
     def add_pvi_info(record_name: EpicsName, group: PviGroup, component: Component):
         """Add PVI Info to the global collection"""
 
-        record_base, _ = record_name.split(":", 1)
+        prefix, block, *_ = record_name.split(":")
+        record_name = f"{prefix}:{block}"
 
-        if record_base in Pvi.pvi_info_dict:
-            if group in Pvi.pvi_info_dict[record_base]:
-                Pvi.pvi_info_dict[record_base][group].append(component)
+        if record_name in Pvi.pvi_info_dict:
+            if group in Pvi.pvi_info_dict[record_name]:
+                Pvi.pvi_info_dict[record_name][group].append(component)
             else:
-                Pvi.pvi_info_dict[record_base][group] = [component]
+                Pvi.pvi_info_dict[record_name][group] = [component]
         else:
-            Pvi.pvi_info_dict[record_base] = {group: [component]}
+            Pvi.pvi_info_dict[record_name] = {group: [component]}
 
     @staticmethod
     def add_general_device_refs_to_groups(device: Device):

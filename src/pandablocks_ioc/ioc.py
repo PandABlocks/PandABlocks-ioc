@@ -506,6 +506,7 @@ class IocRecordFactory:
 
         # Set the record prefix
         builder.SetDeviceName(self._record_prefix)
+        Pvi.record_prefix = self._record_prefix
 
         # All records should be blocking
         builder.SetBlocking(True)
@@ -1770,6 +1771,7 @@ class IocRecordFactory:
 
     def create_block_records(
         self,
+        #prefix: EpicsName,
         block: str,
         block_info: BlockInfo,
         block_values: Dict[EpicsName, str],
