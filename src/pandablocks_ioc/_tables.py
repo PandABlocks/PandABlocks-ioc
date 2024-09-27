@@ -312,7 +312,11 @@ class TableUpdater:
         Pvi.add_pvi_info(
             mode_record_name,
             pvi_group,
-            SignalRW(name=pvi_name, write_pv=f"{Pvi.record_prefix}:{mode_record_name}", write_widget=ComboBox()),
+            SignalRW(
+                name=pvi_name,
+                write_pv=f"{Pvi.record_prefix}:{mode_record_name}",
+                write_widget=ComboBox(),
+            ),
         )
 
         self.mode_record_info = RecordInfo(lambda x: x, labels, False)

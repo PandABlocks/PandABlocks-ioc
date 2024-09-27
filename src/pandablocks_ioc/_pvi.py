@@ -92,7 +92,7 @@ def add_data_capture_pvi_info(
         record_name=data_capture_record_name, group=group, component=component
     )
 
-#arm_epics_name: EpicsName, 
+# arm_epics_name: EpicsName,
 def add_pcap_arm_pvi_info(group: PviGroup, pcap_arm_pvi_record: RecordWrapper):
     pcap_arm_record_name = EpicsName("PCAP:ARM")
     component = SignalRW(
@@ -144,7 +144,11 @@ def add_automatic_pvi_info(
                 widget = TextWrite(format=TextFormat.string)
             else:
                 widget = TextWrite(format=None)
-        component = SignalRW(name=pvi_name, write_pv=f"{Pvi.record_prefix}:{record_name}", write_widget=widget)
+        component = SignalRW(
+            name=pvi_name,
+            write_pv=f"{Pvi.record_prefix}:{record_name}",
+            write_widget=widget,
+        )
         access = "rw"
     else:
         if record_creation_func in (
@@ -155,7 +159,11 @@ def add_automatic_pvi_info(
         else:
             widget = TextRead(format=None)
 
-        component = SignalR(name=pvi_name, read_pv=f"{Pvi.record_prefix}:{record_name}", read_widget=widget)
+        component = SignalR(
+            name=pvi_name,
+            read_pv=f"{Pvi.record_prefix}:{record_name}",
+            read_widget=widget,
+        )
         access = "r"
 
     add_pvi_info_to_record(record, record_name, access)
@@ -262,7 +270,7 @@ class Pvi:
 
         Pvi._clear_bobfiles = clear_bobfiles
 
-        
+
     def add_pvi_info(record_name: EpicsName, group: PviGroup, component: Component):
         """Add PVI Info to the global collection"""
 
