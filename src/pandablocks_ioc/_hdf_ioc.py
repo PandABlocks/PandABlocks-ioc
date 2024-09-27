@@ -335,7 +335,7 @@ class DatasetNameCache:
             ["Name", "Type"], [[], []], length=300, default_data_type=str
         )
 
-    def hdf_writer_names(self):
+    def hdf_writer_names(self) -> Dict[str, Dict[str, str]]:
         """Formats the current dataset names for use in the HDFWriter"""
 
         hdf_names: Dict[str, Dict[str, str]] = {}

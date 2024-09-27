@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from os import remove
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Union
 
 from epicsdbbuilder import RecordName
 from pvi._format.dls import DLSFormatter
@@ -11,6 +11,7 @@ from pvi.device import (
     ButtonPanel,
     ComboBox,
     Component,
+    ComponentUnion,
     Device,
     DeviceRef,
     Grid,
@@ -136,35 +137,37 @@ def add_automatic_pvi_info(
             )
             access = "x"
     elif writeable:
+        text_read_widget: Union[ComboBox, TextWrite]
         if useComboBox:
-            widget = ComboBox()
+            text_read_widget = ComboBox()
         else:
             if record_creation_func in (
                 builder.longStringOut,
                 builder.stringOut,
             ):
-                widget = TextWrite(format=TextFormat.string)
+                text_read_widget = TextWrite(format=TextFormat.string)
             else:
-                widget = TextWrite(format=None)
+                text_read_widget = TextWrite(format=None)
         component = SignalRW(
             name=pvi_name,
             write_pv=f"{Pvi.record_prefix}:{record_name}",
-            write_widget=widget,
+            write_widget=text_read_widget,
         )
         access = "rw"
     else:
+        writable_widget: TextRead
         if record_creation_func in (
             builder.longStringIn,
             builder.stringIn,
         ):
-            widget = TextRead(format=TextFormat.string)
+            writable_widget = TextRead(format=TextFormat.string)
         else:
-            widget = TextRead(format=None)
+            writable_widget = TextRead(format=None)
 
         component = SignalR(
             name=pvi_name,
             read_pv=f"{Pvi.record_prefix}:{record_name}",
-            read_widget=widget,
+            read_widget=writable_widget,
         )
         access = "r"
 
@@ -231,10 +234,11 @@ def add_positions_table_row(
         ),
     ]
 
-    row = Row()
-    if len(_positions_table_group.children) == 0:
-        row.header = _positions_table_headers
-
+    row = (
+        Row(header=None)
+        if _positions_table_group.children
+        else Row(header=_positions_table_headers)
+    )
     row_group = Group(
         name=epics_to_pvi_name(record_name),
         label=record_name,
@@ -242,7 +246,7 @@ def add_positions_table_row(
         children=children,
     )
 
-    _positions_table_group.children.append(row_group)
+    _positions_table_group.children.append(row_group)  # type: ignore
 
 
 class Pvi:
@@ -262,7 +266,8 @@ class Pvi:
         )
     }
 
-    pvi_info_dict: Dict[str, Dict[PviGroup, List[Component]]] = {}
+    # pvi_info_dict: Dict[str, Dict[PviGroup, List[Component]]] = {}
+    pvi_info_dict: Dict[str, Dict[PviGroup, List[ComponentUnion]]] = {}
 
     @staticmethod
     def configure_pvi(screens_dir: Optional[str], clear_bobfiles: bool):
@@ -290,6 +295,10 @@ class Pvi:
     def add_general_device_refs_to_groups(device: Device):
         for group in device.children:
             if group.name in Pvi._general_device_refs:
+                if not isinstance(group, Group):
+                    raise RuntimeError(
+                        "Tried to add a .... to a " f"widget group {group} ... "
+                    )
                 group.children.append(Pvi._general_device_refs[group.name])
 
     @staticmethod
@@ -307,9 +316,9 @@ class Pvi:
             for group, components in v.items():
                 children.append(
                     Group(name=group.name, layout=Grid(), children=components)
-                )
+                )  # type: ignore
 
-            device = Device(label=block_name, children=children)
+            device = Device(label=block_name, children=children)  # type: ignore
             devices.append(device)
 
             # Add PVI structure. Unfortunately we need something in the database
