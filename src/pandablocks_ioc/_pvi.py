@@ -83,7 +83,7 @@ def add_data_capture_pvi_info(
     component = SignalRW(
         name=epics_to_pvi_name(data_capture_record_name),
         read_pv=data_capture_record_name,
-        write_pv=data_capture_record_name,
+        write_pv=f"{Pvi.record_prefix}:{data_capture_record_name}",
         write_widget=ButtonPanel(actions={"Start": "1", "Stop": "0"}),
         read_widget=LED(),
     )
@@ -98,7 +98,7 @@ def add_pcap_arm_pvi_info(group: PviGroup, pcap_arm_pvi_record: RecordWrapper):
     component = SignalRW(
         name=epics_to_pvi_name(pcap_arm_record_name),
         read_pv=pcap_arm_record_name,
-        write_pv=pcap_arm_record_name,
+        write_pv=f"{Pvi.record_prefix}:{pcap_arm_record_name}",
         write_widget=ButtonPanel(actions={"Arm": "1", "Disarm": "0"}),
         read_widget=LED(),
     )
@@ -186,37 +186,37 @@ def add_positions_table_row(
         SignalR(
             name=epics_to_pvi_name(value_record_name),
             label=value_record_name,
-            read_pv=value_record_name,
+            read_pv=f"{Pvi.record_prefix}:{value_record_name}",
             read_widget=TextRead(),
         ),
         SignalRW(
             name=epics_to_pvi_name(units_record_name),
             label=units_record_name,
-            write_pv=units_record_name,
+            write_pv=f"{Pvi.record_prefix}:{value_record_name}",
             write_widget=TextWrite(),
         ),
         SignalRW(
             name=epics_to_pvi_name(scale_record_name),
             label=scale_record_name,
-            write_pv=scale_record_name,
+            write_pv=f"{Pvi.record_prefix}:{scale_record_name}",
             write_widget=TextWrite(),
         ),
         SignalRW(
             name=epics_to_pvi_name(offset_record_name),
             label=offset_record_name,
-            write_pv=offset_record_name,
+            write_pv=f"{Pvi.record_prefix}:{offset_record_name}",
             write_widget=TextWrite(),
         ),
         SignalRW(
             name=epics_to_pvi_name(dataset_record_name),
             label=dataset_record_name,
-            write_pv=dataset_record_name,
+            write_pv=f"{Pvi.record_prefix}:{dataset_record_name}",
             write_widget=TextWrite(),
         ),
         SignalRW(
             name=epics_to_pvi_name(capture_record_name),
             label=capture_record_name,
-            write_pv=capture_record_name,
+            write_pv=f"{Pvi.record_prefix}:{capture_record_name}",
             write_widget=ComboBox(),
         ),
     ]
@@ -262,20 +262,19 @@ class Pvi:
 
         Pvi._clear_bobfiles = clear_bobfiles
 
-    @staticmethod
+        
     def add_pvi_info(record_name: EpicsName, group: PviGroup, component: Component):
         """Add PVI Info to the global collection"""
 
-        prefix, block, *_ = record_name.split(":")
-        record_name = f"{prefix}:{block}"
+        record_base, _ = record_name.split(":", 1)
 
-        if record_name in Pvi.pvi_info_dict:
-            if group in Pvi.pvi_info_dict[record_name]:
-                Pvi.pvi_info_dict[record_name][group].append(component)
+        if record_base in Pvi.pvi_info_dict:
+            if group in Pvi.pvi_info_dict[record_base]:
+                Pvi.pvi_info_dict[record_base][group].append(component)
             else:
-                Pvi.pvi_info_dict[record_name][group] = [component]
+                Pvi.pvi_info_dict[record_base][group] = [component]
         else:
-            Pvi.pvi_info_dict[record_name] = {group: [component]}
+            Pvi.pvi_info_dict[record_base] = {group: [component]}
 
     @staticmethod
     def add_general_device_refs_to_groups(device: Device):
