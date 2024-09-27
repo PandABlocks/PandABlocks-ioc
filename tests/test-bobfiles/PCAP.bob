@@ -43,7 +43,7 @@
     </widget>
     <widget type="textentry" version="3.0.0">
       <name>TextEntry</name>
-      <pv_name>PCAP:LABEL</pv_name>
+      <pv_name>TEST_PREFIX:PCAP:LABEL</pv_name>
       <x>255</x>
       <y>0</y>
       <width>205</width>
@@ -62,7 +62,7 @@
     </widget>
     <widget type="action_button" version="3.0.0">
       <name>WritePV</name>
-      <pv_name>PCAP:ARM</pv_name>
+      <pv_name>TEST_PREFIX:PCAP:ARM</pv_name>
       <actions>
         <action type="write_pv">
           <pv_name>$(pv_name)</pv_name>
@@ -75,11 +75,11 @@
       <y>25</y>
       <width>65</width>
       <height>20</height>
-      <tooltip>PCAP:ARM = 1</tooltip>
+      <tooltip>TEST_PREFIX:PCAP:ARM = 1</tooltip>
     </widget>
     <widget type="action_button" version="3.0.0">
       <name>WritePV</name>
-      <pv_name>PCAP:ARM</pv_name>
+      <pv_name>TEST_PREFIX:PCAP:ARM</pv_name>
       <actions>
         <action type="write_pv">
           <pv_name>$(pv_name)</pv_name>
@@ -92,7 +92,7 @@
       <y>25</y>
       <width>65</width>
       <height>20</height>
-      <tooltip>PCAP:ARM = 0</tooltip>
+      <tooltip>TEST_PREFIX:PCAP:ARM = 0</tooltip>
     </widget>
     <widget type="led" version="2.0.0">
       <name>LED</name>
@@ -113,7 +113,7 @@
     </widget>
     <widget type="textentry" version="3.0.0">
       <name>TextEntry</name>
-      <pv_name>PCAP:GATE</pv_name>
+      <pv_name>TEST_PREFIX:PCAP:GATE</pv_name>
       <x>255</x>
       <y>50</y>
       <width>205</width>
@@ -132,7 +132,7 @@
     </widget>
     <widget type="textentry" version="3.0.0">
       <name>TextEntry</name>
-      <pv_name>PCAP:GATE:DELAY</pv_name>
+      <pv_name>TEST_PREFIX:PCAP:GATE:DELAY</pv_name>
       <x>255</x>
       <y>75</y>
       <width>205</width>
@@ -158,7 +158,7 @@
     </widget>
     <widget type="combo" version="2.0.0">
       <name>ComboBox</name>
-      <pv_name>PCAP:TRIG_EDGE</pv_name>
+      <pv_name>TEST_PREFIX:PCAP:TRIG_EDGE</pv_name>
       <x>255</x>
       <y>0</y>
       <width>205</width>

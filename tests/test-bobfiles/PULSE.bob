@@ -43,7 +43,7 @@
     </widget>
     <widget type="textentry" version="3.0.0">
       <name>TextEntry</name>
-      <pv_name>PULSE:DELAY</pv_name>
+      <pv_name>TEST_PREFIX:PULSE:DELAY</pv_name>
       <x>255</x>
       <y>0</y>
       <width>205</width>
@@ -61,7 +61,7 @@
     </widget>
     <widget type="combo" version="2.0.0">
       <name>ComboBox</name>
-      <pv_name>PULSE:DELAY:UNITS</pv_name>
+      <pv_name>TEST_PREFIX:PULSE:DELAY:UNITS</pv_name>
       <x>255</x>
       <y>25</y>
       <width>205</width>

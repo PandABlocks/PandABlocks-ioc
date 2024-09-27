@@ -34,7 +34,7 @@
     <transparent>true</transparent>
     <widget type="table" version="2.0.0">
       <name>Table</name>
-      <pv_name>pva://SEQ:TABLE</pv_name>
+      <pv_name>pva://TEST_PREFIX:SEQ:TABLE</pv_name>
       <x>0</x>
       <y>0</y>
       <width>0</width>
@@ -58,7 +58,7 @@
     </widget>
     <widget type="combo" version="2.0.0">
       <name>ComboBox</name>
-      <pv_name>SEQ:TABLE:MODE</pv_name>
+      <pv_name>TEST_PREFIX:SEQ:TABLE:MODE</pv_name>
       <x>255</x>
       <y>205</y>
       <width>205</width>
