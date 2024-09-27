@@ -82,7 +82,7 @@ def add_data_capture_pvi_info(
 ):
     component = SignalRW(
         name=epics_to_pvi_name(data_capture_record_name),
-        read_pv=data_capture_record_name,
+        read_pv=f"{Pvi.record_prefix}:{data_capture_record_name}",
         write_pv=f"{Pvi.record_prefix}:{data_capture_record_name}",
         write_widget=ButtonPanel(actions={"Start": "1", "Stop": "0"}),
         read_widget=LED(),
@@ -92,12 +92,12 @@ def add_data_capture_pvi_info(
         record_name=data_capture_record_name, group=group, component=component
     )
 
-# arm_epics_name: EpicsName,
+
 def add_pcap_arm_pvi_info(group: PviGroup, pcap_arm_pvi_record: RecordWrapper):
     pcap_arm_record_name = EpicsName("PCAP:ARM")
     component = SignalRW(
         name=epics_to_pvi_name(pcap_arm_record_name),
-        read_pv=pcap_arm_record_name,
+        read_pv=f"{Pvi.record_prefix}:{pcap_arm_record_name}",
         write_pv=f"{Pvi.record_prefix}:{pcap_arm_record_name}",
         write_widget=ButtonPanel(actions={"Arm": "1", "Disarm": "0"}),
         read_widget=LED(),
@@ -131,7 +131,9 @@ def add_automatic_pvi_info(
             access = "rw"
 
         else:
-            component = SignalX(name=pvi_name, write_pv=record_name, value="")
+            component = SignalX(
+                name=pvi_name, write_pv=f"{Pvi.record_prefix}:{record_name}", value=""
+            )
             access = "x"
     elif writeable:
         if useComboBox:
@@ -270,7 +272,7 @@ class Pvi:
 
         Pvi._clear_bobfiles = clear_bobfiles
 
-
+    @staticmethod
     def add_pvi_info(record_name: EpicsName, group: PviGroup, component: Component):
         """Add PVI Info to the global collection"""
 

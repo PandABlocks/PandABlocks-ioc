@@ -1771,7 +1771,6 @@ class IocRecordFactory:
 
     def create_block_records(
         self,
-        # prefix: EpicsName,
         block: str,
         block_info: BlockInfo,
         block_values: Dict[EpicsName, str],

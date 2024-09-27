@@ -96,7 +96,7 @@
     </widget>
     <widget type="led" version="2.0.0">
       <name>LED</name>
-      <pv_name>PCAP:ARM</pv_name>
+      <pv_name>TEST_PREFIX:PCAP:ARM</pv_name>
       <x>417</x>
       <y>25</y>
       <width>20</width>

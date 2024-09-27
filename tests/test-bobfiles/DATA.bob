@@ -266,7 +266,7 @@
     </widget>
     <widget type="led" version="2.0.0">
       <name>LED</name>
-      <pv_name>DATA:CAPTURE</pv_name>
+      <pv_name>TEST_PREFIX:DATA:CAPTURE</pv_name>
       <x>417</x>
       <y>100</y>
       <width>20</width>
