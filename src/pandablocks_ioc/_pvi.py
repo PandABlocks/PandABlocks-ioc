@@ -23,7 +23,6 @@ from pvi.device import (
     TextFormat,
     TextRead,
     TextWrite,
-    Tree,
 )
 from softioc import builder
 from softioc.pythonSoftIoc import RecordWrapper
@@ -155,19 +154,19 @@ def add_automatic_pvi_info(
         )
         access = "rw"
     else:
-        writable_widget: TextRead
+        readable_widget: TextRead
         if record_creation_func in (
             builder.longStringIn,
             builder.stringIn,
         ):
-            writable_widget = TextRead(format=TextFormat.string)
+            readable_widget = TextRead(format=TextFormat.string)
         else:
-            writable_widget = TextRead(format=None)
+            readable_widget = TextRead(format=None)
 
         component = SignalR(
             name=pvi_name,
             read_pv=f"{Pvi.record_prefix}:{record_name}",
-            read_widget=writable_widget,
+            read_widget=readable_widget,
         )
         access = "r"
 
@@ -293,13 +292,15 @@ class Pvi:
 
     @staticmethod
     def add_general_device_refs_to_groups(device: Device):
-        for group in device.children:
-            if group.name in Pvi._general_device_refs:
-                if not isinstance(group, Group):
+        for device_child in device.children:
+            if device_child.name in Pvi._general_device_refs:
+                if not isinstance(device_child, Group):
                     raise RuntimeError(
-                        "Tried to add a .... to a " f"widget group {group} ... "
+                        "Tried to add a .... to a " f"widget group {device_child} ... "
                     )
-                group.children.append(Pvi._general_device_refs[group.name])
+                device_child.children = list(device_child.children) + [
+                    Pvi._general_device_refs[device_child.name]
+                ]
 
     @staticmethod
     def create_pvi_records(record_prefix: str):
@@ -308,7 +309,7 @@ class Pvi:
         devices: List[Device] = []
         pvi_records: List[str] = []
         for block_name, v in Pvi.pvi_info_dict.items():
-            children: Tree = []
+            children: List[ComponentUnion] = []
 
             # Item in the NONE group should be rendered outside of any Group box
             if PviGroup.NONE in v:
@@ -316,9 +317,9 @@ class Pvi:
             for group, components in v.items():
                 children.append(
                     Group(name=group.name, layout=Grid(), children=components)
-                )  # type: ignore
+                )
 
-            device = Device(label=block_name, children=children)  # type: ignore
+            device = Device(label=block_name, children=children)
             devices.append(device)
 
             # Add PVI structure. Unfortunately we need something in the database
