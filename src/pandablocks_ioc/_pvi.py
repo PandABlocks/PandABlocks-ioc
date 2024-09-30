@@ -114,7 +114,7 @@ def add_automatic_pvi_info(
 ) -> None:
     """Create the most common forms of the `PviInfo` structure.
     Generates generic components from"""
-    component: Component
+    component: ComponentUnion
     writeable: bool = record_creation_func in OUT_RECORD_FUNCTIONS
     useComboBox: bool = record_creation_func == builder.mbbOut
 
@@ -171,7 +171,7 @@ def add_automatic_pvi_info(
         access = "r"
 
     add_pvi_info_to_record(record, record_name, access)
-    Pvi.add_pvi_info(record_name=record_name, group=group, component=ComponentUnion)
+    Pvi.add_pvi_info(record_name=record_name, group=group, component=component)
 
 
 _positions_table_group = Group(
