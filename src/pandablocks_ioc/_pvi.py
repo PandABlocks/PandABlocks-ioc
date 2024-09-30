@@ -171,7 +171,7 @@ def add_automatic_pvi_info(
         access = "r"
 
     add_pvi_info_to_record(record, record_name, access)
-    Pvi.add_pvi_info(record_name=record_name, group=group, component=component)
+    Pvi.add_pvi_info(record_name=record_name, group=group, component=ComponentUnion)
 
 
 _positions_table_group = Group(
