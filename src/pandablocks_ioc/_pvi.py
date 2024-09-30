@@ -265,7 +265,6 @@ class Pvi:
         )
     }
 
-    # pvi_info_dict: Dict[str, Dict[PviGroup, List[Component]]] = {}
     pvi_info_dict: Dict[str, Dict[PviGroup, List[ComponentUnion]]] = {}
 
     @staticmethod
@@ -298,7 +297,7 @@ class Pvi:
             if device_child.name in Pvi._general_device_refs:
                 if not isinstance(device_child, Group):
                     raise RuntimeError(
-                        "Tried to add a .... to a " f"widget group {device_child} ... "
+                        f"Widget {device_child} should be a `Group`."
                     )
                 device_child.children = list(device_child.children) + [
                     Pvi._general_device_refs[device_child.name]
