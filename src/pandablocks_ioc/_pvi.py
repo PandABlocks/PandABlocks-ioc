@@ -277,7 +277,9 @@ class Pvi:
         Pvi._clear_bobfiles = clear_bobfiles
 
     @staticmethod
-    def add_pvi_info(record_name: EpicsName, group: PviGroup, component: Component):
+    def add_pvi_info(
+        record_name: EpicsName, group: PviGroup, component: ComponentUnion
+    ):
         """Add PVI Info to the global collection"""
 
         record_base, _ = record_name.split(":", 1)
