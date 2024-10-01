@@ -296,9 +296,7 @@ class Pvi:
         for device_child in device.children:
             if device_child.name in Pvi._general_device_refs:
                 if not isinstance(device_child, Group):
-                    raise RuntimeError(
-                        f"Widget {device_child} should be a `Group`."
-                    )
+                    raise RuntimeError(f"Widget {device_child} should be a `Group`.")
                 device_child.children = list(device_child.children) + [
                     Pvi._general_device_refs[device_child.name]
                 ]
