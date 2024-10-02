@@ -365,7 +365,7 @@ async def test_create_bobfiles_deletes_existing_files_with_clear_bobfiles(
     Pvi.add_pvi_info(
         pv,
         PviGroup.PARAMETERS,
-        SignalX(name="TrigEdge", pv=pv, value="Falling"),
+        SignalX(name="TrigEdge", write_pv=f"{Pvi.record_prefix}:{pv}", value="Falling"),
     )
     Pvi.create_pvi_records(new_random_test_prefix)
 

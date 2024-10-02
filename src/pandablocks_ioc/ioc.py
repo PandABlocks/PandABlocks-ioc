@@ -506,6 +506,7 @@ class IocRecordFactory:
 
         # Set the record prefix
         builder.SetDeviceName(self._record_prefix)
+        Pvi.record_prefix = self._record_prefix
 
         # All records should be blocking
         builder.SetBlocking(True)

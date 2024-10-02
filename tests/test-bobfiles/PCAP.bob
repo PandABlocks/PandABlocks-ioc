@@ -1,7 +1,7 @@
 <display version="2.0.0">
-  <name>Display</name>
+  <name>PCAP</name>
   <x>0</x>
-  <y>0</y>
+  <y use_class="true">0</y>
   <width>506</width>
   <height>227</height>
   <grid_step_x>4</grid_step_x>
@@ -9,7 +9,7 @@
   <widget type="label" version="2.0.0">
     <name>Title</name>
     <class>TITLE</class>
-    <text>PCAP - TEST_PREFIX:</text>
+    <text>PCAP</text>
     <x use_class="true">0</x>
     <y use_class="true">0</y>
     <width>506</width>
@@ -39,6 +39,7 @@
       <y>0</y>
       <width>250</width>
       <height>20</height>
+      <tooltip>$(text)</tooltip>
     </widget>
     <widget type="textentry" version="3.0.0">
       <name>TextEntry</name>
@@ -57,6 +58,7 @@
       <y>25</y>
       <width>250</width>
       <height>20</height>
+      <tooltip>$(text)</tooltip>
     </widget>
     <widget type="action_button" version="3.0.0">
       <name>WritePV</name>
@@ -73,7 +75,7 @@
       <y>25</y>
       <width>65</width>
       <height>20</height>
-      <tooltip>$(actions)</tooltip>
+      <tooltip>TEST_PREFIX:PCAP:ARM = 1</tooltip>
     </widget>
     <widget type="action_button" version="3.0.0">
       <name>WritePV</name>
@@ -90,7 +92,7 @@
       <y>25</y>
       <width>65</width>
       <height>20</height>
-      <tooltip>$(actions)</tooltip>
+      <tooltip>TEST_PREFIX:PCAP:ARM = 0</tooltip>
     </widget>
     <widget type="led" version="2.0.0">
       <name>LED</name>
@@ -107,6 +109,7 @@
       <y>50</y>
       <width>250</width>
       <height>20</height>
+      <tooltip>$(text)</tooltip>
     </widget>
     <widget type="textentry" version="3.0.0">
       <name>TextEntry</name>
@@ -125,6 +128,7 @@
       <y>75</y>
       <width>250</width>
       <height>20</height>
+      <tooltip>$(text)</tooltip>
     </widget>
     <widget type="textentry" version="3.0.0">
       <name>TextEntry</name>
@@ -150,6 +154,7 @@
       <y>0</y>
       <width>250</width>
       <height>20</height>
+      <tooltip>$(text)</tooltip>
     </widget>
     <widget type="combo" version="2.0.0">
       <name>ComboBox</name>

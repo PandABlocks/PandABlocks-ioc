@@ -1,7 +1,7 @@
 <display version="2.0.0">
-  <name>Display</name>
+  <name>PULSE</name>
   <x>0</x>
-  <y>0</y>
+  <y use_class="true">0</y>
   <width>506</width>
   <height>116</height>
   <grid_step_x>4</grid_step_x>
@@ -9,7 +9,7 @@
   <widget type="label" version="2.0.0">
     <name>Title</name>
     <class>TITLE</class>
-    <text>PULSE - TEST_PREFIX:</text>
+    <text>PULSE</text>
     <x use_class="true">0</x>
     <y use_class="true">0</y>
     <width>506</width>
@@ -39,6 +39,7 @@
       <y>0</y>
       <width>250</width>
       <height>20</height>
+      <tooltip>$(text)</tooltip>
     </widget>
     <widget type="textentry" version="3.0.0">
       <name>TextEntry</name>
@@ -56,6 +57,7 @@
       <y>25</y>
       <width>250</width>
       <height>20</height>
+      <tooltip>$(text)</tooltip>
     </widget>
     <widget type="combo" version="2.0.0">
       <name>ComboBox</name>

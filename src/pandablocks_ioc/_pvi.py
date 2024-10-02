@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from os import remove
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Union
 
 from epicsdbbuilder import RecordName
 from pvi._format.dls import DLSFormatter
@@ -11,6 +11,7 @@ from pvi.device import (
     ButtonPanel,
     ComboBox,
     Component,
+    ComponentUnion,
     Device,
     DeviceRef,
     Grid,
@@ -22,7 +23,6 @@ from pvi.device import (
     TextFormat,
     TextRead,
     TextWrite,
-    Tree,
 )
 from softioc import builder
 from softioc.pythonSoftIoc import RecordWrapper
@@ -82,8 +82,9 @@ def add_data_capture_pvi_info(
 ):
     component = SignalRW(
         name=epics_to_pvi_name(data_capture_record_name),
-        pv=data_capture_record_name,
-        widget=ButtonPanel(actions={"Start": "1", "Stop": "0"}),
+        read_pv=f"{Pvi.record_prefix}:{data_capture_record_name}",
+        write_pv=f"{Pvi.record_prefix}:{data_capture_record_name}",
+        write_widget=ButtonPanel(actions={"Start": "1", "Stop": "0"}),
         read_widget=LED(),
     )
     add_pvi_info_to_record(data_capture_pvi_record, data_capture_record_name, "rw")
@@ -96,8 +97,9 @@ def add_pcap_arm_pvi_info(group: PviGroup, pcap_arm_pvi_record: RecordWrapper):
     pcap_arm_record_name = EpicsName("PCAP:ARM")
     component = SignalRW(
         name=epics_to_pvi_name(pcap_arm_record_name),
-        pv=pcap_arm_record_name,
-        widget=ButtonPanel(actions={"Arm": "1", "Disarm": "0"}),
+        read_pv=f"{Pvi.record_prefix}:{pcap_arm_record_name}",
+        write_pv=f"{Pvi.record_prefix}:{pcap_arm_record_name}",
+        write_widget=ButtonPanel(actions={"Arm": "1", "Disarm": "0"}),
         read_widget=LED(),
     )
     add_pvi_info_to_record(pcap_arm_pvi_record, pcap_arm_record_name, "rw")
@@ -112,7 +114,7 @@ def add_automatic_pvi_info(
 ) -> None:
     """Create the most common forms of the `PviInfo` structure.
     Generates generic components from"""
-    component: Component
+    component: ComponentUnion
     writeable: bool = record_creation_func in OUT_RECORD_FUNCTIONS
     useComboBox: bool = record_creation_func == builder.mbbOut
 
@@ -122,39 +124,52 @@ def add_automatic_pvi_info(
         if record_name == "PCAP:ARM":
             component = SignalRW(
                 name=pvi_name,
-                pv=record_name,
-                widget=ButtonPanel(actions={"Arm": "1", "Disarm": "0"}),
+                write_pv=f"{Pvi.record_prefix}:{record_name}",
+                write_widget=ButtonPanel(actions={"Arm": "1", "Disarm": "0"}),
                 read_widget=LED(),
             )
             access = "rw"
 
         else:
-            component = SignalX(name=pvi_name, pv=record_name, value="")
+            component = SignalX(
+                name=pvi_name, write_pv=f"{Pvi.record_prefix}:{record_name}", value=""
+            )
             access = "x"
     elif writeable:
+        text_read_widget: Union[ComboBox, TextWrite]
         if useComboBox:
-            widget = ComboBox()
+            text_read_widget = ComboBox()
         else:
             if record_creation_func in (
                 builder.longStringOut,
                 builder.stringOut,
             ):
-                widget = TextWrite(format=TextFormat.string)
+                text_read_widget = TextWrite(format=TextFormat.string)
             else:
-                widget = TextWrite(format=None)
-
-        component = SignalRW(name=pvi_name, pv=record_name, widget=widget)
+                text_read_widget = TextWrite(format=None)
+        component = SignalRW(
+            name=pvi_name,
+            write_pv=f"{Pvi.record_prefix}:{record_name}",
+            write_widget=text_read_widget,
+        )
         access = "rw"
     else:
+        readable_widget: Union[TextRead, LED]
         if record_creation_func in (
             builder.longStringIn,
             builder.stringIn,
         ):
-            widget = TextRead(format=TextFormat.string)
+            readable_widget = TextRead(format=TextFormat.string)
+        elif record_creation_func == builder.boolIn:
+            readable_widget = LED()
         else:
-            widget = TextRead(format=None)
+            readable_widget = TextRead(format=None)
 
-        component = SignalR(name=pvi_name, pv=record_name, widget=widget)
+        component = SignalR(
+            name=pvi_name,
+            read_pv=f"{Pvi.record_prefix}:{record_name}",
+            read_widget=readable_widget,
+        )
         access = "r"
 
     add_pvi_info_to_record(record, record_name, access)
@@ -185,45 +200,46 @@ def add_positions_table_row(
         SignalR(
             name=epics_to_pvi_name(value_record_name),
             label=value_record_name,
-            pv=value_record_name,
-            widget=TextRead(),
+            read_pv=f"{Pvi.record_prefix}:{value_record_name}",
+            read_widget=TextRead(),
         ),
         SignalRW(
             name=epics_to_pvi_name(units_record_name),
             label=units_record_name,
-            pv=units_record_name,
-            widget=TextWrite(),
+            write_pv=f"{Pvi.record_prefix}:{value_record_name}",
+            write_widget=TextWrite(),
         ),
         SignalRW(
             name=epics_to_pvi_name(scale_record_name),
             label=scale_record_name,
-            pv=scale_record_name,
-            widget=TextWrite(),
+            write_pv=f"{Pvi.record_prefix}:{scale_record_name}",
+            write_widget=TextWrite(),
         ),
         SignalRW(
             name=epics_to_pvi_name(offset_record_name),
             label=offset_record_name,
-            pv=offset_record_name,
-            widget=TextWrite(),
+            write_pv=f"{Pvi.record_prefix}:{offset_record_name}",
+            write_widget=TextWrite(),
         ),
         SignalRW(
             name=epics_to_pvi_name(dataset_record_name),
             label=dataset_record_name,
-            pv=dataset_record_name,
-            widget=TextWrite(),
+            write_pv=f"{Pvi.record_prefix}:{dataset_record_name}",
+            write_widget=TextWrite(),
         ),
         SignalRW(
             name=epics_to_pvi_name(capture_record_name),
             label=capture_record_name,
-            pv=capture_record_name,
-            widget=ComboBox(),
+            write_pv=f"{Pvi.record_prefix}:{capture_record_name}",
+            write_widget=ComboBox(),
         ),
     ]
 
-    row = Row()
-    if len(_positions_table_group.children) == 0:
-        row.header = _positions_table_headers
-
+    row = (
+        Row(header=None)
+        if _positions_table_group.children
+        else Row(header=_positions_table_headers)
+    )
     row_group = Group(
         name=epics_to_pvi_name(record_name),
         label=record_name,
@@ -231,7 +247,7 @@ def add_positions_table_row(
         children=children,
     )
 
-    _positions_table_group.children.append(row_group)
+    _positions_table_group.children.append(row_group)  # type: ignore
 
 
 class Pvi:
@@ -239,6 +255,7 @@ class Pvi:
 
     _screens_dir: Optional[Path] = None
     _clear_bobfiles: bool = False
+    record_prefix: Optional[str] = None
 
     # We may want general device refs, e.g every CAPTURE group having a reference
     # to the positions table
@@ -250,7 +267,7 @@ class Pvi:
         )
     }
 
-    pvi_info_dict: Dict[str, Dict[PviGroup, List[Component]]] = {}
+    pvi_info_dict: Dict[str, Dict[PviGroup, List[ComponentUnion]]] = {}
 
     @staticmethod
     def configure_pvi(screens_dir: Optional[str], clear_bobfiles: bool):
@@ -261,7 +278,9 @@ class Pvi:
         Pvi._clear_bobfiles = clear_bobfiles
 
     @staticmethod
-    def add_pvi_info(record_name: EpicsName, group: PviGroup, component: Component):
+    def add_pvi_info(
+        record_name: EpicsName, group: PviGroup, component: ComponentUnion
+    ):
         """Add PVI Info to the global collection"""
 
         record_base, _ = record_name.split(":", 1)
@@ -276,9 +295,13 @@ class Pvi:
 
     @staticmethod
     def add_general_device_refs_to_groups(device: Device):
-        for group in device.children:
-            if group.name in Pvi._general_device_refs:
-                group.children.append(Pvi._general_device_refs[group.name])
+        for device_child in device.children:
+            if device_child.name in Pvi._general_device_refs:
+                if not isinstance(device_child, Group):
+                    raise RuntimeError(f"Widget {device_child} should be a `Group`.")
+                device_child.children = list(device_child.children) + [
+                    Pvi._general_device_refs[device_child.name]
+                ]
 
     @staticmethod
     def create_pvi_records(record_prefix: str):
@@ -287,7 +310,7 @@ class Pvi:
         devices: List[Device] = []
         pvi_records: List[str] = []
         for block_name, v in Pvi.pvi_info_dict.items():
-            children: Tree = []
+            children: List[ComponentUnion] = []
 
             # Item in the NONE group should be rendered outside of any Group box
             if PviGroup.NONE in v:
@@ -375,4 +398,4 @@ class Pvi:
 
                 Pvi.add_general_device_refs_to_groups(device)
 
-                formatter.format(device, record_prefix + ":", bobfile_path)
+                formatter.format(device, bobfile_path)

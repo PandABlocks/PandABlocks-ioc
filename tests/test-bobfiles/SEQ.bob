@@ -1,7 +1,7 @@
 <display version="2.0.0">
-  <name>Display</name>
+  <name>SEQ</name>
   <x>0</x>
-  <y>0</y>
+  <y use_class="true">0</y>
   <width>506</width>
   <height>296</height>
   <grid_step_x>4</grid_step_x>
@@ -9,7 +9,7 @@
   <widget type="label" version="2.0.0">
     <name>Title</name>
     <class>TITLE</class>
-    <text>SEQ - TEST_PREFIX:</text>
+    <text>SEQ</text>
     <x use_class="true">0</x>
     <y use_class="true">0</y>
     <width>506</width>
@@ -39,6 +39,13 @@
       <y>0</y>
       <width>0</width>
       <height>200</height>
+      <columns>
+        <column>
+          <name>Column 1</name>
+          <width>100</width>
+          <editable>true</editable>
+        </column>
+      </columns>
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
@@ -47,6 +54,7 @@
       <y>205</y>
       <width>250</width>
       <height>20</height>
+      <tooltip>$(text)</tooltip>
     </widget>
     <widget type="combo" version="2.0.0">
       <name>ComboBox</name>
