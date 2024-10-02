@@ -78,18 +78,13 @@
       <height>20</height>
       <tooltip>$(text)</tooltip>
     </widget>
-    <widget type="textupdate" version="2.0.0">
-      <name>TextUpdate</name>
+    <widget type="led" version="2.0.0">
+      <name>LED</name>
       <pv_name>TEST_PREFIX:DATA:DIRECTORY_EXISTS</pv_name>
-      <x>255</x>
+      <x>347</x>
       <y>50</y>
-      <width>205</width>
+      <width>20</width>
       <height>20</height>
-      <font>
-        <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
-      </font>
-      </font>
-      <horizontal_alignment>1</horizontal_alignment>
     </widget>
     <widget type="label" version="2.0.0">
       <name>Label</name>
