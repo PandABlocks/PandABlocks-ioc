@@ -154,7 +154,7 @@ def add_automatic_pvi_info(
         )
         access = "rw"
     else:
-        readable_widget: TextRead
+        readable_widget: Union[TextRead, LED]
         if record_creation_func in (
             builder.longStringIn,
             builder.stringIn,
