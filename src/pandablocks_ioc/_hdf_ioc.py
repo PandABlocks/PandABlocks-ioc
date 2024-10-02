@@ -568,14 +568,13 @@ class HDF5RecordController:
 
         capture_control_record_name = EpicsName(self.DATA_PREFIX + ":CAPTURE")
         self._capture_control_record = builder.boolOut(
-
             capture_control_record_name,
             ZNAM=ZNAM_STR,
             ONAM=ONAM_STR,
             on_update=self._capture_on_update,
             validate=self._capture_validate,
             DESC="Start/stop HDF5 capture",
-            initial_value = 0
+            initial_value=0,
         )
         add_data_capture_pvi_info(
             PviGroup.CAPTURE,

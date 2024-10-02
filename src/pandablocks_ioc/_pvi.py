@@ -160,6 +160,8 @@ def add_automatic_pvi_info(
             builder.stringIn,
         ):
             readable_widget = TextRead(format=TextFormat.string)
+        elif record_creation_func == builder.boolIn:
+            readable_widget = LED()
         else:
             readable_widget = TextRead(format=None)
 
