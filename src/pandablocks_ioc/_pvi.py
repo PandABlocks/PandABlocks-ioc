@@ -60,11 +60,12 @@ def add_pvi_info_to_record(
     access: str,
 ):
     block, field = record_name.split(":", maxsplit=1)
-    block_name_suffixed = f"pvi.{field.lower().replace(':', '_')}.{access}"
+    pvi_pv = RecordName(f"{block}:PVI")
+    block_name_suffixed = f"value.{field.lower().replace(':', '_')}.{access}"
     record.add_info(
         "Q:group",
         {
-            RecordName(f"{block}:PVI"): {
+            pvi_pv: {
                 block_name_suffixed: {
                     "+channel": "NAME",
                     "+type": "plain",
@@ -328,11 +329,25 @@ class Pvi:
             # in the database, so have to make an extra record here just to hold the
             # PVI PV name
             pvi_record_name = block_name + ":PVI"
+            description = builder.longStringIn(
+                f"{pvi_record_name}:DESCRIPTION",
+                initial_value=f"PVs making up Interface for {block_name}",
+            )
+            description.add_info(
+                "Q:group",
+                {
+                    RecordName(pvi_record_name): {
+                        "+id": "epics:nt/NTPVI:1.0",
+                        "display.description": {"+type": "plain", "+channel": "VAL"},
+                        "": {"+type": "meta", "+channel": "VAL"},
+                    }
+                },
+            )
             block_pvi = builder.longStringIn(
                 pvi_record_name + "_PV",
                 initial_value=RecordName(pvi_record_name),
             )
-            block_name_suffixed = f"pvi.{block_name.lower()}.d"
+            block_name_suffixed = f"value.{block_name.lower()}.d"
             block_pvi.add_info(
                 "Q:group",
                 {
