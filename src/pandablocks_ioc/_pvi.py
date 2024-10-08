@@ -339,7 +339,10 @@ class Pvi:
                     RecordName(pvi_record_name): {
                         "+id": "epics:nt/NTPVI:1.0",
                         "display.description": {"+type": "plain", "+channel": "VAL"},
-                        "": {"+type": "meta", "+channel": "VAL"},
+                        "": {
+                            "+type": "meta",
+                            "+channel": "VAL",
+                        },
                     }
                 },
             )
@@ -362,6 +365,39 @@ class Pvi:
             )
 
             pvi_records.append(pvi_record_name)
+
+        top_level_pvi_record_name = "PVI"
+        description = builder.longStringIn(
+            f"{top_level_pvi_record_name}:DESCRIPTION",
+            initial_value="PVs making up Interface for entire panda.",
+        )
+        description.add_info(
+            "Q:group",
+            {
+                RecordName(top_level_pvi_record_name): {
+                    "+id": "epics:nt/NTPVI:1.0",
+                    "display.description": {"+type": "plain", "+channel": "VAL"},
+                    "": {"+type": "meta", "+channel": "VAL"},
+                }
+            },
+        )
+        top_level_block_pvi = builder.longStringIn(
+            top_level_pvi_record_name + "_PV",
+            initial_value=RecordName(top_level_pvi_record_name),
+        )
+        top_level_block_name_suffixed = "value.d"
+        top_level_block_pvi.add_info(
+            "Q:group",
+            {
+                RecordName("PVI"): {
+                    top_level_block_name_suffixed: {
+                        "+channel": "VAL",
+                        "+type": "plain",
+                        "+trigger": top_level_block_name_suffixed,
+                    }
+                }
+            },
+        )
 
         # TODO: Properly add this to list of screens, add a PV, maybe roll into
         # the "PLACEHOLDER" Device?
