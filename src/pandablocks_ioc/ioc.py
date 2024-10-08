@@ -923,6 +923,7 @@ class IocRecordFactory:
             INPB=builder.CP(record_dict[scale_record_name].record),
             INPC=builder.CP(record_dict[offset_record_name].record),
             DESC="Value with scaling applied",
+            PREC=5,
         )
 
         # Create the POSITIONS "table" of records. Most are aliases of the records

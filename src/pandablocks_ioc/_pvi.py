@@ -206,7 +206,7 @@ def add_positions_table_row(
         SignalRW(
             name=epics_to_pvi_name(units_record_name),
             label=units_record_name,
-            write_pv=f"{Pvi.record_prefix}:{value_record_name}",
+            write_pv=f"{Pvi.record_prefix}:{units_record_name}",
             write_widget=TextWrite(),
         ),
         SignalRW(
