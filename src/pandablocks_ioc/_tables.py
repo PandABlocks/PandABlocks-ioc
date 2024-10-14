@@ -19,7 +19,7 @@ from pvi.device import ComboBox, SignalRW, TableWrite
 from softioc import alarm, builder
 from softioc.pythonSoftIoc import RecordWrapper
 
-from ._pvi import Pvi, PviGroup
+from ._pvi import Pvi, PviGroup, q_group_formatter
 from ._types import (
     EpicsName,
     InErrorException,
@@ -106,12 +106,11 @@ class ReadOnlyPvaTable:
         pv_rec.add_info(
             "Q:group",
             {
-                RecordName(f"{block}:PVI"): {
-                    f"value.{field.lower().replace(':', '_')}.r": {
-                        "+channel": "VAL",
-                        "+type": "plain",
-                    }
-                },
+                RecordName(f"{block}:PVI"): q_group_formatter(
+                    field,
+                    "r",
+                    "VAL",
+                )
             },
         )
 
@@ -135,17 +134,15 @@ class ReadOnlyPvaTable:
                 length=length or len(initial_value),
             )
 
-            field_pva_info = {
-                "+type": "plain",
-                "+channel": "VAL",
-                "+trigger": "*" if idx == len(row_names) - 1 else "",
-            }
-
-            pva_info = {f"value.{pva_row_name.lower()}": field_pva_info}
+            trigger = {"+trigger": "*" if idx == len(row_names) - 1 else ""}
 
             field_record.add_info(
                 "Q:group",
-                {self.pva_table_name: pva_info},
+                {
+                    self.pva_table_name: q_group_formatter(
+                        pva_row_name, "r", "VAL", other_fields=trigger
+                    )
+                },
             )
             self.rows[row_name] = field_record
 
@@ -212,12 +209,11 @@ class TableUpdater:
         pv_rec.add_info(
             "Q:group",
             {
-                RecordName(f"{block}:PVI"): {
-                    f"value.{field.lower().replace(':', '_')}.rw": {
-                        "+channel": "VAL",
-                        "+type": "plain",
-                    }
-                },
+                RecordName(f"{block}:PVI"): q_group_formatter(
+                    field,
+                    "rw",
+                    "VAL",
+                )
             },
         )
 

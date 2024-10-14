@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from os import remove
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Union
+from typing import Callable, Dict, List, Literal, Optional, Union
 
 from epicsdbbuilder import RecordName
 from pvi._format.dls import DLSFormatter
@@ -28,6 +28,28 @@ from softioc import builder
 from softioc.pythonSoftIoc import RecordWrapper
 
 from ._types import OUT_RECORD_FUNCTIONS, EpicsName, epics_to_pvi_name
+
+
+def q_group_formatter(
+    panda_field: str | None,
+    access: str,
+    channel: Literal["VAL", "NAME"],
+    pvi_field: Literal["value", "pvi"] = "value",
+    other_fields: dict[str, str] | None = None,
+) -> dict:
+    other_fields = other_fields or {}
+    panda_field_with_seperator = (
+        f".{panda_field.lower().replace(':', '_')}." if panda_field else "."
+    )
+    block_name_suffixed = f"{pvi_field}{panda_field_with_seperator}{access}"
+    return {
+        block_name_suffixed: {
+            "+channel": channel,
+            "+type": "plain",
+            "+trigger": block_name_suffixed,
+            **other_fields,
+        }
+    }
 
 
 class PviGroup(Enum):
@@ -61,17 +83,14 @@ def add_pvi_info_to_record(
 ):
     block, field = record_name.split(":", maxsplit=1)
     pvi_pv = RecordName(f"{block}:PVI")
-    block_name_suffixed = f"value.{field.lower().replace(':', '_')}.{access}"
     record.add_info(
         "Q:group",
         {
-            pvi_pv: {
-                block_name_suffixed: {
-                    "+channel": "NAME",
-                    "+type": "plain",
-                    "+trigger": block_name_suffixed,
-                }
-            }
+            pvi_pv: q_group_formatter(
+                field,
+                access,
+                "NAME",
+            )
         },
     )
 
@@ -350,17 +369,14 @@ class Pvi:
                 pvi_record_name + "_PV",
                 initial_value=RecordName(pvi_record_name),
             )
-            block_name_suffixed = f"value.{block_name.lower()}.d"
             block_pvi.add_info(
                 "Q:group",
                 {
-                    RecordName("PVI"): {
-                        block_name_suffixed: {
-                            "+channel": "VAL",
-                            "+type": "plain",
-                            "+trigger": block_name_suffixed,
-                        }
-                    }
+                    RecordName("PVI"): q_group_formatter(
+                        block_name,
+                        "d",
+                        "VAL",
+                    )
                 },
             )
 
@@ -385,17 +401,14 @@ class Pvi:
             top_level_pvi_record_name + "_PV",
             initial_value=RecordName(top_level_pvi_record_name),
         )
-        top_level_block_name_suffixed = "value.d"
         top_level_block_pvi.add_info(
             "Q:group",
             {
-                RecordName("PVI"): {
-                    top_level_block_name_suffixed: {
-                        "+channel": "VAL",
-                        "+type": "plain",
-                        "+trigger": top_level_block_name_suffixed,
-                    }
-                }
+                RecordName("PVI"): q_group_formatter(
+                    None,
+                    "d",
+                    "VAL",
+                )
             },
         )
 
