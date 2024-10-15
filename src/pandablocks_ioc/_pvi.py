@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from os import remove
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Union
+from typing import Callable, Dict, List, Literal, Optional, Union
 
 from epicsdbbuilder import RecordName
 from pvi._format.dls import DLSFormatter
@@ -28,6 +28,33 @@ from softioc import builder
 from softioc.pythonSoftIoc import RecordWrapper
 
 from ._types import OUT_RECORD_FUNCTIONS, EpicsName, epics_to_pvi_name
+
+
+def q_group_formatter(
+    panda_field: str | None,
+    access: str,
+    channel: Literal["VAL", "NAME"],
+    other_fields: dict[str, str] | None = None,
+) -> dict:
+    other_fields = other_fields or {}
+    panda_field_with_seperator = (
+        f".{panda_field.lower().replace(':', '_')}." if panda_field else "."
+    )
+    # We want to swap to using `.value` but we'll keep backwards compatibility
+    # for a while.
+    backwards_compatible_block_names = (
+        f"{pvi_field}{panda_field_with_seperator}{access}"
+        for pvi_field in ("value", "pvi")
+    )
+    return {
+        block_name_suffixed: {
+            "+channel": channel,
+            "+type": "plain",
+            "+trigger": block_name_suffixed,
+            **other_fields,
+        }
+        for block_name_suffixed in backwards_compatible_block_names
+    }
 
 
 class PviGroup(Enum):
@@ -60,17 +87,15 @@ def add_pvi_info_to_record(
     access: str,
 ):
     block, field = record_name.split(":", maxsplit=1)
-    block_name_suffixed = f"pvi.{field.lower().replace(':', '_')}.{access}"
+    pvi_pv = RecordName(f"{block}:PVI")
     record.add_info(
         "Q:group",
         {
-            RecordName(f"{block}:PVI"): {
-                block_name_suffixed: {
-                    "+channel": "NAME",
-                    "+type": "plain",
-                    "+trigger": block_name_suffixed,
-                }
-            }
+            pvi_pv: q_group_formatter(
+                field,
+                access,
+                "NAME",
+            )
         },
     )
 
@@ -328,25 +353,69 @@ class Pvi:
             # in the database, so have to make an extra record here just to hold the
             # PVI PV name
             pvi_record_name = block_name + ":PVI"
+            description = builder.longStringIn(
+                f"{pvi_record_name}:DESCRIPTION",
+                initial_value=f"PVs making up Interface for {block_name}",
+            )
+            description.add_info(
+                "Q:group",
+                {
+                    RecordName(pvi_record_name): {
+                        "+id": "epics:nt/NTPVI:1.0",
+                        "display.description": {"+type": "plain", "+channel": "VAL"},
+                        "": {
+                            "+type": "meta",
+                            "+channel": "VAL",
+                        },
+                    }
+                },
+            )
             block_pvi = builder.longStringIn(
                 pvi_record_name + "_PV",
                 initial_value=RecordName(pvi_record_name),
             )
-            block_name_suffixed = f"pvi.{block_name.lower()}.d"
             block_pvi.add_info(
                 "Q:group",
                 {
-                    RecordName("PVI"): {
-                        block_name_suffixed: {
-                            "+channel": "VAL",
-                            "+type": "plain",
-                            "+trigger": block_name_suffixed,
-                        }
-                    }
+                    RecordName("PVI"): q_group_formatter(
+                        block_name,
+                        "d",
+                        "VAL",
+                    )
                 },
             )
 
             pvi_records.append(pvi_record_name)
+
+        top_level_pvi_record_name = "PVI"
+        description = builder.longStringIn(
+            f"{top_level_pvi_record_name}:DESCRIPTION",
+            initial_value="PVs making up Interface for entire panda.",
+        )
+        description.add_info(
+            "Q:group",
+            {
+                RecordName(top_level_pvi_record_name): {
+                    "+id": "epics:nt/NTPVI:1.0",
+                    "display.description": {"+type": "plain", "+channel": "VAL"},
+                    "": {"+type": "meta", "+channel": "VAL"},
+                }
+            },
+        )
+        top_level_block_pvi = builder.longStringIn(
+            top_level_pvi_record_name + "_PV",
+            initial_value=RecordName(top_level_pvi_record_name),
+        )
+        top_level_block_pvi.add_info(
+            "Q:group",
+            {
+                RecordName("PVI"): q_group_formatter(
+                    None,
+                    "d",
+                    "VAL",
+                )
+            },
+        )
 
         # TODO: Properly add this to list of screens, add a PV, maybe roll into
         # the "PLACEHOLDER" Device?
