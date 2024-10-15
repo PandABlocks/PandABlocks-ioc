@@ -34,14 +34,18 @@ def q_group_formatter(
     panda_field: str | None,
     access: str,
     channel: Literal["VAL", "NAME"],
-    pvi_field: Literal["value", "pvi"] = "value",
     other_fields: dict[str, str] | None = None,
 ) -> dict:
     other_fields = other_fields or {}
     panda_field_with_seperator = (
         f".{panda_field.lower().replace(':', '_')}." if panda_field else "."
     )
-    block_name_suffixed = f"{pvi_field}{panda_field_with_seperator}{access}"
+    # We want to swap to using `.value` but we'll keep backwards compatibility
+    # for a while.
+    backwards_compatible_block_names = (
+        f"{pvi_field}{panda_field_with_seperator}{access}"
+        for pvi_field in ("value", "pvi")
+    )
     return {
         block_name_suffixed: {
             "+channel": channel,
@@ -49,6 +53,7 @@ def q_group_formatter(
             "+trigger": block_name_suffixed,
             **other_fields,
         }
+        for block_name_suffixed in backwards_compatible_block_names
     }
 
 
