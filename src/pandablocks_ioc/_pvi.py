@@ -1,8 +1,9 @@
+import re
 from dataclasses import dataclass
 from enum import Enum
 from os import remove
 from pathlib import Path
-from typing import Callable, Dict, List, Literal, Optional, Union
+from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
 
 from epicsdbbuilder import RecordName
 from pvi._format.dls import DLSFormatter
@@ -30,6 +31,18 @@ from softioc.pythonSoftIoc import RecordWrapper
 from ._types import OUT_RECORD_FUNCTIONS, EpicsName, epics_to_pvi_name
 
 
+def _extract_number_at_end_of_string(
+    string: str | None,
+) -> Tuple[None, None] | Tuple[str, int | None]:
+    if string is None:
+        return None, None
+    pattern = r"(\D+)(\d+)$"
+    match = re.match(pattern, string)
+    if match:
+        return (match.group(1), int(match.group(2)))
+    return string, None
+
+
 def q_group_formatter(
     panda_field: str | None,
     access: str,
@@ -37,15 +50,21 @@ def q_group_formatter(
     other_fields: dict[str, str] | None = None,
 ) -> dict:
     other_fields = other_fields or {}
-    panda_field_with_seperator = (
-        f".{panda_field.lower().replace(':', '_')}." if panda_field else "."
+
+    panda_field_lower = (
+        None if panda_field is None else panda_field.lower().replace(":", "_")
     )
-    # We want to swap to using `.value` but we'll keep backwards compatibility
-    # for a while.
-    backwards_compatible_block_names = (
-        f"{pvi_field}{panda_field_with_seperator}{access}"
-        for pvi_field in ("value", "pvi")
-    )
+
+    # Backwards compatible `pvi.someblock1` field.
+    pvi_name = "" if panda_field_lower is None else f".{panda_field_lower}"
+    pvi_field = f"pvi{pvi_name}.{access}"
+
+    # New `value.someblock[1]` field.
+    stripped_name, stripped_number = _extract_number_at_end_of_string(panda_field_lower)
+    value_name = "" if stripped_name is None else f".{stripped_name}"
+    value_number = "" if stripped_number is None else f"[{stripped_number}]"
+    value_field = f"value{value_name}{value_number}.{access}"
+
     return {
         block_name_suffixed: {
             "+channel": channel,
@@ -53,7 +72,7 @@ def q_group_formatter(
             "+trigger": block_name_suffixed,
             **other_fields,
         }
-        for block_name_suffixed in backwards_compatible_block_names
+        for block_name_suffixed in (pvi_field, value_field)
     }
 
 
