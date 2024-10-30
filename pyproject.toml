@@ -84,6 +84,8 @@ filterwarnings = """
     error
     ignore:numpy.ufunc size changed
     ignore:The explicit passing of coroutine objects to asyncio.wait()
+    ignore::DeprecationWarning:multiprocessing.reduction
+
 """
 # Doctest python code in docs, python code in src docstrings, test functions in tests
 testpaths = "docs src tests"

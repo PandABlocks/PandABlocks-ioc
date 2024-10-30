@@ -7,7 +7,7 @@ from dataclasses import asdict, is_dataclass
 from io import BufferedReader
 from itertools import chain, repeat
 from logging import handlers
-from multiprocessing import Queue, get_context
+from multiprocessing import Queue, get_context, set_start_method
 from multiprocessing.connection import Connection
 from pathlib import Path
 from typing import Any, Optional, TypeVar
@@ -250,7 +250,12 @@ def get_multiprocessing_context():
         start_method = "spawn"
     else:
         start_method = "forkserver"
-    return get_context(start_method)
+
+    set_start_method(start_method, force=True)
+    return get_context()
+
+
+MULTIPROCESSING_CONTEXT = get_multiprocessing_context()
 
 
 def enable_codecov_multiprocess():
@@ -318,8 +323,7 @@ def caplog_workaround():
 
     @contextmanager
     def ctx() -> Generator[None, None, None]:
-        ctx = get_multiprocessing_context()
-        logger_queue = ctx.Queue()
+        logger_queue = MULTIPROCESSING_CONTEXT.Queue()
         logger = logging.getLogger()
         logger.addHandler(handlers.QueueHandler(logger_queue))
         yield

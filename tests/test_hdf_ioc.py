@@ -27,13 +27,13 @@ from pandablocks.responses import (
 from softioc import asyncio_dispatcher, builder, softioc
 
 from fixtures.mocked_panda import (
+    MULTIPROCESSING_CONTEXT,
     TIMEOUT,
     MockedAsyncioClient,
     Rows,
     append_random_uppercase,
     custom_logger,
     enable_codecov_multiprocess,
-    get_multiprocessing_context,
     select_and_recv,
 )
 from pandablocks_ioc._hdf_ioc import (
@@ -278,9 +278,8 @@ def hdf5_subprocess_ioc_no_logging_check(
 
     test_prefix, hdf5_test_prefix = new_random_hdf5_prefix
 
-    ctx = get_multiprocessing_context()
-    parent_conn, child_conn = ctx.Pipe()
-    p = ctx.Process(
+    parent_conn, child_conn = MULTIPROCESSING_CONTEXT.Pipe()
+    p = MULTIPROCESSING_CONTEXT.Process(
         target=subprocess_func, args=(test_prefix, standard_responses, child_conn)
     )
     try:
@@ -307,9 +306,8 @@ def hdf5_subprocess_ioc(
 
     with caplog.at_level(logging.WARNING):
         with caplog_workaround():
-            ctx = get_multiprocessing_context()
-            parent_conn, child_conn = ctx.Pipe()
-            p = ctx.Process(
+            parent_conn, child_conn = MULTIPROCESSING_CONTEXT.Pipe()
+            p = MULTIPROCESSING_CONTEXT.Process(
                 target=subprocess_func,
                 args=(test_prefix, standard_responses, child_conn),
             )
