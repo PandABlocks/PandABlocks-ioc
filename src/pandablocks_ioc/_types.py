@@ -1,8 +1,9 @@
 # Various new or derived types/classes and helper functions for the IOC module
 import logging
 import re
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable, List, NewType, Optional, Union
+from typing import Any, NewType, Optional, Union
 
 from pandablocks.responses import FieldInfo
 from softioc import builder
@@ -15,7 +16,7 @@ class InErrorException(Exception):
 
 # Custom type aliases and new types
 ScalarRecordValue = Union[str, InErrorException]
-TableRecordValue = List[str]
+TableRecordValue = list[str]
 RecordValue = Union[ScalarRecordValue, TableRecordValue]
 # EPICS format, i.e. ":" dividers
 EpicsName = NewType("EpicsName", str)
@@ -70,7 +71,7 @@ def device_and_record_to_panda_name(field_name: EpicsName) -> PandAName:
     return epics_to_panda_name(EpicsName(record_name))
 
 
-def check_num_labels(labels: List[str], record_name: str):
+def check_num_labels(labels: list[str], record_name: str):
     """Check that the number of labels can fit into an mbbi/mbbo record"""
     assert (
         len(labels) <= 16
@@ -141,7 +142,7 @@ class RecordInfo:
 
     record: RecordWrapper = field(init=False)
     data_type_func: Callable
-    labels: Optional[List[str]] = None
+    labels: Optional[list[str]] = None
     # PythonSoftIOC issues #52 or #54 may remove need for is_in_record
     is_in_record: bool = True
     on_changes_func: Optional[Callable[[Any], Awaitable[None]]] = None

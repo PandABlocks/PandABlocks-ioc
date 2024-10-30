@@ -1,6 +1,6 @@
 import asyncio
+from collections import OrderedDict
 from pathlib import Path
-from typing import List, OrderedDict
 
 import numpy
 import pytest
@@ -36,7 +36,7 @@ from pandablocks_ioc.ioc import _BlockAndFieldInfo, introspect_panda
 async def test_introspect_panda(
     standard_responses,
     table_field_info: TableFieldInfo,
-    table_data_1: List[str],
+    table_data_1: list[str],
 ):
     """High-level test that introspect_panda returns expected data structures"""
     client = MockedAsyncioClient(ResponseHandler(standard_responses))

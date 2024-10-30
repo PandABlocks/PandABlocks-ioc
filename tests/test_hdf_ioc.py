@@ -5,9 +5,9 @@ import logging
 import os
 from asyncio import CancelledError
 from collections import deque
+from collections.abc import AsyncGenerator, Generator
 from multiprocessing.connection import Connection
 from pathlib import Path
-from typing import AsyncGenerator, Generator
 
 import h5py
 import numpy
@@ -874,7 +874,9 @@ def test_hdf_buffer_last_n(differently_sized_framedata, tmp_path):
         for frame_data in frames_written_to_file
         if isinstance(frame_data, FrameData)
     ]
-    for expected_frame, output_frame in zip(expected_cut_off_data, output_frames):
+    for expected_frame, output_frame in zip(
+        expected_cut_off_data, output_frames, strict=False
+    ):
         numpy.testing.assert_array_equal(expected_frame.data, output_frame.data)
 
 

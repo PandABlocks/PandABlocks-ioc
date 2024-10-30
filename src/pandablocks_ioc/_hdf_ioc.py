@@ -3,11 +3,12 @@ import logging
 import os
 from asyncio import CancelledError
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from importlib.util import find_spec
 from pathlib import Path
-from typing import Callable, Deque, Dict, Optional, Union
+from typing import Optional, Union
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.hdf import (
@@ -72,12 +73,12 @@ class HDF5Buffer:
         status_message_setter: Callable,
         number_received_setter: Callable,
         number_captured_setter_pipeline: NumCapturedSetter,
-        dataset_name_cache: Dict[str, Dict[str, str]],
+        dataset_name_cache: dict[str, dict[str, str]],
     ):
         # Only one filename - user must stop capture and set new FileName/FilePath
         # for new files
 
-        self.circular_buffer: Deque[FrameData] = deque()
+        self.circular_buffer: deque[FrameData] = deque()
         self.capture_mode = capture_mode
 
         match capture_mode:
@@ -324,7 +325,7 @@ class DatasetNameCache:
     and updating the HDF5 `DATASETS` table record."""
 
     def __init__(
-        self, datasets: Dict[EpicsName, Dataset], datasets_record_name: EpicsName
+        self, datasets: dict[EpicsName, Dataset], datasets_record_name: EpicsName
     ):
         self._datasets = datasets
 
@@ -335,10 +336,10 @@ class DatasetNameCache:
             ["Name", "Type"], [[], []], length=300, default_data_type=str
         )
 
-    def hdf_writer_names(self) -> Dict[str, Dict[str, str]]:
+    def hdf_writer_names(self) -> dict[str, dict[str, str]]:
         """Formats the current dataset names for use in the HDFWriter"""
 
-        hdf_names: Dict[str, Dict[str, str]] = {}
+        hdf_names: dict[str, dict[str, str]] = {}
         for record_name, dataset in self._datasets.items():
             if not dataset.name or dataset.capture == "No":
                 continue
@@ -391,7 +392,7 @@ class HDF5RecordController:
     def __init__(
         self,
         client: AsyncioClient,
-        dataset_cache: Dict[EpicsName, Dataset],
+        dataset_cache: dict[EpicsName, Dataset],
         record_prefix: str,
     ):
         if find_spec("h5py") is None:

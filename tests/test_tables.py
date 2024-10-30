@@ -1,6 +1,5 @@
 import asyncio
 import typing
-from typing import Dict, List
 from unittest.mock import AsyncMock
 
 import numpy
@@ -28,20 +27,20 @@ EPICS_FORMAT_TABLE_NAME = "SEQ1:TABLE"
 
 
 @pytest.fixture
-def table_data_1_dict(table_data_1: List[str]) -> Dict[EpicsName, RecordValue]:
+def table_data_1_dict(table_data_1: list[str]) -> dict[EpicsName, RecordValue]:
     return {EpicsName(EPICS_FORMAT_TABLE_NAME): table_data_1}
 
 
 @pytest.fixture
 def table_fields_records(
-    table_fields: Dict[str, TableFieldDetails],
+    table_fields: dict[str, TableFieldDetails],
     table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
-) -> Dict[str, TableFieldRecordContainer]:
+) -> dict[str, TableFieldRecordContainer]:
     """A faked list of records containing the table_unpacked_data"""
 
     data = {}
     for (field_name, field_info), data_array in zip(
-        table_fields.items(), table_unpacked_data.values()
+        table_fields.items(), table_unpacked_data.values(), strict=False
     ):
         mocked_record = MagicMock()
         type(mocked_record).name = PropertyMock(
@@ -57,7 +56,7 @@ def table_fields_records(
 @pytest.fixture
 def table_updater(
     table_field_info: TableFieldInfo,
-    table_data_1_dict: Dict[EpicsName, RecordValue],
+    table_data_1_dict: dict[EpicsName, RecordValue],
     clear_records,
     table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
 ) -> TableUpdater:
@@ -303,7 +302,7 @@ async def test_table_updater_update_mode_view(table_updater: TableUpdater):
 
 
 async def test_table_updater_update_mode_submit(
-    table_updater: TableUpdater, table_data_1: List[str]
+    table_updater: TableUpdater, table_data_1: list[str]
 ):
     """Test that update_mode with new value of SUBMIT sends data to PandA"""
     await table_updater.update_mode(TableModeEnum.SUBMIT.value)
@@ -320,9 +319,9 @@ async def test_table_updater_update_mode_submit(
 
 async def test_table_updater_update_mode_submit_exception(
     table_updater: TableUpdater,
-    table_data_1: List[str],
+    table_data_1: list[str],
     table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
-    table_fields: Dict[str, TableFieldDetails],
+    table_fields: dict[str, TableFieldDetails],
 ):
     """Test that update_mode with new value of SUBMIT handles an exception from Put
     correctly"""
@@ -359,7 +358,7 @@ async def test_table_updater_update_mode_submit_exception(
 
 
 async def test_table_updater_update_mode_submit_exception_data_error(
-    table_updater: TableUpdater, table_data_1: List[str]
+    table_updater: TableUpdater, table_data_1: list[str]
 ):
     """Test that update_mode with an exception from Put and an InErrorException behaves
     as expected"""
@@ -384,9 +383,9 @@ async def test_table_updater_update_mode_submit_exception_data_error(
 
 async def test_table_updater_update_mode_discard(
     table_updater: TableUpdater,
-    table_data_1: List[str],
+    table_data_1: list[str],
     table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
-    table_fields: Dict[str, TableFieldDetails],
+    table_fields: dict[str, TableFieldDetails],
 ):
     """Test that update_mode with new value of DISCARD resets record data"""
     assert isinstance(table_updater.client.send, AsyncMock)
@@ -447,7 +446,7 @@ async def test_table_updater_update_mode_other(
 
 def test_table_updater_update_table(
     table_updater: TableUpdater,
-    table_data_1: List[str],
+    table_data_1: list[str],
     table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
 ):
     """Test that update_table updates records with the new values"""
@@ -470,7 +469,7 @@ def test_table_updater_update_table(
 
 def test_table_updater_update_table_not_view(
     table_updater: TableUpdater,
-    table_data_1: List[str],
+    table_data_1: list[str],
     table_unpacked_data: typing.OrderedDict[EpicsName, ndarray],
 ):
     """Test that update_table does nothing when mode is not VIEW"""
@@ -492,7 +491,7 @@ def test_table_updater_update_table_not_view(
 
 async def test_table_update_skips_data_sent_from_ioc_once_received_back(
     table_updater: TableUpdater,
-    table_data_1: List[str],
+    table_data_1: list[str],
 ):
     """A test that once the ioc sets table values, it won't attempt to
     set the same values once they come back from the panda"""
@@ -533,7 +532,9 @@ async def test_table_changed_back_correctly(table_updater, table_data_1, table_d
 
     def assert_last_table_data_set_equaled(table_unpacked_data):
         for row, field_record in zip(
-            table_unpacked_data.values(), table_updater.table_fields_records.values()
+            table_unpacked_data.values(),
+            table_updater.table_fields_records.values(),
+            strict=False,
         ):
             assert numpy.array_equal(
                 row, field_record.record_info.record.set.call_args[0][-1]

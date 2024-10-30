@@ -67,6 +67,5 @@ def softioc(
     )
 
 
-# test with: python -m pandablocks_ioc
 if __name__ == "__main__":
     cli()

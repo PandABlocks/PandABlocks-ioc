@@ -1,9 +1,8 @@
 # Changes here will be overwritten by Copier
-_commit: 1.3.0-33-g5b245cb
+_commit: 2.4.0
 _src_path: gh:DiamondLightSource/python-copier-template
 author_email: tom.cobb@diamond.ac.uk
 author_name: Tom Cobb
-component_owner: group:default/sscc
 description: Create an IOC from a PandA
 distribution_name: pandablocks-ioc
 docker: true

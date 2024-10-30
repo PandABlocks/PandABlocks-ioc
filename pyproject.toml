@@ -1,52 +1,53 @@
 [build-system]
-requires = ["setuptools>=64", "setuptools_scm[toml]>=6.2", "wheel"]
+requires = ["setuptools>=64", "setuptools_scm[toml]>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pandablocks-ioc"
 classifiers = [
-    "Development Status :: 3 - Alpha",
-    "License :: OSI Approved :: Apache Software License",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
 ]
 description = "Create an IOC from a PandA"
 dependencies = [
-    "setuptools>=64",
-    "numpy<2",    # until https://github.com/mdavidsaver/p4p/issues/145 is fixed
-    "click",
-    "h5py",
-    "softioc>=4.4.0",
-    "pandablocks~=0.10.0",
-    "pvi~=0.10.0",
-    "typing-extensions;python_version<'3.8'",
+  "setuptools>=64",
+  "numpy<2",                                # until https://github.com/mdavidsaver/p4p/issues/145 is fixed
+  "click",
+  "h5py",
+  "softioc>=4.4.0",
+  "pandablocks~=0.10.0",
+  "pvi~=0.10.0",
+  "typing-extensions;python_version<'3.8'",
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"
 readme = "README.md"
-requires-python = ">=3.8"
-
+requires-python = ">=3.10"
 [project.optional-dependencies]
 dev = [
-    "aioca",
-    "black",
-    "mock",
-    "mypy",
-    "copier",
-    "myst-parser",
-    "pipdeptree",
-    "pre-commit",
-    "p4p",
-    "pydata-sphinx-theme>=0.12",
-    "pytest>=8.2.0",
-    "pytest-asyncio~=0.21.2",    # https://github.com/PandABlocks/PandABlocks-ioc/issues/84
-    "pytest-cov",
-    "ruff",
-    "sphinx-autobuild",
-    "sphinx-copybutton",
-    "sphinx-design",
-    "tox-direct",
-    "types-mock",
+  "aioca",
+  "black",
+  "mock",
+  "mypy",
+  "copier",
+  "mypy",
+  "myst-parser",
+  "pipdeptree",
+  "pre-commit",
+  "p4p",
+  "pydata-sphinx-theme>=0.12",
+  "pytest>=8.2.0",
+  "pytest-asyncio~=0.21.2",    # https://github.com/PandABlocks/PandABlocks-ioc/issues/84
+  "pytest-cov",
+  "ruff",
+  "sphinx-autobuild",
+  "sphinx-copybutton",
+  "sphinx-design",
+  "tox-direct",
+  "types-mock",
 ]
 
 [project.scripts]
@@ -64,7 +65,7 @@ name = "Alex Wells"
 
 
 [tool.setuptools_scm]
-write_to = "src/pandablocks_ioc/_version.py"
+version_file = "src/pandablocks_ioc/_version.py"
 
 [tool.mypy]
 ignore_missing_imports = true # Ignore missing stubs in imported modules
@@ -116,7 +117,7 @@ allowlist_externals =
     sphinx-build
     sphinx-autobuild
 commands =
-    pre-commit: pre-commit run --all-files {posargs}
+    pre-commit: pre-commit run --all-files --show-diff-on-failure {posargs}
     type-checking: mypy src tests {posargs}
     tests: pytest --cov=pandablocks_ioc --cov-report term --cov-report xml:cov.xml {posargs}
     docs: sphinx-{posargs:build -EW --keep-going} -T docs build/html
@@ -126,11 +127,18 @@ commands =
 src = ["src", "tests"]
 line-length = 88
 lint.select = [
-    "B",  # flake8-bugbear - https://docs.astral.sh/ruff/rules/#flake8-bugbear-b
-    "C4", # flake8-comprehensions - https://docs.astral.sh/ruff/rules/#flake8-comprehensions-c4
-    "E",  # pycodestyle errors - https://docs.astral.sh/ruff/rules/#error-e
-    "F",  # pyflakes rules - https://docs.astral.sh/ruff/rules/#pyflakes-f
-    "W",  # pycodestyle warnings - https://docs.astral.sh/ruff/rules/#warning-w
-    "I",  # isort - https://docs.astral.sh/ruff/rules/#isort-i
-    "UP", # pyupgrade - https://docs.astral.sh/ruff/rules/#pyupgrade-up
+  "B",   # flake8-bugbear - https://docs.astral.sh/ruff/rules/#flake8-bugbear-b
+  "C4",  # flake8-comprehensions - https://docs.astral.sh/ruff/rules/#flake8-comprehensions-c4
+  "E",   # pycodestyle errors - https://docs.astral.sh/ruff/rules/#error-e
+  "F",   # pyflakes rules - https://docs.astral.sh/ruff/rules/#pyflakes-f
+  "W",   # pycodestyle warnings - https://docs.astral.sh/ruff/rules/#warning-w
+  "I",   # isort - https://docs.astral.sh/ruff/rules/#isort-i
+  "UP",  # pyupgrade - https://docs.astral.sh/ruff/rules/#pyupgrade-up
+  "SLF", # self - https://docs.astral.sh/ruff/settings/#lintflake8-self
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# We allow private member access for now.
+"tests/**/*" = ["SLF001"]
+"src/**/*" = ["SLF001"]
+"**" = ["UP007", "UP038"]

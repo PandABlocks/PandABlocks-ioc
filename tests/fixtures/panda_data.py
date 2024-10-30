@@ -1,4 +1,4 @@
-from typing import Dict, List, OrderedDict
+from collections import OrderedDict
 
 import pytest
 from numpy import array, dtype, int32, ndarray, uint8, uint16, uint32
@@ -8,7 +8,7 @@ from pandablocks_ioc._types import EpicsName
 
 
 @pytest.fixture
-def table_fields() -> Dict[str, TableFieldDetails]:
+def table_fields() -> dict[str, TableFieldDetails]:
     """Table field definitions, taken from a SEQ.TABLE instance.
     Associated with table_data and table_field_info fixtures"""
     return {
@@ -157,7 +157,7 @@ def table_field_info(table_fields) -> TableFieldInfo:
 
 
 @pytest.fixture
-def table_data_1() -> List[str]:
+def table_data_1() -> list[str]:
     """Table data associated with table_fields and table_field_info fixtures.
     See table_unpacked_data for the unpacked equivalent"""
     return [
@@ -177,7 +177,7 @@ def table_data_1() -> List[str]:
 
 
 @pytest.fixture
-def table_data_2() -> List[str]:
+def table_data_2() -> list[str]:
     """Table data associated with table_fields and table_field_info fixtures.
     See table_unpacked_data for the unpacked equivalent"""
 
@@ -207,10 +207,10 @@ def table_data_2() -> List[str]:
 
 @pytest.fixture
 def table_unpacked_data(
-    table_fields: Dict[str, TableFieldDetails],
+    table_fields: dict[str, TableFieldDetails],
 ) -> OrderedDict[EpicsName, ndarray]:
     """The unpacked equivalent of table_data"""
-    array_values: List[ndarray] = [
+    array_values: list[ndarray] = [
         array([5, 0, 50000], dtype=uint16),
         array(["Immediate", "BITC=1", "Immediate"]),
         array([-5, 678, 0], dtype=int32),
@@ -230,7 +230,7 @@ def table_unpacked_data(
         array([1, 0, 1], dtype=uint8),
     ]
     data: OrderedDict[EpicsName, ndarray] = OrderedDict()
-    for field_name, data_array in zip(table_fields.keys(), array_values):
+    for field_name, data_array in zip(table_fields.keys(), array_values, strict=False):
         data[EpicsName(field_name)] = data_array
     return data
 

@@ -1,9 +1,10 @@
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from os import remove
 from pathlib import Path
-from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import Literal, Optional, Union
 
 from epicsdbbuilder import RecordName
 from pvi._format.dls import DLSFormatter
@@ -33,7 +34,7 @@ from ._types import OUT_RECORD_FUNCTIONS, EpicsName, epics_to_pvi_name
 
 def _extract_number_at_end_of_string(
     string: str | None,
-) -> Tuple[None, None] | Tuple[str, int | None]:
+) -> tuple[None, None] | tuple[str, int | None]:
     if string is None:
         return None, None
     pattern = r"(\D+)(\d+)$"
@@ -311,7 +312,7 @@ class Pvi:
         )
     }
 
-    pvi_info_dict: Dict[str, Dict[PviGroup, List[ComponentUnion]]] = {}
+    pvi_info_dict: dict[str, dict[PviGroup, list[ComponentUnion]]] = {}
 
     @staticmethod
     def configure_pvi(screens_dir: Optional[str], clear_bobfiles: bool):
@@ -351,10 +352,10 @@ class Pvi:
     def create_pvi_records(record_prefix: str):
         """Create the :PVI records, one for each block and one at the top level"""
 
-        devices: List[Device] = []
-        pvi_records: List[str] = []
+        devices: list[Device] = []
+        pvi_records: list[str] = []
         for block_name, v in Pvi.pvi_info_dict.items():
-            children: List[ComponentUnion] = []
+            children: list[ComponentUnion] = []
 
             # Item in the NONE group should be rendered outside of any Group box
             if PviGroup.NONE in v:
