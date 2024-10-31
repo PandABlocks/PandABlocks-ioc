@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Contribute to the project &#8212; PandABlocks-ioc 0.11.1.dev4+ga1fadc1 documentation</title>
+    <title>pandablocks_ioc &#8212; PandABlocks-ioc 0.11.1.dev4+ga1fadc1 documentation</title>
   
   
   
@@ -47,7 +47,7 @@
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../_static/copybutton.js?v=30646c52"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
-    <script>DOCUMENTATION_OPTIONS.pagename = 'how-to/contribute';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_api/pandablocks_ioc';</script>
     <script>
         DOCUMENTATION_OPTIONS.theme_version = '0.16.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://PandABlocks.github.io/PandABlocks-ioc/switcher.json';
@@ -57,8 +57,8 @@
     <link rel="icon" href="../_static/dls-logo.svg"/>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Run in a container" href="run-container.html" />
-    <link rel="prev" title="Capture data" href="capture-hdf.html" />
+    <link rel="next" title="Index" href="../genindex.html" />
+    <link rel="prev" title="Reference" href="../reference.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="main" />
@@ -152,7 +152,7 @@
 </li>
 
 
-<li class="nav-item current active">
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../how-to.html">
     How-to Guides
   </a>
@@ -166,7 +166,7 @@
 </li>
 
 
-<li class="nav-item ">
+<li class="nav-item current active">
   <a class="nav-link nav-internal" href="../reference.html">
     Reference
   </a>
@@ -300,7 +300,7 @@
 </li>
 
 
-<li class="nav-item current active">
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../how-to.html">
     How-to Guides
   </a>
@@ -314,7 +314,7 @@
 </li>
 
 
-<li class="nav-item ">
+<li class="nav-item current active">
   <a class="nav-link nav-internal" href="../reference.html">
     Reference
   </a>
@@ -396,9 +396,9 @@
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
   <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="capture-hdf.html">Capture data</a></li>
-<li class="toctree-l1 current active"><a class="current reference internal" href="#">Contribute to the project</a></li>
-<li class="toctree-l1"><a class="reference internal" href="run-container.html">Run in a container</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/PandABlocks/PandABlocks-ioc/releases">Release Notes</a></li>
 </ul>
 </div>
 </nav></div>
@@ -435,9 +435,9 @@
       </a>
     </li>
     
-    <li class="breadcrumb-item"><a href="../how-to.html" class="nav-link">How-to Guides</a></li>
+    <li class="breadcrumb-item"><a href="../reference.html" class="nav-link">Reference</a></li>
     
-    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Contribute to the project</span></li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis"><code class="docutils literal notranslate"><span class="pre">pandablocks_ioc</span></code></span></li>
   </ul>
 </nav>
 </div>
@@ -454,31 +454,43 @@
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="contribute-to-the-project">
-<h1>Contribute to the project<a class="headerlink" href="#contribute-to-the-project" title="Link to this heading">#</a></h1>
-<p>Contributions and issues are most welcome! All issues and pull requests are
-handled through <a class="reference external" href="https://github.com/PandABlocks/PandABlocks-ioc/issues">GitHub</a>. Also, please check for any existing issues before
-filing a new one. If you have a great idea but it involves big changes, please
-file a ticket before making a pull request! We want to make sure you don’t spend
-your time coding something that might not fit the scope of the project.</p>
-<section id="issue-or-discussion">
-<h2>Issue or Discussion?<a class="headerlink" href="#issue-or-discussion" title="Link to this heading">#</a></h2>
-<p>Github also offers <a class="reference external" href="https://github.com/PandABlocks/PandABlocks-ioc/discussions">discussions</a> as a place to ask questions and share ideas. If
-your issue is open ended and it is not obvious when it can be “closed”, please
-raise it as a discussion instead.</p>
-</section>
-<section id="code-coverage">
-<h2>Code Coverage<a class="headerlink" href="#code-coverage" title="Link to this heading">#</a></h2>
-<p>While 100% code coverage does not make a library bug-free, it significantly
-reduces the number of easily caught bugs! Please make sure coverage remains the
-same or is improved by a pull request!</p>
-</section>
-<section id="developer-information">
-<h2>Developer Information<a class="headerlink" href="#developer-information" title="Link to this heading">#</a></h2>
-<p>It is recommended that developers use a <a class="reference external" href="https://code.visualstudio.com/docs/devcontainers/containers">vscode devcontainer</a>. This repository contains configuration to set up a containerized development environment that suits its own needs.</p>
-<p>This project was created using the <a class="reference external" href="https://github.com/DiamondLightSource/python-copier-template">Diamond Light Source Copier Template</a> for Python projects.</p>
-<p>For more information on common tasks like setting up a developer environment, running the tests, and setting a pre-commit hook, see the template’s <a class="reference external" href="https://diamondlightsource.github.io/python-copier-template/2.4.0/how-to.html">How-to guides</a>.</p>
-</section>
+  <section id="module-pandablocks_ioc">
+<span id="pandablocks-ioc"></span><h1><code class="docutils literal notranslate"><span class="pre">pandablocks_ioc</span></code><a class="headerlink" href="#module-pandablocks_ioc" title="Link to this heading">#</a></h1>
+<p>Top level API.</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="pandablocks_ioc.__version__">
+<span class="sig-prename descclassname"><span class="pre">pandablocks_ioc.</span></span><span class="sig-name descname"><span class="pre">__version__</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><a class="headerlink" href="#pandablocks_ioc.__version__" title="Link to this definition">#</a></dt>
+<dd><p>Version number as calculated by <a class="github reference external" href="https://github.com/pypa/setuptools_scm">pypa/setuptools_scm</a></p>
+</dd></dl>
+
+<p class="rubric">Members</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table autosummary">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#pandablocks_ioc.create_softioc" title="pandablocks_ioc.create_softioc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_softioc</span></code></a></p></td>
+<td><p>Create a PythonSoftIOC from fields and attributes of a PandA.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<dl class="py function">
+<dt class="sig sig-object py" id="pandablocks_ioc.create_softioc">
+<span class="sig-prename descclassname"><span class="pre">pandablocks_ioc.</span></span><span class="sig-name descname"><span class="pre">create_softioc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">client</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AsyncioClient</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">record_prefix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">screens_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clear_bobfiles</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/pandablocks_ioc/ioc.html#create_softioc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pandablocks_ioc.create_softioc" title="Link to this definition">#</a></dt>
+<dd><p>Create a PythonSoftIOC from fields and attributes of a PandA.</p>
+<p>This function will introspect a PandA for all defined Blocks, Fields of each Block,
+and Attributes of each Field, and create appropriate EPICS records for each.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>client</strong> – The asyncio client to be used to read/write to of the PandA</p></li>
+<li><p><strong>record_prefix</strong> – The string prefix used for creation of all records.</p></li>
+<li><p><strong>screens_dir</strong> – The directory to export bobfiles to.</p></li>
+<li><p><strong>clear_bobfiles</strong> – Can only be true if screens_dir is provided. Clears the
+screens_dir of bobfiles before creating new ones.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 
@@ -492,20 +504,20 @@ same or is improved by a pull request!</p>
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="capture-hdf.html"
+       href="../reference.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Capture data</p>
+        <p class="prev-next-title">Reference</p>
       </div>
     </a>
     <a class="right-next"
-       href="run-container.html"
+       href="../genindex.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Run in a container</p>
+        <p class="prev-next-title">Index</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -528,9 +540,8 @@ same or is improved by a pull request!</p>
   </div>
   <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="visible nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#issue-or-discussion">Issue or Discussion?</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#code-coverage">Code Coverage</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#developer-information">Developer Information</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks_ioc.__version__"><code class="docutils literal notranslate"><span class="pre">__version__</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pandablocks_ioc.create_softioc"><code class="docutils literal notranslate"><span class="pre">create_softioc()</span></code></a></li>
 </ul>
   </nav></div>
 
@@ -538,7 +549,7 @@ same or is improved by a pull request!</p>
 
   
   <div class="tocsection editthispage">
-    <a href="https://github.com/PandABlocks/PandABlocks-ioc/edit/main/docs/how-to/contribute.md">
+    <a href="https://github.com/PandABlocks/PandABlocks-ioc/edit/main/docs/_api/pandablocks_ioc.rst">
       <i class="fa-solid fa-pencil"></i>
       
       
@@ -553,7 +564,7 @@ same or is improved by a pull request!</p>
   <div class="sidebar-secondary-item">
 
   <div class="tocsection sourcelink">
-    <a href="../_sources/how-to/contribute.md.txt">
+    <a href="../_sources/_api/pandablocks_ioc.rst.txt">
       <i class="fa-solid fa-file-lines"></i> Show Source
     </a>
   </div>
