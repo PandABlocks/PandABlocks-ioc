@@ -381,7 +381,6 @@ class Pvi:
                 "Q:group",
                 {
                     RecordName(pvi_record_name): {
-                        "+id": "epics:nt/NTPVI:1.0",
                         "display.description": {"+type": "plain", "+channel": "VAL"},
                         "": {
                             "+type": "meta",
@@ -416,7 +415,6 @@ class Pvi:
             "Q:group",
             {
                 RecordName(top_level_pvi_record_name): {
-                    "+id": "epics:nt/NTPVI:1.0",
                     "display.description": {"+type": "plain", "+channel": "VAL"},
                     "": {"+type": "meta", "+channel": "VAL"},
                 }
