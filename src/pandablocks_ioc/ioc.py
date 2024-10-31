@@ -3,9 +3,10 @@ import asyncio
 import inspect
 import logging
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from string import digits
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 import numpy as np
 from pandablocks.asyncio import AsyncioClient
@@ -76,8 +77,8 @@ class _BlockAndFieldInfo:
     Values for `block_info.number` instances of the Fields."""
 
     block_info: BlockInfo
-    fields: Dict[str, FieldInfo]
-    values: Dict[EpicsName, RecordValue]
+    fields: dict[str, FieldInfo]
+    values: dict[EpicsName, RecordValue]
 
 
 # Keep a reference to the task, as specified in documentation:
@@ -176,7 +177,7 @@ def create_softioc(
 
 async def introspect_panda(
     client: AsyncioClient,
-) -> Tuple[Dict[str, _BlockAndFieldInfo], Dict[EpicsName, RecordValue]]:
+) -> tuple[dict[str, _BlockAndFieldInfo], dict[EpicsName, RecordValue]]:
     """Query the PandA for all its Blocks, Fields of each Block, and Values of each
     Field
 
@@ -204,14 +205,16 @@ async def introspect_panda(
         client.send(GetChanges(ChangeGroup.ALL, True)),
     )
 
-    field_infos: List[Dict[str, FieldInfo]] = returned_infos[0:-1]
+    field_infos: list[dict[str, FieldInfo]] = returned_infos[0:-1]
 
     changes: Changes = returned_infos[-1]
 
     values, all_values_dict = _create_dicts_from_changes(changes, block_dict)
 
     panda_dict = {}
-    for (block_name, block_info), field_info in zip(block_dict.items(), field_infos):
+    for (block_name, block_info), field_info in zip(
+        block_dict.items(), field_infos, strict=False
+    ):
         panda_dict[block_name] = _BlockAndFieldInfo(
             block_info=block_info, fields=field_info, values=values[block_name]
         )
@@ -220,8 +223,8 @@ async def introspect_panda(
 
 
 def _create_dicts_from_changes(
-    changes: Changes, block_info_dict: Dict[str, BlockInfo]
-) -> Tuple[Dict[str, Dict[EpicsName, RecordValue]], Dict[EpicsName, RecordValue]]:
+    changes: Changes, block_info_dict: dict[str, BlockInfo]
+) -> tuple[dict[str, dict[EpicsName, RecordValue]], dict[EpicsName, RecordValue]]:
     """Take the `Changes` object and convert it into two dictionaries.
 
     Args:
@@ -241,7 +244,7 @@ def _create_dicts_from_changes(
     def _store_values(
         block_and_field_name: str,
         value: RecordValue,
-        values: Dict[str, Dict[EpicsName, RecordValue]],
+        values: dict[str, dict[EpicsName, RecordValue]],
     ) -> None:
         """Parse the data given in `block_and_field_name` and `value` into a new entry
         in the `values` dictionary"""
@@ -293,7 +296,7 @@ def _create_dicts_from_changes(
 
     # Create a dict which maps block name to all values for all instances
     # of that block (e.g. {"TTLIN" : {"TTLIN1:VAL": "1", "TTLIN2:VAL" : "5", ...} })
-    values: Dict[str, Dict[EpicsName, RecordValue]] = {}
+    values: dict[str, dict[EpicsName, RecordValue]] = {}
     for block_and_field_name, value in changes.values.items():
         _store_values(block_and_field_name, value, values)
 
@@ -333,8 +336,8 @@ class _RecordUpdater:
     record_info: RecordInfo
     record_prefix: str
     client: AsyncioClient
-    all_values_dict: Dict[EpicsName, RecordValue]
-    labels: Optional[List[str]]
+    all_values_dict: dict[EpicsName, RecordValue]
+    labels: Optional[list[str]]
 
     # The incoming value's type depends on the record. Ensure you always cast it.
     async def update(self, new_val: Any):
@@ -462,7 +465,7 @@ class StringRecordLabelValidator:
     This is necessary for several fields which have too many labels to fit in
     an EPICS mbbi/mbbo record, and so use string records instead."""
 
-    labels: List[str]
+    labels: list[str]
 
     def validate(self, record: RecordWrapper, new_val: str):
         if new_val in self.labels:
@@ -477,7 +480,7 @@ class IocRecordFactory:
 
     _record_prefix: str
     _client: AsyncioClient
-    _all_values_dict: Dict[EpicsName, RecordValue]
+    _all_values_dict: dict[EpicsName, RecordValue]
     _pos_out_row_counter: int = 0
 
     # List of methods in builder, used for parameter validation
@@ -490,7 +493,7 @@ class IocRecordFactory:
         self,
         client: AsyncioClient,
         record_prefix: str,
-        all_values_dict: Dict[EpicsName, RecordValue],
+        all_values_dict: dict[EpicsName, RecordValue],
     ):
         """Initialise IocRecordFactory
 
@@ -513,11 +516,11 @@ class IocRecordFactory:
 
         # A dataset cache for storing dataset names and capture modes for different
         # capture records
-        self._dataset_cache: Dict[EpicsName, Dataset] = {}
+        self._dataset_cache: dict[EpicsName, Dataset] = {}
 
     def _process_labels(
-        self, labels: List[str], record_value: ScalarRecordValue
-    ) -> Tuple[List[str], int]:
+        self, labels: list[str], record_value: ScalarRecordValue
+    ) -> tuple[list[str], int]:
         """Find the index of `record_value` in the `labels` list, suitable for
         use in an `initial_value=` argument during record creation.
         Secondly, return a new list from the given labels that are all short
@@ -542,7 +545,7 @@ class IocRecordFactory:
         return ([label[:25] for label in labels], index)
 
     def _check_num_values(
-        self, values: Dict[EpicsName, ScalarRecordValue], num: int
+        self, values: dict[EpicsName, ScalarRecordValue], num: int
     ) -> None:
         """Function to check that the number of values is at least the expected amount.
         Allow extra values for future-proofing, if PandA has new fields/attributes the
@@ -560,7 +563,7 @@ class IocRecordFactory:
         record_creation_func: Callable,
         data_type_func: Callable,
         group: PviGroup,
-        labels: Optional[List[str]] = None,
+        labels: Optional[list[str]] = None,
         *args,
         **kwargs,
     ) -> RecordInfo:
@@ -595,7 +598,7 @@ class IocRecordFactory:
         if labels is None:
             labels = []
 
-        extra_kwargs: Dict[str, Any] = {}
+        extra_kwargs: dict[str, Any] = {}
         assert (
             record_creation_func in self._builder_methods
         ), "Unrecognised record creation function passed to _create_record_info"
@@ -670,14 +673,14 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
+        values: dict[EpicsName, ScalarRecordValue],
         record_creation_func: Callable,
         **kwargs,
-    ) -> Dict[EpicsName, RecordInfo]:
+    ) -> dict[EpicsName, RecordInfo]:
         """Make one record for the timer itself, and a sub-record for its units"""
         assert isinstance(field_info, (TimeFieldInfo, SubtypeTimeFieldInfo))
 
-        record_dict: Dict[EpicsName, RecordInfo] = {}
+        record_dict: dict[EpicsName, RecordInfo] = {}
 
         time_record_info = self._create_record_info(
             record_name,
@@ -728,8 +731,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         """Make the records for a field of type "time" - one for the time itself, one
         for units, and one for the MIN value.
         """
@@ -750,8 +753,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 2)
         return self._make_time(
             record_name,
@@ -765,8 +768,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 2)
         return self._make_time(
             record_name,
@@ -780,8 +783,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 1)
         return self._make_time(record_name, field_info, values, builder.aOut)
 
@@ -789,12 +792,12 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 1)
         assert isinstance(field_info, BitOutFieldInfo)
 
-        record_dict: Dict[EpicsName, RecordInfo] = {}
+        record_dict: dict[EpicsName, RecordInfo] = {}
         record_dict[record_name] = self._create_record_info(
             record_name,
             field_info.description,
@@ -814,11 +817,11 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 5)
         assert isinstance(field_info, PosOutFieldInfo)
-        record_dict: Dict[EpicsName, RecordInfo] = {}
+        record_dict: dict[EpicsName, RecordInfo] = {}
 
         units_record_name = EpicsName(record_name + ":UNITS")
         record_dict[record_name] = self._create_record_info(
@@ -991,11 +994,11 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 1)
         assert isinstance(field_info, ExtOutFieldInfo)
-        record_dict: Dict[EpicsName, RecordInfo] = {}
+        record_dict: dict[EpicsName, RecordInfo] = {}
 
         # There is no record for the ext_out field itself - the only thing
         # you do with them is to turn their Capture attribute on/off, and give it
@@ -1059,8 +1062,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 1)
         assert isinstance(field_info, ExtOutBitsFieldInfo)
 
@@ -1116,11 +1119,11 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 2)
         assert isinstance(field_info, BitMuxFieldInfo)
-        record_dict: Dict[EpicsName, RecordInfo] = {}
+        record_dict: dict[EpicsName, RecordInfo] = {}
 
         # This should be an mbbOut record, but there are too many posssible labels
         # TODO: There will need to be some mechanism to retrieve the labels,
@@ -1158,12 +1161,12 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 1)
         assert isinstance(field_info, PosMuxFieldInfo)
 
-        record_dict: Dict[EpicsName, RecordInfo] = {}
+        record_dict: dict[EpicsName, RecordInfo] = {}
 
         # This should be an mbbOut record, but there are too many posssible labels
         # TODO: There will need to be some mechanism to retrieve the labels,
@@ -1189,8 +1192,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, List[str]],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, list[str]],
+    ) -> dict[EpicsName, RecordInfo]:
         assert isinstance(field_info, TableFieldInfo)
 
         table_updater = TableUpdater(
@@ -1215,10 +1218,10 @@ class IocRecordFactory:
         record_creation_func: Callable,
         group: PviGroup,
         **kwargs,
-    ) -> Dict[EpicsName, RecordInfo]:
+    ) -> dict[EpicsName, RecordInfo]:
         assert isinstance(field_info, UintFieldInfo)
 
-        record_dict: Dict[EpicsName, RecordInfo] = {}
+        record_dict: dict[EpicsName, RecordInfo] = {}
         record_dict[record_name] = self._create_record_info(
             record_name,
             field_info.description,
@@ -1241,8 +1244,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 1)
         return self._make_uint(
             record_name,
@@ -1257,8 +1260,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 1)
         return self._make_uint(
             record_name,
@@ -1273,8 +1276,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 0)
         return self._make_uint(
             record_name,
@@ -1290,8 +1293,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 1)
 
         return {
@@ -1309,8 +1312,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 1)
 
         return {
@@ -1328,8 +1331,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 0)
         return {
             record_name: self._create_record_info(
@@ -1348,10 +1351,10 @@ class IocRecordFactory:
         field_info: FieldInfo,
         record_creation_func: Callable,
         **kwargs,
-    ) -> Dict[EpicsName, RecordInfo]:
+    ) -> dict[EpicsName, RecordInfo]:
         # RAW attribute ignored - EPICS should never care about it
         assert isinstance(field_info, ScalarFieldInfo)
-        record_dict: Dict[EpicsName, RecordInfo] = {}
+        record_dict: dict[EpicsName, RecordInfo] = {}
 
         record_dict[record_name] = self._create_record_info(
             record_name,
@@ -1369,8 +1372,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 1)
         return self._make_scalar(
             record_name,
@@ -1383,8 +1386,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 1)
         return self._make_scalar(
             record_name,
@@ -1397,8 +1400,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 0)
         return self._make_scalar(
             record_name, field_info, builder.aOut, always_update=True
@@ -1411,7 +1414,7 @@ class IocRecordFactory:
         record_creation_func: Callable,
         group: PviGroup,
         **kwargs,
-    ) -> Dict[EpicsName, RecordInfo]:
+    ) -> dict[EpicsName, RecordInfo]:
         return {
             record_name: self._create_record_info(
                 record_name,
@@ -1429,8 +1432,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 1)
         return self._make_bit(
             record_name,
@@ -1444,8 +1447,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 1)
         return self._make_bit(
             record_name,
@@ -1459,8 +1462,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 0)
         return self._make_bit(
             record_name,
@@ -1474,8 +1477,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         logging.warning(
             f"Field of type {field_info.type} - {field_info.subtype} defined. Ignoring."
         )
@@ -1485,8 +1488,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 0)
 
         updater: _WriteRecordUpdater
@@ -1517,7 +1520,7 @@ class IocRecordFactory:
         record_creation_func: Callable,
         group: PviGroup,
         **kwargs,
-    ) -> Dict[EpicsName, RecordInfo]:
+    ) -> dict[EpicsName, RecordInfo]:
         # RAW attribute ignored - EPICS should never care about it
         return {
             record_name: self._create_record_info(
@@ -1534,8 +1537,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 1)
         return self._make_lut(
             record_name,
@@ -1549,8 +1552,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 1)
         return self._make_lut(
             record_name,
@@ -1564,8 +1567,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 0)
         return self._make_lut(
             record_name,
@@ -1579,11 +1582,11 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
+        values: dict[EpicsName, ScalarRecordValue],
         record_creation_func: Callable,
         group: PviGroup,
         **kwargs,
-    ) -> Dict[EpicsName, RecordInfo]:
+    ) -> dict[EpicsName, RecordInfo]:
         self._check_num_values(values, 1)
         assert isinstance(field_info, EnumFieldInfo)
 
@@ -1608,8 +1611,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         return self._make_enum(
             record_name, field_info, values, builder.mbbOut, PviGroup.PARAMETERS
         )
@@ -1618,8 +1621,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         # Don't use an mbbIn record, as many labels are too long to fit into EPICS
         # restricted-length labels. As you cannot write to this record, it's fine to
         # just have a string
@@ -1639,8 +1642,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        values: Dict[EpicsName, ScalarRecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        values: dict[EpicsName, ScalarRecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         assert isinstance(field_info, EnumFieldInfo)
         assert record_name not in values
         # Values are not returned for write fields. Create data for label parsing.
@@ -1658,8 +1661,8 @@ class IocRecordFactory:
         self,
         record_name: EpicsName,
         field_info: FieldInfo,
-        field_values: Dict[EpicsName, RecordValue],
-    ) -> Dict[EpicsName, RecordInfo]:
+        field_values: dict[EpicsName, RecordValue],
+    ) -> dict[EpicsName, RecordInfo]:
         # TODO: Name needs changing, this makes multiple records...
         """Create the record (and any child records) for the PandA field specified in
         the parameters.
@@ -1708,16 +1711,16 @@ class IocRecordFactory:
             return {}
 
     # Map a field's (type, subtype) to a function that creates and returns record(s)
-    _field_record_mapping: Dict[
-        Tuple[str, Optional[str]],
+    _field_record_mapping: dict[
+        tuple[str, Optional[str]],
         Callable[
             [
                 "IocRecordFactory",
                 EpicsName,
                 FieldInfo,
-                Dict[EpicsName, ScalarRecordValue],
+                dict[EpicsName, ScalarRecordValue],
             ],
-            Dict[EpicsName, RecordInfo],
+            dict[EpicsName, RecordInfo],
         ],
     ] = {
         # Order matches that of PandA server's Field Types docs
@@ -1774,9 +1777,9 @@ class IocRecordFactory:
         self,
         block: str,
         block_info: BlockInfo,
-        block_values: Dict[EpicsName, str],
+        block_values: dict[EpicsName, str],
         default_longStringOut_length=256,
-    ) -> Dict[EpicsName, RecordInfo]:
+    ) -> dict[EpicsName, RecordInfo]:
         """Create the block-level records, and any other one-off block initialisation
         required."""
 
@@ -1837,13 +1840,13 @@ async def create_records(
     client: AsyncioClient,
     dispatcher: asyncio_dispatcher.AsyncioDispatcher,
     record_prefix: str,
-) -> Tuple[
-    Dict[EpicsName, RecordInfo],
-    Dict[
+) -> tuple[
+    dict[EpicsName, RecordInfo],
+    dict[
         EpicsName,
         RecordValue,
     ],
-    Dict[str, BlockInfo],
+    dict[str, BlockInfo],
 ]:
     """Query the PandA and create the relevant records based on the information
     returned"""
@@ -1851,7 +1854,7 @@ async def create_records(
     (panda_dict, all_values_dict) = await introspect_panda(client)
 
     # Dictionary containing every record of every type
-    all_records: Dict[EpicsName, RecordInfo] = {}
+    all_records: dict[EpicsName, RecordInfo] = {}
 
     record_factory = IocRecordFactory(client, record_prefix, all_values_dict)
 
@@ -1926,10 +1929,10 @@ async def create_records(
 async def update(
     client: AsyncioClient,
     connection_status: ConnectionStatus,
-    all_records: Dict[EpicsName, RecordInfo],
+    all_records: dict[EpicsName, RecordInfo],
     poll_period: float,
-    all_values_dict: Dict[EpicsName, RecordValue],
-    block_info_dict: Dict[str, BlockInfo],
+    all_values_dict: dict[EpicsName, RecordValue],
+    block_info_dict: dict[str, BlockInfo],
 ):
     """Query the PandA at regular intervals for any changed fields, and update
     the records accordingly
@@ -1945,7 +1948,7 @@ async def update(
         block_info: information recieved from the last `GetBlockInfo`, keys are block
             names"""
 
-    fields_to_reset: List[Tuple[RecordWrapper, Any]] = []
+    fields_to_reset: list[tuple[RecordWrapper, Any]] = []
 
     # Fairly arbitrary choice of timeout time
     timeout = 10 * poll_period
@@ -2085,7 +2088,7 @@ async def update(
 
 
 def set_all_records_severity(
-    all_records: Dict[EpicsName, RecordInfo], severity: int, alarm: int
+    all_records: dict[EpicsName, RecordInfo], severity: int, alarm: int
 ):
     """Set the severity of all possible records to the given state"""
     logging.debug(f"Setting all record to severity {severity} alarm {alarm}")

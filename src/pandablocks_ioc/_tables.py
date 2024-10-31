@@ -6,7 +6,7 @@ import typing
 from collections import OrderedDict
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional, Type
+from typing import Optional
 
 import numpy as np
 from epicsdbbuilder import RecordName
@@ -39,7 +39,7 @@ class TableRecordWrapper:
     record: RecordWrapper
     table_updater: "TableUpdater"
 
-    def update_table(self, values: List[str]) -> None:
+    def update_table(self, values: list[str]) -> None:
         """Set the given values into the table records"""
         self.table_updater.update_table(values)
 
@@ -58,8 +58,8 @@ class TableFieldRecordContainer:
 
 
 def make_bit_order(
-    table_field_records: Dict[str, TableFieldRecordContainer],
-) -> Dict[str, TableFieldRecordContainer]:
+    table_field_records: dict[str, TableFieldRecordContainer],
+) -> dict[str, TableFieldRecordContainer]:
     return dict(
         sorted(table_field_records.items(), key=lambda item: item[1].field.bit_low)
     )
@@ -78,11 +78,11 @@ class ReadOnlyPvaTable:
     def __init__(
         self,
         epics_table_name: EpicsName,
-        labels: List[str],
+        labels: list[str],
     ):
         self.epics_table_name = epics_table_name
         self.pva_table_name = RecordName(epics_table_name)
-        self.rows: Dict[str, RecordWrapper] = {}
+        self.rows: dict[str, RecordWrapper] = {}
 
         block, field = self.epics_table_name.split(":", maxsplit=1)
 
@@ -116,12 +116,14 @@ class ReadOnlyPvaTable:
 
     def set_rows(
         self,
-        row_names: List[str],
-        initial_values: List[List],
+        row_names: list[str],
+        initial_values: list[list],
         length: Optional[int] = None,
-        default_data_type: Optional[Type] = None,
+        default_data_type: Optional[type] = None,
     ):
-        for idx, (row_name, initial_value) in enumerate(zip(row_names, initial_values)):
+        for idx, (row_name, initial_value) in enumerate(
+            zip(row_names, initial_values, strict=False)
+        ):
             full_name = EpicsName(self.epics_table_name + ":" + row_name)
             pva_row_name = row_name.replace(":", "_").lower()
             dtype = type(initial_value[0]) if initial_value else default_data_type
@@ -146,7 +148,7 @@ class ReadOnlyPvaTable:
             )
             self.rows[row_name] = field_record
 
-    def update_row(self, row_name: str, new_value: List):
+    def update_row(self, row_name: str, new_value: list):
         new_value_np = np.array(new_value)
         self.rows[row_name].set(new_value_np)
 
@@ -160,14 +162,14 @@ class TableUpdater:
     # Collection of the records that comprise the table's fields.
     # Order is exactly that which PandA sent.
     table_fields_records: typing.OrderedDict[str, TableFieldRecordContainer]
-    all_values_dict: Dict[EpicsName, RecordValue]
+    all_values_dict: dict[EpicsName, RecordValue]
 
     def __init__(
         self,
         client: AsyncioClient,
         table_name: EpicsName,
         field_info: TableFieldInfo,
-        all_values_dict: Dict[EpicsName, RecordValue],
+        all_values_dict: dict[EpicsName, RecordValue],
     ):
         """Create all the table records
 
@@ -183,7 +185,7 @@ class TableUpdater:
         self.table_name = table_name
         self.field_info = field_info
         self._mode_lock = threading.Lock()
-        self._sent_data: List[str] = []
+        self._sent_data: list[str] = []
         self._update_in_progress = False
         pva_table_name = RecordName(table_name)
 
@@ -412,7 +414,7 @@ class TableUpdater:
 
         assert self.mode_record_info.labels
 
-        packed_data: List[str] = []
+        packed_data: list[str] = []
         new_label = self.mode_record_info.labels[new_val]
 
         if new_label == TableModeEnum.SUBMIT.name:
@@ -487,7 +489,7 @@ class TableUpdater:
 
     def _construct_waveform_val(
         self,
-        field_data: Dict[str, UnpackedArray],
+        field_data: dict[str, UnpackedArray],
         field_name: str,
         field_details: TableFieldDetails,
     ):
@@ -502,7 +504,7 @@ class TableUpdater:
             )
         return field_data[field_name]
 
-    def update_table(self, new_values: List[str]) -> None:
+    def update_table(self, new_values: list[str]) -> None:
         """Update the waveform records with the given values from the PandA, depending
         on the value of the table's MODE record.
         Note: This is NOT a method called through a record's `on_update`.

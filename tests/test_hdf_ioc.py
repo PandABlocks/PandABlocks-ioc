@@ -5,9 +5,9 @@ import logging
 import os
 from asyncio import CancelledError
 from collections import deque
+from collections.abc import AsyncGenerator, Generator
 from multiprocessing.connection import Connection
 from pathlib import Path
-from typing import AsyncGenerator, Generator
 
 import h5py
 import numpy
@@ -27,13 +27,13 @@ from pandablocks.responses import (
 from softioc import asyncio_dispatcher, builder, softioc
 
 from fixtures.mocked_panda import (
+    MULTIPROCESSING_CONTEXT,
     TIMEOUT,
     MockedAsyncioClient,
     Rows,
     append_random_uppercase,
     custom_logger,
     enable_codecov_multiprocess,
-    get_multiprocessing_context,
     select_and_recv,
 )
 from pandablocks_ioc._hdf_ioc import (
@@ -278,9 +278,8 @@ def hdf5_subprocess_ioc_no_logging_check(
 
     test_prefix, hdf5_test_prefix = new_random_hdf5_prefix
 
-    ctx = get_multiprocessing_context()
-    parent_conn, child_conn = ctx.Pipe()
-    p = ctx.Process(
+    parent_conn, child_conn = MULTIPROCESSING_CONTEXT.Pipe()
+    p = MULTIPROCESSING_CONTEXT.Process(
         target=subprocess_func, args=(test_prefix, standard_responses, child_conn)
     )
     try:
@@ -307,9 +306,8 @@ def hdf5_subprocess_ioc(
 
     with caplog.at_level(logging.WARNING):
         with caplog_workaround():
-            ctx = get_multiprocessing_context()
-            parent_conn, child_conn = ctx.Pipe()
-            p = ctx.Process(
+            parent_conn, child_conn = MULTIPROCESSING_CONTEXT.Pipe()
+            p = MULTIPROCESSING_CONTEXT.Process(
                 target=subprocess_func,
                 args=(test_prefix, standard_responses, child_conn),
             )
@@ -874,7 +872,9 @@ def test_hdf_buffer_last_n(differently_sized_framedata, tmp_path):
         for frame_data in frames_written_to_file
         if isinstance(frame_data, FrameData)
     ]
-    for expected_frame, output_frame in zip(expected_cut_off_data, output_frames):
+    for expected_frame, output_frame in zip(
+        expected_cut_off_data, output_frames, strict=False
+    ):
         numpy.testing.assert_array_equal(expected_frame.data, output_frame.data)
 
 

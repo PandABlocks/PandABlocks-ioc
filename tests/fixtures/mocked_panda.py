@@ -1,15 +1,16 @@
 import asyncio
 import logging
 import sys
+from collections.abc import Generator, Iterator
 from contextlib import contextmanager
 from dataclasses import asdict, is_dataclass
 from io import BufferedReader
 from itertools import chain, repeat
 from logging import handlers
-from multiprocessing import Queue, get_context
+from multiprocessing import Queue, get_context, set_start_method
 from multiprocessing.connection import Connection
 from pathlib import Path
-from typing import Any, Generator, Iterator, Optional, Tuple, TypeVar
+from typing import Any, Optional, TypeVar
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -67,7 +68,7 @@ def multiprocessing_queue_to_list(queue: Queue):
 @pytest_asyncio.fixture
 def mocked_time_record_updater(
     new_random_test_prefix,
-) -> Generator[Tuple[_TimeRecordUpdater, str], None, None]:
+) -> Generator[tuple[_TimeRecordUpdater, str], None, None]:
     """An instance of _TimeRecordUpdater with MagicMocks and some default values"""
     base_record = MagicMock()
     base_record.name = new_random_test_prefix + ":BASE:RECORD"
@@ -249,7 +250,12 @@ def get_multiprocessing_context():
         start_method = "spawn"
     else:
         start_method = "forkserver"
-    return get_context(start_method)
+
+    set_start_method(start_method, force=True)
+    return get_context()
+
+
+MULTIPROCESSING_CONTEXT = get_multiprocessing_context()
 
 
 def enable_codecov_multiprocess():
@@ -317,8 +323,7 @@ def caplog_workaround():
 
     @contextmanager
     def ctx() -> Generator[None, None, None]:
-        ctx = get_multiprocessing_context()
-        logger_queue = ctx.Queue()
+        logger_queue = MULTIPROCESSING_CONTEXT.Queue()
         logger = logging.getLogger()
         logger.addHandler(handlers.QueueHandler(logger_queue))
         yield
@@ -348,7 +353,7 @@ def create_subprocess_ioc_and_responses(
     table_field_info,
     table_fields,
     clear_bobfiles=False,
-) -> Generator[Tuple[Path, Connection, ResponseHandler, Queue, str], None, None]:
+) -> Generator[tuple[Path, Connection, ResponseHandler, Queue, str], None, None]:
     """Run the IOC in its own subprocess. When finished check logging logged no
     messages of WARNING or higher level."""
 
@@ -864,7 +869,7 @@ def mocked_panda_multiple_seq_responses(
     table_field_info,
     table_fields,
     clear_records,
-) -> Generator[Tuple[Path, Connection, ResponseHandler, Queue, str], None, None]:
+) -> Generator[tuple[Path, Connection, ResponseHandler, Queue, str], None, None]:
     response_handler = ResponseHandler(multiple_seq_responses)
 
     yield from create_subprocess_ioc_and_responses(
@@ -888,7 +893,7 @@ def mocked_panda_standard_responses(
     table_field_info,
     table_fields,
     clear_records,
-) -> Generator[Tuple[Path, Connection, ResponseHandler, Queue, str], None, None]:
+) -> Generator[tuple[Path, Connection, ResponseHandler, Queue, str], None, None]:
     response_handler = ResponseHandler(standard_responses)
 
     yield from create_subprocess_ioc_and_responses(
@@ -912,7 +917,7 @@ def mocked_panda_standard_responses_no_panda_update(
     table_field_info,
     table_fields,
     clear_records,
-) -> Generator[Tuple[Path, Connection, ResponseHandler, Queue, str], None, None]:
+) -> Generator[tuple[Path, Connection, ResponseHandler, Queue, str], None, None]:
     response_handler = ResponseHandler(standard_responses_no_panda_update)
 
     yield from create_subprocess_ioc_and_responses(

@@ -1,7 +1,6 @@
 import asyncio
 import logging
 from pathlib import Path
-from typing import Dict, Tuple
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -543,7 +542,7 @@ def test_make_ext_out_bits(
     field_info = ExtOutBitsFieldInfo(
         "ext_out", "bits", "Test Description", ["No", "Value"], bits
     )
-    values: Dict[EpicsName, ScalarRecordValue] = {
+    values: dict[EpicsName, ScalarRecordValue] = {
         EpicsName(f"{record_name}:CAPTURE"): "No",
     }
 
@@ -641,7 +640,7 @@ def test_create_record_info_value_error(
 @pytest.mark.parametrize("new_val", ["TEST2", 2])
 async def test_time_record_updater_update_egu(
     db_put_field: MagicMock,
-    mocked_time_record_updater: Tuple[_TimeRecordUpdater, str],
+    mocked_time_record_updater: tuple[_TimeRecordUpdater, str],
     new_val,
 ):
     time_record_updater, test_prefix = mocked_time_record_updater
