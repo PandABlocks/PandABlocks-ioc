@@ -33,10 +33,8 @@ from ._types import OUT_RECORD_FUNCTIONS, EpicsName, epics_to_pvi_name
 
 
 def _extract_number_at_end_of_string(
-    string: str | None,
+    string: str,
 ) -> tuple[None, None] | tuple[str, int | None]:
-    if string is None:
-        return None, None
     pattern = r"(\D+)(\d+)$"
     match = re.match(pattern, string)
     if match:
@@ -45,26 +43,22 @@ def _extract_number_at_end_of_string(
 
 
 def q_group_formatter(
-    panda_field: str | None,
+    panda_field: str,
     access: str,
     channel: Literal["VAL", "NAME"],
     other_fields: dict[str, str] | None = None,
 ) -> dict:
     other_fields = other_fields or {}
 
-    panda_field_lower = (
-        None if panda_field is None else panda_field.lower().replace(":", "_")
-    )
+    panda_field_lower = panda_field.lower().replace(":", "_")
 
     # Backwards compatible `pvi.someblock1` field.
-    pvi_name = "" if panda_field_lower is None else f".{panda_field_lower}"
-    pvi_field = f"pvi{pvi_name}.{access}"
+    pvi_field = f"pvi.{panda_field_lower}.{access}"
 
     # New `value.someblock[1]` field.
     stripped_name, stripped_number = _extract_number_at_end_of_string(panda_field_lower)
-    value_name = "" if stripped_name is None else f".{stripped_name}"
     value_number = "" if stripped_number is None else f"[{stripped_number}]"
-    value_field = f"value{value_name}{value_number}.{access}"
+    value_field = f"value.{stripped_name}{value_number}.{access}"
 
     return {
         block_name_suffixed: {
