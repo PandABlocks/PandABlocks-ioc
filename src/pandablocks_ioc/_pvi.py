@@ -33,10 +33,8 @@ from ._types import OUT_RECORD_FUNCTIONS, EpicsName, epics_to_pvi_name
 
 
 def _extract_number_at_end_of_string(
-    string: str | None,
+    string: str,
 ) -> tuple[None, None] | tuple[str, int | None]:
-    if string is None:
-        return None, None
     pattern = r"(\D+)(\d+)$"
     match = re.match(pattern, string)
     if match:
@@ -45,26 +43,22 @@ def _extract_number_at_end_of_string(
 
 
 def q_group_formatter(
-    panda_field: str | None,
+    panda_field: str,
     access: str,
     channel: Literal["VAL", "NAME"],
     other_fields: dict[str, str] | None = None,
 ) -> dict:
     other_fields = other_fields or {}
 
-    panda_field_lower = (
-        None if panda_field is None else panda_field.lower().replace(":", "_")
-    )
+    panda_field_lower = panda_field.lower().replace(":", "_")
 
     # Backwards compatible `pvi.someblock1` field.
-    pvi_name = "" if panda_field_lower is None else f".{panda_field_lower}"
-    pvi_field = f"pvi{pvi_name}.{access}"
+    pvi_field = f"pvi.{panda_field_lower}.{access}"
 
     # New `value.someblock[1]` field.
     stripped_name, stripped_number = _extract_number_at_end_of_string(panda_field_lower)
-    value_name = "" if stripped_name is None else f".{stripped_name}"
     value_number = "" if stripped_number is None else f"[{stripped_number}]"
-    value_field = f"value{value_name}{value_number}.{access}"
+    value_field = f"value.{stripped_name}{value_number}.{access}"
 
     return {
         block_name_suffixed: {
@@ -405,35 +399,6 @@ class Pvi:
             )
 
             pvi_records.append(pvi_record_name)
-
-        top_level_pvi_record_name = "PVI"
-        description = builder.longStringIn(
-            f"{top_level_pvi_record_name}:DESCRIPTION",
-            initial_value="PVs making up Interface for entire panda.",
-        )
-        description.add_info(
-            "Q:group",
-            {
-                RecordName(top_level_pvi_record_name): {
-                    "display.description": {"+type": "plain", "+channel": "VAL"},
-                    "": {"+type": "meta", "+channel": "VAL"},
-                }
-            },
-        )
-        top_level_block_pvi = builder.longStringIn(
-            top_level_pvi_record_name + "_PV",
-            initial_value=RecordName(top_level_pvi_record_name),
-        )
-        top_level_block_pvi.add_info(
-            "Q:group",
-            {
-                RecordName("PVI"): q_group_formatter(
-                    None,
-                    "d",
-                    "VAL",
-                )
-            },
-        )
 
         # TODO: Properly add this to list of screens, add a PV, maybe roll into
         # the "PLACEHOLDER" Device?
