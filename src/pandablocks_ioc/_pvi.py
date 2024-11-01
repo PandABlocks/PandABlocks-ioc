@@ -406,35 +406,6 @@ class Pvi:
 
             pvi_records.append(pvi_record_name)
 
-        top_level_pvi_record_name = "PVI"
-        description = builder.longStringIn(
-            f"{top_level_pvi_record_name}:DESCRIPTION",
-            initial_value="PVs making up Interface for entire panda.",
-        )
-        description.add_info(
-            "Q:group",
-            {
-                RecordName(top_level_pvi_record_name): {
-                    "display.description": {"+type": "plain", "+channel": "VAL"},
-                    "": {"+type": "meta", "+channel": "VAL"},
-                }
-            },
-        )
-        top_level_block_pvi = builder.longStringIn(
-            top_level_pvi_record_name + "_PV",
-            initial_value=RecordName(top_level_pvi_record_name),
-        )
-        top_level_block_pvi.add_info(
-            "Q:group",
-            {
-                RecordName("PVI"): q_group_formatter(
-                    None,
-                    "d",
-                    "VAL",
-                )
-            },
-        )
-
         # TODO: Properly add this to list of screens, add a PV, maybe roll into
         # the "PLACEHOLDER" Device?
         # Add Tables to a new top level screen
