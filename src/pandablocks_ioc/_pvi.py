@@ -47,6 +47,7 @@ def q_group_formatter(
     access: str,
     channel: Literal["VAL", "NAME"],
     other_fields: dict[str, str] | None = None,
+    vectorize: bool = True,
 ) -> dict:
     other_fields = other_fields or {}
 
@@ -56,9 +57,14 @@ def q_group_formatter(
     pvi_field = f"pvi.{panda_field_lower}.{access}"
 
     # New `value.someblock[1]` field.
-    stripped_name, stripped_number = _extract_number_at_end_of_string(panda_field_lower)
-    value_number = "" if stripped_number is None else f"[{stripped_number}]"
-    value_field = f"value.{stripped_name}{value_number}.{access}"
+    if vectorize:
+        stripped_name, stripped_number = _extract_number_at_end_of_string(
+            panda_field_lower
+        )
+        value_number = "" if stripped_number is None else f"[{stripped_number}]"
+        value_field = f"value.{stripped_name}{value_number}.{access}"
+    else:
+        value_field = f"value.{panda_field_lower}.{access}"
 
     return {
         block_name_suffixed: {
@@ -102,15 +108,10 @@ def add_pvi_info_to_record(
 ):
     block, field = record_name.split(":", maxsplit=1)
     pvi_pv = RecordName(f"{block}:PVI")
+
     record.add_info(
         "Q:group",
-        {
-            pvi_pv: q_group_formatter(
-                field,
-                access,
-                "NAME",
-            )
-        },
+        {pvi_pv: q_group_formatter(field, access, "NAME", vectorize=False)},
     )
 
 
