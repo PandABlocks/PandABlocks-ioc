@@ -44,7 +44,7 @@ def _extract_number_at_end_of_string(
 
 def q_group_formatter(
     panda_field: str,
-    access: str,
+    access: str | None,
     channel: Literal["VAL", "NAME"],
     other_fields: dict[str, str] | None = None,
     vectorize: bool = True,
@@ -52,9 +52,10 @@ def q_group_formatter(
     other_fields = other_fields or {}
 
     panda_field_lower = panda_field.lower().replace(":", "_")
+    access_name = "" if access is None else f".{access}"
 
     # Backwards compatible `pvi.someblock1` field.
-    pvi_field = f"pvi.{panda_field_lower}.{access}"
+    pvi_field = f"pvi.{panda_field_lower}{access_name}"
 
     # New `value.someblock[1]` field.
     if vectorize:
@@ -62,9 +63,9 @@ def q_group_formatter(
             panda_field_lower
         )
         value_number = "" if stripped_number is None else f"[{stripped_number}]"
-        value_field = f"value.{stripped_name}{value_number}.{access}"
+        value_field = f"value.{stripped_name}{value_number}{access_name}"
     else:
-        value_field = f"value.{panda_field_lower}.{access}"
+        value_field = f"value.{panda_field_lower}{access_name}"
 
     return {
         block_name_suffixed: {

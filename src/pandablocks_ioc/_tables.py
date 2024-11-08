@@ -142,7 +142,7 @@ class ReadOnlyPvaTable:
                 "Q:group",
                 {
                     self.pva_table_name: q_group_formatter(
-                        pva_row_name, "r", "VAL", other_fields=trigger
+                        pva_row_name, None, "VAL", other_fields=trigger
                     )
                 },
             )
