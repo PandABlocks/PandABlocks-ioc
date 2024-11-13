@@ -14,6 +14,7 @@ from pandablocks.commands import (
     Arm,
     ChangeGroup,
     Disarm,
+    Get,
     GetBlockInfo,
     GetChanges,
     GetFieldInfo,
@@ -66,6 +67,7 @@ from ._types import (
     trim_description,
     trim_string_value,
 )
+from ._version import __version__
 
 # TODO: Try turning python.analysis.typeCheckingMode on, as it does highlight a couple
 # of possible errors
@@ -173,6 +175,41 @@ def create_softioc(
         # Client was connected in the _create_softioc method
         if client.is_connected():
             asyncio.run_coroutine_threadsafe(client.close(), dispatcher.loop).result()
+
+
+async def get_panda_ver_info(
+    client: AsyncioClient,
+) -> tuple[str]:
+    """Function that gets version information from the PandA using the IDN command
+
+    Args:
+        client (AsyncioClient): Client used for commuication with the PandA
+
+    Returns:
+        Dict[str, str]: Dictionary mapping firmware name to version
+    """
+
+    idn = await client.send(Get("*IDN"))
+
+    # Currently, IDN reports sw, fpga, and rootfs versions
+    firmware_versions = {"PandA SW": "Unknown", "FPGA": "Unknown", "rootfs": "Unknown"}
+
+    prev_key = None
+    firmware_list = list(firmware_versions.keys())
+    for i, key in enumerate(list(firmware_list)):
+        try:
+            # Start of string to next key name is version of previous key
+            if prev_key is not None:
+                firmware_versions[prev_key] = idn.split(f"{key}: ")[0]
+            idn = idn.split(f"{key}: ")[1]
+            prev_key = key
+            # If we've gone through the list, last key's version is remaining string
+            if (i + 1) == len(firmware_list):
+                firmware_versions[key] = idn
+        except IndexError:
+            logging.warning(f"Failed to get {key} version information!")
+
+    return firmware_versions
 
 
 async def introspect_panda(
@@ -1824,6 +1861,18 @@ class IocRecordFactory:
 
         return record_dict
 
+    def create_version_records(self, fw_vers_dict: dict[str, str]):
+        """Creates handful of records for tracking versions of IOC/Firmware via EPICS
+
+        Args:
+            fw_vers_dict (dict[str, str]): Dictionary mapping firmwares to versions
+        """
+
+        builder.stringIn("VERSION", initial_value=__version__)
+        for item in fw_vers_dict:
+            basename = item.replace(" ", "_").upper()  # Normalize name
+            builder.stringIn(f"{basename}_VERSION", initial_value=fw_vers_dict[item])
+
     def initialise(self, dispatcher: asyncio_dispatcher.AsyncioDispatcher) -> None:
         """Perform any final initialisation code to create the records. No new
         records may be created after this method is called.
@@ -1851,6 +1900,7 @@ async def create_records(
     """Query the PandA and create the relevant records based on the information
     returned"""
 
+    fw_vers_dict = await get_panda_ver_info(client)
     (panda_dict, all_values_dict) = await introspect_panda(client)
 
     # Dictionary containing every record of every type
@@ -1858,8 +1908,10 @@ async def create_records(
 
     record_factory = IocRecordFactory(client, record_prefix, all_values_dict)
 
-    # For each field in each block, create block_num records of each field
+    # Add some top level records for version of IOC, FPGA, and software
+    record_factory.create_version_records(fw_vers_dict)
 
+    # For each field in each block, create block_num records of each field
     for block, panda_info in panda_dict.items():
         block_info = panda_info.block_info
         values = panda_info.values
