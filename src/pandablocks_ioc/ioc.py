@@ -179,7 +179,7 @@ def create_softioc(
 
 async def get_panda_ver_info(
     client: AsyncioClient,
-) -> tuple[str]:
+) -> Dict[EpicsName, str]:
     """Function that gets version information from the PandA using the IDN command
 
     Args:
