@@ -200,12 +200,7 @@ async def get_panda_versions(
     else:
         for firmware_name in firmware_versions:
             pattern = re.compile(
-                rf'{re.escape(firmware_name)}:\s*([^:]+?)(?=\s*\b(?:{"|".join(
-                        map(
-                            re.escape,
-                            firmware_versions
-                        )
-                    )}):|$)'
+                rf'{re.escape(firmware_name)}:\s*([^:]+?)(?=\s*\b(?:{"|".join(map(re.escape, firmware_versions))}):|$)'  # noqa: E501
             )
             if match := pattern.search(idn):
                 firmware_versions[firmware_name] = match.group(1).strip()
