@@ -1331,7 +1331,7 @@ def test_dataset_name_cache():
 
         # Check that set_rows was called once with the correct arguments
         mock_table_instance.set_rows.assert_called_once_with(
-            ["Name", "HDF5_Type"], [[], []], length=300, default_data_type=str
+            ["Name", "DType"], [[], []], length=300, default_data_type=str
         )
         cache.update_datasets_record()
 
@@ -1340,7 +1340,7 @@ def test_dataset_name_cache():
             "Name", ["test3", "test4", "test5"]
         )
         mock_table_instance.update_row.assert_any_call(
-            "HDF5_Type", ["float64", "float64", "float64"]
+            "DType", ["float64", "float64", "float64"]
         )
 
         assert cache.hdf_writer_names() == {

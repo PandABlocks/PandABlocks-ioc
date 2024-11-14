@@ -333,7 +333,7 @@ class DatasetNameCache:
             datasets_record_name, ["Name", "Type"]
         )
         self._datasets_table_record.set_rows(
-            ["Name", "HDF5_Type"], [[], []], length=300, default_data_type=str
+            ["Name", "DType"], [[], []], length=300, default_data_type=str
         )
 
     def hdf_writer_names(self) -> dict[str, dict[str, str]]:
@@ -363,7 +363,7 @@ class DatasetNameCache:
         ]
         self._datasets_table_record.update_row("Name", dataset_name_list)
         self._datasets_table_record.update_row(
-            "HDF5_Type",
+            "DType",
             ["float64"] * len(dataset_name_list),
         )
 
