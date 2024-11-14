@@ -177,9 +177,9 @@ def create_softioc(
             asyncio.run_coroutine_threadsafe(client.close(), dispatcher.loop).result()
 
 
-async def get_panda_ver_info(
+async def get_panda_versions(
     client: AsyncioClient,
-) -> Dict[EpicsName, str]:
+) -> dict[EpicsName, str]:
     """Function that gets version information from the PandA using the IDN command
 
     Args:
@@ -194,22 +194,31 @@ async def get_panda_ver_info(
     # Currently, IDN reports sw, fpga, and rootfs versions
     firmware_versions = {"PandA SW": "Unknown", "FPGA": "Unknown", "rootfs": "Unknown"}
 
-    prev_key = None
-    firmware_list = list(firmware_versions.keys())
-    for i, key in enumerate(list(firmware_list)):
-        try:
-            # Start of string to next key name is version of previous key
-            if prev_key is not None:
-                firmware_versions[prev_key] = idn.split(f"{key}: ")[0]
-            idn = idn.split(f"{key}: ")[1]
-            prev_key = key
-            # If we've gone through the list, last key's version is remaining string
-            if (i + 1) == len(firmware_list):
-                firmware_versions[key] = idn
-        except IndexError:
-            logging.warning(f"Failed to get {key} version information!")
+    # If the *IDN response contains too many keys, break and leave versions as "Unknown"
+    if len(idn.split(":")) / 2 > len(list(firmware_versions.keys())):
+        logging.error(f"Version string {idn} recieved from PandA could not be parsed!")
+    else:
+        for firmware_name in firmware_versions:
+            pattern = re.compile(
+                rf'{re.escape(firmware_name)}:\s*([^:]+?)(?=\s*\b(?:{"|".join(
+                        map(
+                            re.escape,
+                            firmware_versions
+                        )
+                    )}):|$)'
+            )
+            if match := pattern.search(idn):
+                firmware_versions[firmware_name] = match.group(1).strip()
+                logging.info(
+                    f"{firmware_name} Version: {firmware_versions[firmware_name]}"
+                )
+            else:
+                logging.warning(f"Failed to get {firmware_name} version information!")
 
-    return firmware_versions
+    return {
+        EpicsName(firmware_name.upper().replace(" ", "_")): version
+        for firmware_name, version in firmware_versions.items()
+    }
 
 
 async def introspect_panda(
@@ -1868,10 +1877,32 @@ class IocRecordFactory:
             fw_vers_dict (dict[str, str]): Dictionary mapping firmwares to versions
         """
 
-        builder.stringIn("VERSION", initial_value=__version__)
-        for item in fw_vers_dict:
-            basename = item.replace(" ", "_").upper()  # Normalize name
-            builder.stringIn(f"{basename}_VERSION", initial_value=fw_vers_dict[item])
+        system_block_prefix = "SYSTEM"
+
+        ioc_version_record_name = EpicsName(system_block_prefix + ":IOC_VERSION")
+        ioc_version_record = builder.stringIn(
+            ioc_version_record_name, DESC="IOC Version", initial_value=__version__
+        )
+        add_automatic_pvi_info(
+            PviGroup.VERSIONS,
+            ioc_version_record,
+            ioc_version_record_name,
+            builder.stringIn,
+        )
+
+        for firmware_name, version in fw_vers_dict.items():
+            firmware_record_name = EpicsName(
+                system_block_prefix + f":{firmware_name}_VERSION"
+            )
+            firmware_ver_record = builder.stringIn(
+                firmware_record_name, DESC=firmware_name, initial_value=version
+            )
+            add_automatic_pvi_info(
+                PviGroup.VERSIONS,
+                firmware_ver_record,
+                firmware_record_name,
+                builder.stringIn,
+            )
 
     def initialise(self, dispatcher: asyncio_dispatcher.AsyncioDispatcher) -> None:
         """Perform any final initialisation code to create the records. No new
@@ -1900,7 +1931,7 @@ async def create_records(
     """Query the PandA and create the relevant records based on the information
     returned"""
 
-    fw_vers_dict = await get_panda_ver_info(client)
+    fw_vers_dict = await get_panda_versions(client)
     (panda_dict, all_values_dict) = await introspect_panda(client)
 
     # Dictionary containing every record of every type
