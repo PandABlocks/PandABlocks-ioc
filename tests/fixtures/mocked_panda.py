@@ -22,6 +22,7 @@ from pandablocks.commands import (
     ChangeGroup,
     Command,
     Disarm,
+    Get,
     GetBlockInfo,
     GetChanges,
     GetFieldInfo,
@@ -430,6 +431,10 @@ def multiple_seq_responses(table_field_info, table_data_1, table_data_2):
     GetChanges is polled at 10Hz if a different command isn't made.
     """
     return {
+        command_to_key(Get(field="*IDN")): repeat(
+            "PandA SW: 3.0-11-g6422090 FPGA: 3.0.0C4 86e5f0a2 07d202f8 \
+             rootfs: PandA 3.1a1-1-g22fdd94"
+        ),
         command_to_key(
             Put(
                 field="SEQ1.TABLE",
@@ -564,6 +569,10 @@ def no_numbered_suffix_to_metadata_responses(table_field_info, table_data_1):
     doesn't have a suffixed number.
     """
     return {
+        command_to_key(Get(field="*IDN")): repeat(
+            "PandA SW: 3.0-11-g6422090 FPGA: 3.0.0C4 86e5f0a2 07d202f8 \
+             rootfs: PandA 3.1a1-1-g22fdd94"
+        ),
         command_to_key(
             Put(
                 field="SEQ.TABLE",
@@ -639,6 +648,10 @@ def faulty_multiple_pcap_responses():
         ),
     }
     return {
+        command_to_key(Get(field="*IDN")): repeat(
+            "PandA SW: 3.0-11-g6422090 FPGA: 3.0.0C4 86e5f0a2 07d202f8 \
+             rootfs: PandA 3.1a1-1-g22fdd94"
+        ),
         command_to_key(GetFieldInfo(block="PCAP1", extended_metadata=True)): repeat(
             pcap_info
         ),
@@ -681,6 +694,10 @@ def standard_responses_no_panda_update(table_field_info, table_data_1):
     Used to test if the softioc can be started.
     """
     return {
+        command_to_key(Get(field="*IDN")): repeat(
+            "PandA SW: 3.0-11-g6422090 FPGA: 3.0.0C4 86e5f0a2 07d202f8 \
+             rootfs: PandA 3.1a1-1-g22fdd94"
+        ),
         command_to_key(GetFieldInfo(block="PCAP", extended_metadata=True)): repeat(
             {
                 "TRIG_EDGE": EnumFieldInfo(
@@ -737,6 +754,10 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
     GetChanges is polled at 10Hz if a different command isn't made.
     """
     return {
+        command_to_key(Get(field="*IDN")): repeat(
+            "PandA SW: 3.0-11-g6422090 FPGA: 3.0.0C4 86e5f0a2 07d202f8 \
+             rootfs: PandA 3.1a1-1-g22fdd94"
+        ),
         command_to_key(GetFieldInfo(block="PCAP", extended_metadata=True)): repeat(
             {
                 "TRIG_EDGE": EnumFieldInfo(
