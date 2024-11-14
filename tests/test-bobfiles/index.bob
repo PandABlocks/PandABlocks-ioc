@@ -3,7 +3,7 @@
   <x>0</x>
   <y use_class="true">0</y>
   <width>488</width>
-  <height>130</height>
+  <height>155</height>
   <grid_step_x>4</grid_step_x>
   <grid_step_y>4</grid_step_y>
   <widget type="label" version="2.0.0">
@@ -27,9 +27,34 @@
   </widget>
   <widget type="label" version="2.0.0">
     <name>Label</name>
-    <text>PCAP</text>
+    <text>SYSTEM</text>
     <x>23</x>
     <y>30</y>
+    <width>250</width>
+    <height>20</height>
+    <tooltip>$(text)</tooltip>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>OpenDisplay</name>
+    <actions>
+      <action type="open_display">
+        <file>SYSTEM.bob</file>
+        <target>tab</target>
+        <description>Open Display</description>
+      </action>
+    </actions>
+    <text>SubScreen</text>
+    <x>278</x>
+    <y>30</y>
+    <width>205</width>
+    <height>20</height>
+    <tooltip>$(actions)</tooltip>
+  </widget>
+  <widget type="label" version="2.0.0">
+    <name>Label</name>
+    <text>PCAP</text>
+    <x>23</x>
+    <y>55</y>
     <width>250</width>
     <height>20</height>
     <tooltip>$(text)</tooltip>
@@ -45,7 +70,7 @@
     </actions>
     <text>SubScreen</text>
     <x>278</x>
-    <y>30</y>
+    <y>55</y>
     <width>205</width>
     <height>20</height>
     <tooltip>$(actions)</tooltip>
@@ -54,7 +79,7 @@
     <name>Label</name>
     <text>DATA</text>
     <x>23</x>
-    <y>55</y>
+    <y>80</y>
     <width>250</width>
     <height>20</height>
     <tooltip>$(text)</tooltip>
@@ -70,7 +95,7 @@
     </actions>
     <text>SubScreen</text>
     <x>278</x>
-    <y>55</y>
+    <y>80</y>
     <width>205</width>
     <height>20</height>
     <tooltip>$(actions)</tooltip>
@@ -79,7 +104,7 @@
     <name>Label</name>
     <text>SEQ</text>
     <x>23</x>
-    <y>80</y>
+    <y>105</y>
     <width>250</width>
     <height>20</height>
     <tooltip>$(text)</tooltip>
@@ -95,7 +120,7 @@
     </actions>
     <text>SubScreen</text>
     <x>278</x>
-    <y>80</y>
+    <y>105</y>
     <width>205</width>
     <height>20</height>
     <tooltip>$(actions)</tooltip>
@@ -104,7 +129,7 @@
     <name>Label</name>
     <text>PULSE</text>
     <x>23</x>
-    <y>105</y>
+    <y>130</y>
     <width>250</width>
     <height>20</height>
     <tooltip>$(text)</tooltip>
@@ -120,7 +145,7 @@
     </actions>
     <text>SubScreen</text>
     <x>278</x>
-    <y>105</y>
+    <y>130</y>
     <width>205</width>
     <height>20</height>
     <tooltip>$(actions)</tooltip>
