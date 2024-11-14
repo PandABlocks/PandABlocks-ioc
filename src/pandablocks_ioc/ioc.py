@@ -1865,7 +1865,7 @@ class IocRecordFactory:
 
         return record_dict
 
-    def create_version_records(self, fw_vers_dict: dict[str, str]):
+    def create_version_records(self, fw_vers_dict: dict[EpicsName, str]):
         """Creates handful of records for tracking versions of IOC/Firmware via EPICS
 
         Args:
