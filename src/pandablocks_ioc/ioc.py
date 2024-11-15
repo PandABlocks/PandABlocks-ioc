@@ -177,32 +177,38 @@ def create_softioc(
             asyncio.run_coroutine_threadsafe(client.close(), dispatcher.loop).result()
 
 
-async def get_panda_versions(
-    client: AsyncioClient,
-) -> dict[EpicsName, str]:
-    """Function that gets version information from the PandA using the IDN command
+def get_panda_versions(idn_repsonse: str) -> dict[EpicsName, str]:
+    """Function that parses version info from the PandA's response to the IDN command
+
+    See: https://pandablocks-server.readthedocs.io/en/latest/commands.html#system-commands
 
     Args:
-        client (AsyncioClient): Client used for commuication with the PandA
+        idn_response (str): Response from PandA to Get(*IDN) command
 
     Returns:
-        Dict[str, str]: Dictionary mapping firmware name to version
+        dict[EpicsName, str]: Dictionary mapping firmware record name to version
     """
-
-    idn = await client.send(Get("*IDN"))
 
     # Currently, IDN reports sw, fpga, and rootfs versions
     firmware_versions = {"PandA SW": "Unknown", "FPGA": "Unknown", "rootfs": "Unknown"}
 
     # If the *IDN response contains too many keys, break and leave versions as "Unknown"
-    if len(idn.split(":")) / 2 > len(list(firmware_versions.keys())):
-        logging.error(f"Version string {idn} recieved from PandA could not be parsed!")
+    # Since spaces are used to deliminate versions and can also be in the keys and
+    # values, if an additional key is present that we don't explicitly handle,
+    # our approach of using regex matching will not work.
+    if sum(name in idn_repsonse for name in firmware_versions) < idn_repsonse.count(
+        ":"
+    ):
+        logging.error(
+            f"Recieved unexpected version numbers in version string {idn_repsonse}!"
+        )
     else:
         for firmware_name in firmware_versions:
             pattern = re.compile(
-                rf'{re.escape(firmware_name)}:\s*([^:]+?)(?=\s*\b(?:{"|".join(map(re.escape, firmware_versions))}):|$)'  # noqa: E501
+                rf'{re.escape(firmware_name)}:\s*([^:]+?)(?=\s*\b(?: \
+                {"|".join(map(re.escape, firmware_versions))}):|$)'
             )
-            if match := pattern.search(idn):
+            if match := pattern.search(idn_repsonse):
                 firmware_versions[firmware_name] = match.group(1).strip()
                 logging.info(
                     f"{firmware_name} Version: {firmware_versions[firmware_name]}"
@@ -1865,11 +1871,11 @@ class IocRecordFactory:
 
         return record_dict
 
-    def create_version_records(self, fw_vers_dict: dict[EpicsName, str]):
+    def create_version_records(self, firmware_versions: dict[EpicsName, str]):
         """Creates handful of records for tracking versions of IOC/Firmware via EPICS
 
         Args:
-            fw_vers_dict (dict[str, str]): Dictionary mapping firmwares to versions
+            firmware_versions (dict[str, str]): Dictionary mapping firmwares to versions
         """
 
         system_block_prefix = "SYSTEM"
@@ -1885,7 +1891,7 @@ class IocRecordFactory:
             builder.stringIn,
         )
 
-        for firmware_name, version in fw_vers_dict.items():
+        for firmware_name, version in firmware_versions.items():
             firmware_record_name = EpicsName(
                 system_block_prefix + f":{firmware_name}_VERSION"
             )
@@ -1926,7 +1932,10 @@ async def create_records(
     """Query the PandA and create the relevant records based on the information
     returned"""
 
-    fw_vers_dict = await get_panda_versions(client)
+    # Get version information from PandA using IDN command
+    idn_response = await client.send(Get("*IDN"))
+    fw_vers_dict = get_panda_versions(idn_response)
+
     (panda_dict, all_values_dict) = await introspect_panda(client)
 
     # Dictionary containing every record of every type
@@ -1934,7 +1943,7 @@ async def create_records(
 
     record_factory = IocRecordFactory(client, record_prefix, all_values_dict)
 
-    # Add some top level records for version of IOC, FPGA, and software
+    # Add records for version of IOC, FPGA, and software to SYSTEM block
     record_factory.create_version_records(fw_vers_dict)
 
     # For each field in each block, create block_num records of each field

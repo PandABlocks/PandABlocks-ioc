@@ -39,6 +39,7 @@ from pandablocks_ioc.ioc import (
     StringRecordLabelValidator,
     _RecordUpdater,
     _TimeRecordUpdater,
+    get_panda_versions,
     update,
 )
 
@@ -840,3 +841,70 @@ async def test_update_toggles_bit_field():
     # unreliable number of calls to the set method.
     record_info.record.set.assert_any_call(True)
     record_info.record.set.assert_any_call(0)
+
+
+@pytest.mark.parametrize(
+    "sample_idn_response, expected_output, expected_log_messages",
+    [
+        (
+            "PandA SW: 3.0-11-g6422090 FPGA: 3.0.0C4 86e5f0a2 "
+            "07d202f8 rootfs: PandA 3.1a1-1-g22fdd94",
+            {
+                EpicsName("PANDA_SW"): "3.0-11-g6422090",
+                EpicsName("FPGA"): "3.0.0C4 86e5f0a2 07d202f8",
+                EpicsName("ROOTFS"): "PandA 3.1a1-1-g22fdd94",
+            },
+            [],
+        ),
+        (
+            "PandA SW: 3.0-11-g6422090 FPGA: 3.0.0C4 86e5f0a2 07d202f8",
+            {
+                EpicsName("PANDA_SW"): "3.0-11-g6422090",
+                EpicsName("FPGA"): "3.0.0C4 86e5f0a2 07d202f8",
+                EpicsName("ROOTFS"): "Unknown",
+            },
+            ["Failed to get rootfs version information!"],
+        ),
+        (
+            "PandA SW: 3.0-11-g6422090 rootfs: PandA 3.1a1-1-g22fdd94",
+            {
+                EpicsName("PANDA_SW"): "3.0-11-g6422090",
+                EpicsName("FPGA"): "Unknown",
+                EpicsName("ROOTFS"): "PandA 3.1a1-1-g22fdd94",
+            },
+            ["Failed to get FPGA version information!"],
+        ),
+        (
+            "",
+            {
+                EpicsName("PANDA_SW"): "Unknown",
+                EpicsName("FPGA"): "Unknown",
+                EpicsName("ROOTFS"): "Unknown",
+            },
+            [
+                "Failed to get PandA SW version information!",
+                "Failed to get FPGA version information!",
+                "Failed to get rootfs version information!",
+            ],
+        ),
+        (
+            "FPGA: 3.0.0C4 86e5f0a2 07d202f8 "
+            "Hello World: 12345 rootfs: PandA 3.1a1-1-g22fdd94",
+            {
+                EpicsName("PANDA_SW"): "Unknown",
+                EpicsName("FPGA"): "Unknown",
+                EpicsName("ROOTFS"): "Unknown",
+            },
+            [
+                "Recieved unexpected version numbers",
+            ],
+        ),
+    ],
+)
+def test_get_version_information(
+    sample_idn_response, expected_output, expected_log_messages, caplog
+):
+    parsed_firmware_versions = get_panda_versions(sample_idn_response)
+    assert parsed_firmware_versions == expected_output
+    for log_message in expected_log_messages:
+        assert log_message in caplog.text
