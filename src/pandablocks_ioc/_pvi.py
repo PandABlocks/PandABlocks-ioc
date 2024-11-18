@@ -89,6 +89,7 @@ class PviGroup(Enum):
     CAPTURE = "Capture"
     HDF = "HDF"
     TABLE = "Table"  # TODO: May not need this anymore
+    VERSIONS = "Versions"
 
 
 @dataclass

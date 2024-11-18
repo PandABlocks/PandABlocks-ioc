@@ -13,6 +13,7 @@ from pandablocks.commands import (
     Arm,
     ChangeGroup,
     Disarm,
+    Get,
     GetBlockInfo,
     GetChanges,
     GetFieldInfo,
@@ -47,6 +48,10 @@ async def test_no_panda_found_connection_error():
 def panda_disconnect_responses(table_field_info, table_data_1, table_data_2):
     # The responses return nothing, as the panda disconnects after introspection
     return {
+        command_to_key(Get(field="*IDN")): repeat(
+            "PandA SW: 3.0-11-g6422090 FPGA: 3.0.0C4 86e5f0a2 07d202f8 \
+             rootfs: PandA 3.1a1-1-g22fdd94"
+        ),
         command_to_key(GetFieldInfo(block="PCAP", extended_metadata=True)): repeat(
             {
                 "TRIG_EDGE": EnumFieldInfo(

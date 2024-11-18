@@ -14,6 +14,7 @@ from pandablocks.commands import (
     Arm,
     ChangeGroup,
     Disarm,
+    Get,
     GetBlockInfo,
     GetChanges,
     GetFieldInfo,
@@ -66,6 +67,7 @@ from ._types import (
     trim_description,
     trim_string_value,
 )
+from ._version import __version__
 
 # TODO: Try turning python.analysis.typeCheckingMode on, as it does highlight a couple
 # of possible errors
@@ -173,6 +175,51 @@ def create_softioc(
         # Client was connected in the _create_softioc method
         if client.is_connected():
             asyncio.run_coroutine_threadsafe(client.close(), dispatcher.loop).result()
+
+
+def get_panda_versions(idn_repsonse: str) -> dict[EpicsName, str]:
+    """Function that parses version info from the PandA's response to the IDN command
+
+    See: https://pandablocks-server.readthedocs.io/en/latest/commands.html#system-commands
+
+    Args:
+        idn_response (str): Response from PandA to Get(*IDN) command
+
+    Returns:
+        dict[EpicsName, str]: Dictionary mapping firmware record name to version
+    """
+
+    # Currently, IDN reports sw, fpga, and rootfs versions
+    firmware_versions = {"PandA SW": "Unknown", "FPGA": "Unknown", "rootfs": "Unknown"}
+
+    # If the *IDN response contains too many keys, break and leave versions as "Unknown"
+    # Since spaces are used to deliminate versions and can also be in the keys and
+    # values, if an additional key is present that we don't explicitly handle,
+    # our approach of using regex matching will not work.
+    if sum(name in idn_repsonse for name in firmware_versions) < idn_repsonse.count(
+        ":"
+    ):
+        logging.error(
+            f"Recieved unexpected version numbers in version string {idn_repsonse}!"
+        )
+    else:
+        for firmware_name in firmware_versions:
+            pattern = re.compile(
+                rf'{re.escape(firmware_name)}:\s*([^:]+?)(?=\s*\b(?: \
+                {"|".join(map(re.escape, firmware_versions))}):|$)'
+            )
+            if match := pattern.search(idn_repsonse):
+                firmware_versions[firmware_name] = match.group(1).strip()
+                logging.info(
+                    f"{firmware_name} Version: {firmware_versions[firmware_name]}"
+                )
+            else:
+                logging.warning(f"Failed to get {firmware_name} version information!")
+
+    return {
+        EpicsName(firmware_name.upper().replace(" ", "_")): version
+        for firmware_name, version in firmware_versions.items()
+    }
 
 
 async def introspect_panda(
@@ -1824,6 +1871,40 @@ class IocRecordFactory:
 
         return record_dict
 
+    def create_version_records(self, firmware_versions: dict[EpicsName, str]):
+        """Creates handful of records for tracking versions of IOC/Firmware via EPICS
+
+        Args:
+            firmware_versions (dict[str, str]): Dictionary mapping firmwares to versions
+        """
+
+        system_block_prefix = "SYSTEM"
+
+        ioc_version_record_name = EpicsName(system_block_prefix + ":IOC_VERSION")
+        ioc_version_record = builder.stringIn(
+            ioc_version_record_name, DESC="IOC Version", initial_value=__version__
+        )
+        add_automatic_pvi_info(
+            PviGroup.VERSIONS,
+            ioc_version_record,
+            ioc_version_record_name,
+            builder.stringIn,
+        )
+
+        for firmware_name, version in firmware_versions.items():
+            firmware_record_name = EpicsName(
+                system_block_prefix + f":{firmware_name}_VERSION"
+            )
+            firmware_ver_record = builder.stringIn(
+                firmware_record_name, DESC=firmware_name, initial_value=version
+            )
+            add_automatic_pvi_info(
+                PviGroup.VERSIONS,
+                firmware_ver_record,
+                firmware_record_name,
+                builder.stringIn,
+            )
+
     def initialise(self, dispatcher: asyncio_dispatcher.AsyncioDispatcher) -> None:
         """Perform any final initialisation code to create the records. No new
         records may be created after this method is called.
@@ -1851,6 +1932,10 @@ async def create_records(
     """Query the PandA and create the relevant records based on the information
     returned"""
 
+    # Get version information from PandA using IDN command
+    idn_response = await client.send(Get("*IDN"))
+    fw_vers_dict = get_panda_versions(idn_response)
+
     (panda_dict, all_values_dict) = await introspect_panda(client)
 
     # Dictionary containing every record of every type
@@ -1858,8 +1943,10 @@ async def create_records(
 
     record_factory = IocRecordFactory(client, record_prefix, all_values_dict)
 
-    # For each field in each block, create block_num records of each field
+    # Add records for version of IOC, FPGA, and software to SYSTEM block
+    record_factory.create_version_records(fw_vers_dict)
 
+    # For each field in each block, create block_num records of each field
     for block, panda_info in panda_dict.items():
         block_info = panda_info.block_info
         values = panda_info.values
