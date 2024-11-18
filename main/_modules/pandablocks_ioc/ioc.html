@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pandablocks_ioc.ioc &#8212; PandABlocks-ioc 0.11.4.dev4+ga126c15 documentation</title>
+    <title>pandablocks_ioc.ioc &#8212; PandABlocks-ioc 0.11.5.dev11+g4d6eea0 documentation</title>
   
   
   
@@ -40,7 +40,7 @@
   <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=26a4bc78f4c0ddb94549" />
 <link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=26a4bc78f4c0ddb94549" />
 
-    <script src="../../_static/documentation_options.js?v=2c3837b9"></script>
+    <script src="../../_static/documentation_options.js?v=0b2c9a62"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -452,6 +452,7 @@
     <span class="n">Arm</span><span class="p">,</span>
     <span class="n">ChangeGroup</span><span class="p">,</span>
     <span class="n">Disarm</span><span class="p">,</span>
+    <span class="n">Get</span><span class="p">,</span>
     <span class="n">GetBlockInfo</span><span class="p">,</span>
     <span class="n">GetChanges</span><span class="p">,</span>
     <span class="n">GetFieldInfo</span><span class="p">,</span>
@@ -504,6 +505,7 @@
     <span class="n">trim_description</span><span class="p">,</span>
     <span class="n">trim_string_value</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span> <span class="nn">._version</span> <span class="kn">import</span> <span class="n">__version__</span>
 
 <span class="c1"># TODO: Try turning python.analysis.typeCheckingMode on, as it does highlight a couple</span>
 <span class="c1"># of possible errors</span>
@@ -614,6 +616,51 @@
         <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">is_connected</span><span class="p">():</span>
             <span class="n">asyncio</span><span class="o">.</span><span class="n">run_coroutine_threadsafe</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">close</span><span class="p">(),</span> <span class="n">dispatcher</span><span class="o">.</span><span class="n">loop</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span></div>
 
+
+
+<span class="k">def</span> <span class="nf">get_panda_versions</span><span class="p">(</span><span class="n">idn_repsonse</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="n">EpicsName</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Function that parses version info from the PandA&#39;s response to the IDN command</span>
+
+<span class="sd">    See: https://pandablocks-server.readthedocs.io/en/latest/commands.html#system-commands</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        idn_response (str): Response from PandA to Get(*IDN) command</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict[EpicsName, str]: Dictionary mapping firmware record name to version</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Currently, IDN reports sw, fpga, and rootfs versions</span>
+    <span class="n">firmware_versions</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;PandA SW&quot;</span><span class="p">:</span> <span class="s2">&quot;Unknown&quot;</span><span class="p">,</span> <span class="s2">&quot;FPGA&quot;</span><span class="p">:</span> <span class="s2">&quot;Unknown&quot;</span><span class="p">,</span> <span class="s2">&quot;rootfs&quot;</span><span class="p">:</span> <span class="s2">&quot;Unknown&quot;</span><span class="p">}</span>
+
+    <span class="c1"># If the *IDN response contains too many keys, break and leave versions as &quot;Unknown&quot;</span>
+    <span class="c1"># Since spaces are used to deliminate versions and can also be in the keys and</span>
+    <span class="c1"># values, if an additional key is present that we don&#39;t explicitly handle,</span>
+    <span class="c1"># our approach of using regex matching will not work.</span>
+    <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="n">name</span> <span class="ow">in</span> <span class="n">idn_repsonse</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">firmware_versions</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">idn_repsonse</span><span class="o">.</span><span class="n">count</span><span class="p">(</span>
+        <span class="s2">&quot;:&quot;</span>
+    <span class="p">):</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Recieved unexpected version numbers in version string </span><span class="si">{</span><span class="n">idn_repsonse</span><span class="si">}</span><span class="s2">!&quot;</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">firmware_name</span> <span class="ow">in</span> <span class="n">firmware_versions</span><span class="p">:</span>
+            <span class="n">pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+                <span class="sa">rf</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">re</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="n">firmware_name</span><span class="p">)</span><span class="si">}</span><span class="s1">:\s*([^:]+?)(?=\s*\b(?: </span><span class="se">\</span>
+<span class="s1">                </span><span class="si">{</span><span class="s2">&quot;|&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">escape</span><span class="p">,</span><span class="w"> </span><span class="n">firmware_versions</span><span class="p">))</span><span class="si">}</span><span class="s1">):|$)&#39;</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">match</span> <span class="o">:=</span> <span class="n">pattern</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">idn_repsonse</span><span class="p">):</span>
+                <span class="n">firmware_versions</span><span class="p">[</span><span class="n">firmware_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">firmware_name</span><span class="si">}</span><span class="s2"> Version: </span><span class="si">{</span><span class="n">firmware_versions</span><span class="p">[</span><span class="n">firmware_name</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to get </span><span class="si">{</span><span class="n">firmware_name</span><span class="si">}</span><span class="s2"> version information!&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="n">EpicsName</span><span class="p">(</span><span class="n">firmware_name</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)):</span> <span class="n">version</span>
+        <span class="k">for</span> <span class="n">firmware_name</span><span class="p">,</span> <span class="n">version</span> <span class="ow">in</span> <span class="n">firmware_versions</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">}</span>
 
 
 <span class="k">async</span> <span class="k">def</span> <span class="nf">introspect_panda</span><span class="p">(</span>
@@ -2265,6 +2312,40 @@
 
         <span class="k">return</span> <span class="n">record_dict</span>
 
+    <span class="k">def</span> <span class="nf">create_version_records</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">firmware_versions</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">EpicsName</span><span class="p">,</span> <span class="nb">str</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates handful of records for tracking versions of IOC/Firmware via EPICS</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            firmware_versions (dict[str, str]): Dictionary mapping firmwares to versions</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">system_block_prefix</span> <span class="o">=</span> <span class="s2">&quot;SYSTEM&quot;</span>
+
+        <span class="n">ioc_version_record_name</span> <span class="o">=</span> <span class="n">EpicsName</span><span class="p">(</span><span class="n">system_block_prefix</span> <span class="o">+</span> <span class="s2">&quot;:IOC_VERSION&quot;</span><span class="p">)</span>
+        <span class="n">ioc_version_record</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">stringIn</span><span class="p">(</span>
+            <span class="n">ioc_version_record_name</span><span class="p">,</span> <span class="n">DESC</span><span class="o">=</span><span class="s2">&quot;IOC Version&quot;</span><span class="p">,</span> <span class="n">initial_value</span><span class="o">=</span><span class="n">__version__</span>
+        <span class="p">)</span>
+        <span class="n">add_automatic_pvi_info</span><span class="p">(</span>
+            <span class="n">PviGroup</span><span class="o">.</span><span class="n">VERSIONS</span><span class="p">,</span>
+            <span class="n">ioc_version_record</span><span class="p">,</span>
+            <span class="n">ioc_version_record_name</span><span class="p">,</span>
+            <span class="n">builder</span><span class="o">.</span><span class="n">stringIn</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">firmware_name</span><span class="p">,</span> <span class="n">version</span> <span class="ow">in</span> <span class="n">firmware_versions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">firmware_record_name</span> <span class="o">=</span> <span class="n">EpicsName</span><span class="p">(</span>
+                <span class="n">system_block_prefix</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;:</span><span class="si">{</span><span class="n">firmware_name</span><span class="si">}</span><span class="s2">_VERSION&quot;</span>
+            <span class="p">)</span>
+            <span class="n">firmware_ver_record</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">stringIn</span><span class="p">(</span>
+                <span class="n">firmware_record_name</span><span class="p">,</span> <span class="n">DESC</span><span class="o">=</span><span class="n">firmware_name</span><span class="p">,</span> <span class="n">initial_value</span><span class="o">=</span><span class="n">version</span>
+            <span class="p">)</span>
+            <span class="n">add_automatic_pvi_info</span><span class="p">(</span>
+                <span class="n">PviGroup</span><span class="o">.</span><span class="n">VERSIONS</span><span class="p">,</span>
+                <span class="n">firmware_ver_record</span><span class="p">,</span>
+                <span class="n">firmware_record_name</span><span class="p">,</span>
+                <span class="n">builder</span><span class="o">.</span><span class="n">stringIn</span><span class="p">,</span>
+            <span class="p">)</span>
+
     <span class="k">def</span> <span class="nf">initialise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dispatcher</span><span class="p">:</span> <span class="n">asyncio_dispatcher</span><span class="o">.</span><span class="n">AsyncioDispatcher</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform any final initialisation code to create the records. No new</span>
 <span class="sd">        records may be created after this method is called.</span>
@@ -2292,6 +2373,10 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Query the PandA and create the relevant records based on the information</span>
 <span class="sd">    returned&quot;&quot;&quot;</span>
 
+    <span class="c1"># Get version information from PandA using IDN command</span>
+    <span class="n">idn_response</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">Get</span><span class="p">(</span><span class="s2">&quot;*IDN&quot;</span><span class="p">))</span>
+    <span class="n">fw_vers_dict</span> <span class="o">=</span> <span class="n">get_panda_versions</span><span class="p">(</span><span class="n">idn_response</span><span class="p">)</span>
+
     <span class="p">(</span><span class="n">panda_dict</span><span class="p">,</span> <span class="n">all_values_dict</span><span class="p">)</span> <span class="o">=</span> <span class="k">await</span> <span class="n">introspect_panda</span><span class="p">(</span><span class="n">client</span><span class="p">)</span>
 
     <span class="c1"># Dictionary containing every record of every type</span>
@@ -2299,8 +2384,10 @@
 
     <span class="n">record_factory</span> <span class="o">=</span> <span class="n">IocRecordFactory</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">record_prefix</span><span class="p">,</span> <span class="n">all_values_dict</span><span class="p">)</span>
 
-    <span class="c1"># For each field in each block, create block_num records of each field</span>
+    <span class="c1"># Add records for version of IOC, FPGA, and software to SYSTEM block</span>
+    <span class="n">record_factory</span><span class="o">.</span><span class="n">create_version_records</span><span class="p">(</span><span class="n">fw_vers_dict</span><span class="p">)</span>
 
+    <span class="c1"># For each field in each block, create block_num records of each field</span>
     <span class="k">for</span> <span class="n">block</span><span class="p">,</span> <span class="n">panda_info</span> <span class="ow">in</span> <span class="n">panda_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="n">block_info</span> <span class="o">=</span> <span class="n">panda_info</span><span class="o">.</span><span class="n">block_info</span>
         <span class="n">values</span> <span class="o">=</span> <span class="n">panda_info</span><span class="o">.</span><span class="n">values</span>
