@@ -258,15 +258,32 @@ async def introspect_panda(
 
     values, all_values_dict = _create_dicts_from_changes(changes, block_dict)
 
-    panda_dict = {}
-    for (block_name, block_info), field_info in zip(
-        block_dict.items(), field_infos, strict=False
-    ):
-        panda_dict[block_name] = _BlockAndFieldInfo(
-            block_info=block_info, fields=field_info, values=values[block_name]
+    panda_dict = {
+        block_name: _BlockAndFieldInfo(block_info, field_info, values[block_name])
+        for (block_name, block_info), field_info in zip(
+            block_dict.items(), field_infos, strict=False
         )
+    }
 
     return (panda_dict, all_values_dict)
+
+
+def extract_label_from_metadata(block_name_number, field_name: str):
+    # Parse *METADATA.LABEL_<block><num> into "<block>" key and
+    # "<block><num>:LABEL" value
+    if block_name_number.startswith("*METADATA") and field_name.startswith("LABEL_"):
+        _, block_name_number = field_name.split("_", maxsplit=1)
+
+        # The block is fixed with metadata, it should end with a number
+        #     "*METADATA.LABEL_SEQ2": "NewSeqMetadataLabel",
+        if not block_name_number[-1].isdigit():
+            raise ValueError(
+                f"Recieved metadata for a block name {block_name_number} that "
+                "didn't contain a number"
+            )
+
+        return block_name_number
+    return None
 
 
 def _create_dicts_from_changes(
@@ -298,22 +315,12 @@ def _create_dicts_from_changes(
 
         block_name_number, field_name = block_and_field_name.split(".", maxsplit=1)
 
-        # Parse *METADATA.LABEL_<block><num> into "<block>" key and
-        # "<block><num>:LABEL" value
-        if block_name_number.startswith("*METADATA") and field_name.startswith(
-            "LABEL_"
+        if label_block_name_number := extract_label_from_metadata(
+            block_name_number, field_name
         ):
-            _, block_name_number = field_name.split("_", maxsplit=1)
+            block_name_number = label_block_name_number
+            block_name_no_number = re.sub(r"\d*$", "", label_block_name_number)
 
-            # The block is fixed with metadata, it should end with a number
-            #     "*METADATA.LABEL_SEQ2": "NewSeqMetadataLabel",
-            if not block_name_number[-1].isdigit():
-                raise ValueError(
-                    f"Recieved metadata for a block name {block_name_number} that "
-                    "didn't contain a number"
-                )
-
-            block_name_no_number = re.sub(r"\d*$", "", block_name_number)
             number_of_blocks = block_info_dict[block_name_no_number].number
 
             if number_of_blocks == 1:
@@ -2094,6 +2101,18 @@ async def update(
             for field, value in changes.values.items():
                 field = PandAName(field)
                 field = panda_to_epics_name(field)
+
+                if block_label := extract_label_from_metadata(
+                    *field.split(":", maxsplit=1)
+                ):
+                    block_label_no_number = re.sub(r"\d*$", "", block_label)
+                    block_label = f"{block_label}:LABEL"
+                    block_label_no_number = f"{block_label_no_number}:LABEL"
+
+                    if block_label_no_number in all_records:
+                        field = block_label_no_number
+                    elif block_label in all_records:
+                        field = block_label
 
                 if field not in all_records:
                     logging.error(
