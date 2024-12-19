@@ -871,6 +871,7 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
                 values={
                     "PCAP.TRIG_EDGE": "Either",
                     "PULSE.DELAY.UNITS": "s",
+                    "*METADATA.LABEL_PULSE1": "ANewLabel",
                 },
                 multiline_values={"SEQ.TABLE": table_data_2},
             ),
