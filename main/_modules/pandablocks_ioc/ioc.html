@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pandablocks_ioc.ioc &#8212; PandABlocks-ioc 0.11.5.dev11+g4d6eea0 documentation</title>
+    <title>pandablocks_ioc.ioc &#8212; PandABlocks-ioc 0.11.6.dev3+gc1e8056 documentation</title>
   
   
   
@@ -15,8 +15,8 @@
     document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
     document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
   </script>
-  <!-- 
-    this give us a css class that will be invisible only if js is disabled 
+  <!--
+    this give us a css class that will be invisible only if js is disabled
   -->
   <noscript>
     <style>
@@ -26,21 +26,21 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../../_static/styles/theme.css?digest=26a4bc78f4c0ddb94549" rel="stylesheet" />
-<link href="../../_static/styles/pydata-sphinx-theme.css?digest=26a4bc78f4c0ddb94549" rel="stylesheet" />
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
 
-    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
   
   <!-- So that users can add custom icons -->
-  <script src="../../_static/scripts/fontawesome.js?digest=26a4bc78f4c0ddb94549"></script>
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=26a4bc78f4c0ddb94549" />
-<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=26a4bc78f4c0ddb94549" />
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
 
-    <script src="../../_static/documentation_options.js?v=0b2c9a62"></script>
+    <script src="../../_static/documentation_options.js?v=9d3e7cc1"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -48,10 +48,11 @@
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pandablocks_ioc/ioc';</script>
     <script>
-        DOCUMENTATION_OPTIONS.theme_version = '0.16.0';
+        DOCUMENTATION_OPTIONS.theme_version = '0.16.1';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://PandABlocks.github.io/PandABlocks-ioc/switcher.json';
         DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'main';
-        DOCUMENTATION_OPTIONS.show_version_warning_banner = false;
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
         </script>
     <link rel="icon" href="../../_static/dls-logo.svg"/>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -387,9 +388,14 @@
   
   
   <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
   </div>
-  
-  <div id="rtd-footer-container"></div>
 
 
       </div>
@@ -437,18 +443,18 @@
                   
   <h1>Source code for pandablocks_ioc.ioc</h1><div class="highlight"><pre>
 <span></span><span class="c1"># Creating EPICS records directly from PandA Blocks and Fields</span>
-<span class="kn">import</span> <span class="nn">asyncio</span>
-<span class="kn">import</span> <span class="nn">inspect</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Callable</span>
-<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
-<span class="kn">from</span> <span class="nn">string</span> <span class="kn">import</span> <span class="n">digits</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">string</span><span class="w"> </span><span class="kn">import</span> <span class="n">digits</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">pandablocks.asyncio</span> <span class="kn">import</span> <span class="n">AsyncioClient</span>
-<span class="kn">from</span> <span class="nn">pandablocks.commands</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pandablocks.asyncio</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncioClient</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pandablocks.commands</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Arm</span><span class="p">,</span>
     <span class="n">ChangeGroup</span><span class="p">,</span>
     <span class="n">Disarm</span><span class="p">,</span>
@@ -458,7 +464,7 @@
     <span class="n">GetFieldInfo</span><span class="p">,</span>
     <span class="n">Put</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">pandablocks.responses</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pandablocks.responses</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">BitMuxFieldInfo</span><span class="p">,</span>
     <span class="n">BitOutFieldInfo</span><span class="p">,</span>
     <span class="n">BlockInfo</span><span class="p">,</span>
@@ -475,21 +481,21 @@
     <span class="n">TimeFieldInfo</span><span class="p">,</span>
     <span class="n">UintFieldInfo</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">softioc</span> <span class="kn">import</span> <span class="n">alarm</span><span class="p">,</span> <span class="n">asyncio_dispatcher</span><span class="p">,</span> <span class="n">builder</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">softioc</span>
-<span class="kn">from</span> <span class="nn">softioc.imports</span> <span class="kn">import</span> <span class="n">db_put_field</span>
-<span class="kn">from</span> <span class="nn">softioc.pythonSoftIoc</span> <span class="kn">import</span> <span class="n">RecordWrapper</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">softioc</span><span class="w"> </span><span class="kn">import</span> <span class="n">alarm</span><span class="p">,</span> <span class="n">asyncio_dispatcher</span><span class="p">,</span> <span class="n">builder</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">softioc</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">softioc.imports</span><span class="w"> </span><span class="kn">import</span> <span class="n">db_put_field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">softioc.pythonSoftIoc</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecordWrapper</span>
 
-<span class="kn">from</span> <span class="nn">._connection_status</span> <span class="kn">import</span> <span class="n">ConnectionStatus</span><span class="p">,</span> <span class="n">Statuses</span>
-<span class="kn">from</span> <span class="nn">._hdf_ioc</span> <span class="kn">import</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">HDF5RecordController</span>
-<span class="kn">from</span> <span class="nn">._pvi</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._connection_status</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConnectionStatus</span><span class="p">,</span> <span class="n">Statuses</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._hdf_ioc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">HDF5RecordController</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._pvi</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Pvi</span><span class="p">,</span>
     <span class="n">PviGroup</span><span class="p">,</span>
     <span class="n">add_automatic_pvi_info</span><span class="p">,</span>
     <span class="n">add_pcap_arm_pvi_info</span><span class="p">,</span>
     <span class="n">add_positions_table_row</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">._tables</span> <span class="kn">import</span> <span class="n">TableRecordWrapper</span><span class="p">,</span> <span class="n">TableUpdater</span>
-<span class="kn">from</span> <span class="nn">._types</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._tables</span><span class="w"> </span><span class="kn">import</span> <span class="n">TableRecordWrapper</span><span class="p">,</span> <span class="n">TableUpdater</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">ONAM_STR</span><span class="p">,</span>
     <span class="n">OUT_RECORD_FUNCTIONS</span><span class="p">,</span>
     <span class="n">ZNAM_STR</span><span class="p">,</span>
@@ -505,14 +511,14 @@
     <span class="n">trim_description</span><span class="p">,</span>
     <span class="n">trim_string_value</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">._version</span> <span class="kn">import</span> <span class="n">__version__</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._version</span><span class="w"> </span><span class="kn">import</span> <span class="n">__version__</span>
 
 <span class="c1"># TODO: Try turning python.analysis.typeCheckingMode on, as it does highlight a couple</span>
 <span class="c1"># of possible errors</span>
 
 
 <span class="nd">@dataclass</span>
-<span class="k">class</span> <span class="nc">_BlockAndFieldInfo</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_BlockAndFieldInfo</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Contains all available information for a Block, including Fields and all the</span>
 <span class="sd">    Values for `block_info.number` instances of the Fields.&quot;&quot;&quot;</span>
 
@@ -526,12 +532,12 @@
 <span class="n">create_softioc_task</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
 
-<span class="k">def</span> <span class="nf">_when_finished</span><span class="p">(</span><span class="n">task</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_when_finished</span><span class="p">(</span><span class="n">task</span><span class="p">):</span>
     <span class="k">global</span> <span class="n">create_softioc_task</span>
     <span class="n">create_softioc_task</span> <span class="o">=</span> <span class="kc">None</span>
 
 
-<span class="k">async</span> <span class="k">def</span> <span class="nf">_create_softioc</span><span class="p">(</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_create_softioc</span><span class="p">(</span>
     <span class="n">client</span><span class="p">:</span> <span class="n">AsyncioClient</span><span class="p">,</span>
     <span class="n">record_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">connection_status</span><span class="p">:</span> <span class="n">ConnectionStatus</span><span class="p">,</span>
@@ -567,7 +573,7 @@
 
 <div class="viewcode-block" id="create_softioc">
 <a class="viewcode-back" href="../../_api/pandablocks_ioc.html#pandablocks_ioc.create_softioc">[docs]</a>
-<span class="k">def</span> <span class="nf">create_softioc</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_softioc</span><span class="p">(</span>
     <span class="n">client</span><span class="p">:</span> <span class="n">AsyncioClient</span><span class="p">,</span>
     <span class="n">record_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">screens_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -618,7 +624,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">get_panda_versions</span><span class="p">(</span><span class="n">idn_repsonse</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="n">EpicsName</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_panda_versions</span><span class="p">(</span><span class="n">idn_repsonse</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="n">EpicsName</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Function that parses version info from the PandA&#39;s response to the IDN command</span>
 
 <span class="sd">    See: https://pandablocks-server.readthedocs.io/en/latest/commands.html#system-commands</span>
@@ -663,7 +669,7 @@
     <span class="p">}</span>
 
 
-<span class="k">async</span> <span class="k">def</span> <span class="nf">introspect_panda</span><span class="p">(</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">introspect_panda</span><span class="p">(</span>
     <span class="n">client</span><span class="p">:</span> <span class="n">AsyncioClient</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">_BlockAndFieldInfo</span><span class="p">],</span> <span class="nb">dict</span><span class="p">[</span><span class="n">EpicsName</span><span class="p">,</span> <span class="n">RecordValue</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Query the PandA for all its Blocks, Fields of each Block, and Values of each</span>
@@ -699,18 +705,35 @@
 
     <span class="n">values</span><span class="p">,</span> <span class="n">all_values_dict</span> <span class="o">=</span> <span class="n">_create_dicts_from_changes</span><span class="p">(</span><span class="n">changes</span><span class="p">,</span> <span class="n">block_dict</span><span class="p">)</span>
 
-    <span class="n">panda_dict</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">for</span> <span class="p">(</span><span class="n">block_name</span><span class="p">,</span> <span class="n">block_info</span><span class="p">),</span> <span class="n">field_info</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
-        <span class="n">block_dict</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">field_infos</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span>
-    <span class="p">):</span>
-        <span class="n">panda_dict</span><span class="p">[</span><span class="n">block_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_BlockAndFieldInfo</span><span class="p">(</span>
-            <span class="n">block_info</span><span class="o">=</span><span class="n">block_info</span><span class="p">,</span> <span class="n">fields</span><span class="o">=</span><span class="n">field_info</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="n">block_name</span><span class="p">]</span>
+    <span class="n">panda_dict</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">block_name</span><span class="p">:</span> <span class="n">_BlockAndFieldInfo</span><span class="p">(</span><span class="n">block_info</span><span class="p">,</span> <span class="n">field_info</span><span class="p">,</span> <span class="n">values</span><span class="p">[</span><span class="n">block_name</span><span class="p">])</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">block_name</span><span class="p">,</span> <span class="n">block_info</span><span class="p">),</span> <span class="n">field_info</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">block_dict</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">field_infos</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span>
         <span class="p">)</span>
+    <span class="p">}</span>
 
     <span class="k">return</span> <span class="p">(</span><span class="n">panda_dict</span><span class="p">,</span> <span class="n">all_values_dict</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_create_dicts_from_changes</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">extract_label_from_metadata</span><span class="p">(</span><span class="n">block_name_number</span><span class="p">,</span> <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="c1"># Parse *METADATA.LABEL_&lt;block&gt;&lt;num&gt; into &quot;&lt;block&gt;&quot; key and</span>
+    <span class="c1"># &quot;&lt;block&gt;&lt;num&gt;:LABEL&quot; value</span>
+    <span class="k">if</span> <span class="n">block_name_number</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;*METADATA&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">field_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;LABEL_&quot;</span><span class="p">):</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">block_name_number</span> <span class="o">=</span> <span class="n">field_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="n">maxsplit</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># The block is fixed with metadata, it should end with a number</span>
+        <span class="c1">#     &quot;*METADATA.LABEL_SEQ2&quot;: &quot;NewSeqMetadataLabel&quot;,</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">block_name_number</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">isdigit</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Recieved metadata for a block name </span><span class="si">{</span><span class="n">block_name_number</span><span class="si">}</span><span class="s2"> that &quot;</span>
+                <span class="s2">&quot;didn&#39;t contain a number&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">block_name_number</span>
+    <span class="k">return</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_create_dicts_from_changes</span><span class="p">(</span>
     <span class="n">changes</span><span class="p">:</span> <span class="n">Changes</span><span class="p">,</span> <span class="n">block_info_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">BlockInfo</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="n">EpicsName</span><span class="p">,</span> <span class="n">RecordValue</span><span class="p">]],</span> <span class="nb">dict</span><span class="p">[</span><span class="n">EpicsName</span><span class="p">,</span> <span class="n">RecordValue</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Take the `Changes` object and convert it into two dictionaries.</span>
@@ -729,7 +752,7 @@
 <span class="sd">            a list of all Fields (across all Blocks) and their associated value.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">_store_values</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_store_values</span><span class="p">(</span>
         <span class="n">block_and_field_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">value</span><span class="p">:</span> <span class="n">RecordValue</span><span class="p">,</span>
         <span class="n">values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="n">EpicsName</span><span class="p">,</span> <span class="n">RecordValue</span><span class="p">]],</span>
@@ -739,22 +762,12 @@
 
         <span class="n">block_name_number</span><span class="p">,</span> <span class="n">field_name</span> <span class="o">=</span> <span class="n">block_and_field_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="n">maxsplit</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-        <span class="c1"># Parse *METADATA.LABEL_&lt;block&gt;&lt;num&gt; into &quot;&lt;block&gt;&quot; key and</span>
-        <span class="c1"># &quot;&lt;block&gt;&lt;num&gt;:LABEL&quot; value</span>
-        <span class="k">if</span> <span class="n">block_name_number</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;*METADATA&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">field_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span>
-            <span class="s2">&quot;LABEL_&quot;</span>
+        <span class="k">if</span> <span class="n">label_block_name_number</span> <span class="o">:=</span> <span class="n">extract_label_from_metadata</span><span class="p">(</span>
+            <span class="n">block_name_number</span><span class="p">,</span> <span class="n">field_name</span>
         <span class="p">):</span>
-            <span class="n">_</span><span class="p">,</span> <span class="n">block_name_number</span> <span class="o">=</span> <span class="n">field_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="n">maxsplit</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">block_name_number</span> <span class="o">=</span> <span class="n">label_block_name_number</span>
+            <span class="n">block_name_no_number</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\d*$&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">label_block_name_number</span><span class="p">)</span>
 
-            <span class="c1"># The block is fixed with metadata, it should end with a number</span>
-            <span class="c1">#     &quot;*METADATA.LABEL_SEQ2&quot;: &quot;NewSeqMetadataLabel&quot;,</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">block_name_number</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">isdigit</span><span class="p">():</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Recieved metadata for a block name </span><span class="si">{</span><span class="n">block_name_number</span><span class="si">}</span><span class="s2"> that &quot;</span>
-                    <span class="s2">&quot;didn&#39;t contain a number&quot;</span>
-                <span class="p">)</span>
-
-            <span class="n">block_name_no_number</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\d*$&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">block_name_number</span><span class="p">)</span>
             <span class="n">number_of_blocks</span> <span class="o">=</span> <span class="n">block_info_dict</span><span class="p">[</span><span class="n">block_name_no_number</span><span class="p">]</span><span class="o">.</span><span class="n">number</span>
 
             <span class="k">if</span> <span class="n">number_of_blocks</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
@@ -806,7 +819,7 @@
 
 
 <span class="nd">@dataclass</span>
-<span class="k">class</span> <span class="nc">_RecordUpdater</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_RecordUpdater</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Handles Put&#39;ing data back to the PandA when an EPICS record is updated.</span>
 
 <span class="sd">    This should only be used to handle Out record types.</span>
@@ -828,7 +841,7 @@
     <span class="n">labels</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
 
     <span class="c1"># The incoming value&#39;s type depends on the record. Ensure you always cast it.</span>
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_val</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_val</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;Updating record </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">record_info</span><span class="o">.</span><span class="n">record</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> with value </span><span class="si">{</span><span class="n">new_val</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="p">)</span>
@@ -899,34 +912,34 @@
 
 
 <span class="nd">@dataclass</span>
-<span class="k">class</span> <span class="nc">_WriteRecordUpdater</span><span class="p">(</span><span class="n">_RecordUpdater</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_WriteRecordUpdater</span><span class="p">(</span><span class="n">_RecordUpdater</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Special case record updater to send an empty value.</span>
 
 <span class="sd">    This is necessary as some PandA fields are written using e.g. \&quot;FOO1.BAR=\&quot;</span>
 <span class="sd">    with no explicit value at all.&quot;&quot;&quot;</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_val</span><span class="p">):</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_val</span><span class="p">):</span>
         <span class="k">await</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
 
 
 <span class="nd">@dataclass</span>
-<span class="k">class</span> <span class="nc">_TimeRecordUpdater</span><span class="p">(</span><span class="n">_RecordUpdater</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_TimeRecordUpdater</span><span class="p">(</span><span class="n">_RecordUpdater</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Set the EGU values on a record when the UNITS sub-record is updated.&quot;&quot;&quot;</span>
 
     <span class="n">base_record</span><span class="p">:</span> <span class="n">RecordWrapper</span>
     <span class="n">is_type_time</span><span class="p">:</span> <span class="nb">bool</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_val</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_val</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
         <span class="c1"># Must allow UNITS value change to be pushed to the PandA</span>
         <span class="c1"># as this triggers the MIN field to be recalculated</span>
         <span class="k">await</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">new_val</span><span class="p">)</span>
 
         <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_parent_record</span><span class="p">(</span><span class="n">new_val</span><span class="p">)</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">update_parent_record</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_val</span><span class="p">):</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">update_parent_record</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_val</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">update_egu</span><span class="p">(</span><span class="n">new_val</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">update_egu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_val</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_egu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_val</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span>
 
         <span class="c1"># This method gets called in two contexts: One is directly from an EPICS</span>
@@ -948,21 +961,21 @@
 
 
 <span class="nd">@dataclass</span>
-<span class="k">class</span> <span class="nc">StringRecordLabelValidator</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">StringRecordLabelValidator</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate that a given string is a valid label for a PandA enum field.</span>
 <span class="sd">    This is necessary for several fields which have too many labels to fit in</span>
 <span class="sd">    an EPICS mbbi/mbbo record, and so use string records instead.&quot;&quot;&quot;</span>
 
     <span class="n">labels</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">:</span> <span class="n">RecordWrapper</span><span class="p">,</span> <span class="n">new_val</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">:</span> <span class="n">RecordWrapper</span><span class="p">,</span> <span class="n">new_val</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">new_val</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">True</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Value </span><span class="si">{</span><span class="n">new_val</span><span class="si">}</span><span class="s2"> not valid for record </span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="kc">False</span>
 
 
-<span class="k">class</span> <span class="nc">IocRecordFactory</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">IocRecordFactory</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Class to handle creating PythonSoftIOC records for a given field defined in</span>
 <span class="sd">    a PandA&quot;&quot;&quot;</span>
 
@@ -977,7 +990,7 @@
         <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">method</span> <span class="ow">in</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getmembers</span><span class="p">(</span><span class="n">builder</span><span class="p">,</span> <span class="n">predicate</span><span class="o">=</span><span class="n">inspect</span><span class="o">.</span><span class="n">isfunction</span><span class="p">)</span>
     <span class="p">]</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">client</span><span class="p">:</span> <span class="n">AsyncioClient</span><span class="p">,</span>
         <span class="n">record_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -1006,7 +1019,7 @@
         <span class="c1"># capture records</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_dataset_cache</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">EpicsName</span><span class="p">,</span> <span class="n">Dataset</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
-    <span class="k">def</span> <span class="nf">_process_labels</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_process_labels</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">labels</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">record_value</span><span class="p">:</span> <span class="n">ScalarRecordValue</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">int</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Find the index of `record_value` in the `labels` list, suitable for</span>
@@ -1032,7 +1045,7 @@
 
         <span class="k">return</span> <span class="p">([</span><span class="n">label</span><span class="p">[:</span><span class="mi">25</span><span class="p">]</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">],</span> <span class="n">index</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_check_num_values</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check_num_values</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">EpicsName</span><span class="p">,</span> <span class="n">ScalarRecordValue</span><span class="p">],</span> <span class="n">num</span><span class="p">:</span> <span class="nb">int</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Function to check that the number of values is at least the expected amount.</span>
@@ -1044,7 +1057,7 @@
             <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">values</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_create_record_info</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_record_info</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">description</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -1157,7 +1170,7 @@
 
         <span class="k">return</span> <span class="n">record_info</span>
 
-    <span class="k">def</span> <span class="nf">_make_time</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_time</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1215,7 +1228,7 @@
 
         <span class="k">return</span> <span class="n">record_dict</span>
 
-    <span class="k">def</span> <span class="nf">_make_type_time</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_type_time</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1237,7 +1250,7 @@
 
         <span class="k">return</span> <span class="n">record_dict</span>
 
-    <span class="k">def</span> <span class="nf">_make_subtype_time_param</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_subtype_time_param</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1252,7 +1265,7 @@
             <span class="n">initial_value</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="n">record_name</span><span class="p">],</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_make_subtype_time_read</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_subtype_time_read</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1267,7 +1280,7 @@
             <span class="n">initial_value</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="n">record_name</span><span class="p">],</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_make_subtype_time_write</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_subtype_time_write</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1276,7 +1289,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_check_num_values</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_time</span><span class="p">(</span><span class="n">record_name</span><span class="p">,</span> <span class="n">field_info</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">builder</span><span class="o">.</span><span class="n">aOut</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_make_bit_out</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_bit_out</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1301,7 +1314,7 @@
 
         <span class="k">return</span> <span class="n">record_dict</span>
 
-    <span class="k">def</span> <span class="nf">_make_pos_out</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_pos_out</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1330,7 +1343,7 @@
 
         <span class="n">capture_record_updater</span><span class="p">:</span> <span class="n">_RecordUpdater</span>
 
-        <span class="k">def</span> <span class="nf">capture_record_on_update</span><span class="p">(</span><span class="n">new_capture_mode</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">capture_record_on_update</span><span class="p">(</span><span class="n">new_capture_mode</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_dataset_cache</span><span class="p">[</span><span class="n">record_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span>
                 <span class="n">record_dict</span><span class="p">[</span><span class="n">dataset_record_name</span><span class="p">]</span><span class="o">.</span><span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(),</span>
                 <span class="n">labels</span><span class="p">[</span><span class="n">new_capture_mode</span><span class="p">],</span>
@@ -1359,7 +1372,7 @@
             <span class="n">labels</span> <span class="k">if</span> <span class="n">labels</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="k">def</span> <span class="nf">dataset_record_on_update</span><span class="p">(</span><span class="n">new_dataset_name</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">dataset_record_on_update</span><span class="p">(</span><span class="n">new_dataset_name</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_dataset_cache</span><span class="p">[</span><span class="n">record_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span>
                 <span class="n">new_dataset_name</span><span class="p">,</span>
                 <span class="n">labels</span><span class="p">[</span><span class="n">record_dict</span><span class="p">[</span><span class="n">capture_record_name</span><span class="p">]</span><span class="o">.</span><span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">()],</span>
@@ -1478,7 +1491,7 @@
 
         <span class="k">return</span> <span class="n">record_dict</span>
 
-    <span class="k">def</span> <span class="nf">_make_ext_out</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_ext_out</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1498,7 +1511,7 @@
             <span class="n">field_info</span><span class="o">.</span><span class="n">capture_labels</span><span class="p">,</span> <span class="n">values</span><span class="p">[</span><span class="n">capture_record_name</span><span class="p">]</span>
         <span class="p">)</span>
 
-        <span class="k">def</span> <span class="nf">dataset_record_on_update</span><span class="p">(</span><span class="n">new_dataset_name</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">dataset_record_on_update</span><span class="p">(</span><span class="n">new_dataset_name</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_dataset_cache</span><span class="p">[</span><span class="n">record_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span>
                 <span class="n">new_dataset_name</span><span class="p">,</span>
                 <span class="n">labels</span><span class="p">[</span><span class="n">record_dict</span><span class="p">[</span><span class="n">capture_record_name</span><span class="p">]</span><span class="o">.</span><span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">()],</span>
@@ -1516,7 +1529,7 @@
 
         <span class="n">capture_record_updater</span><span class="p">:</span> <span class="n">_RecordUpdater</span>
 
-        <span class="k">def</span> <span class="nf">capture_record_on_update</span><span class="p">(</span><span class="n">new_capture_mode</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">capture_record_on_update</span><span class="p">(</span><span class="n">new_capture_mode</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_dataset_cache</span><span class="p">[</span><span class="n">record_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span>
                 <span class="n">record_dict</span><span class="p">[</span><span class="n">dataset_record_name</span><span class="p">]</span><span class="o">.</span><span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(),</span>
                 <span class="n">labels</span><span class="p">[</span><span class="n">new_capture_mode</span><span class="p">],</span>
@@ -1546,7 +1559,7 @@
 
         <span class="k">return</span> <span class="n">record_dict</span>
 
-    <span class="k">def</span> <span class="nf">_make_ext_out_bits</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_ext_out_bits</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1603,7 +1616,7 @@
 
         <span class="k">return</span> <span class="n">record_dict</span>
 
-    <span class="k">def</span> <span class="nf">_make_bit_mux</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_bit_mux</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1645,7 +1658,7 @@
 
         <span class="k">return</span> <span class="n">record_dict</span>
 
-    <span class="k">def</span> <span class="nf">_make_pos_mux</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_pos_mux</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1676,7 +1689,7 @@
 
         <span class="k">return</span> <span class="n">record_dict</span>
 
-    <span class="k">def</span> <span class="nf">_make_table</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_table</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1699,7 +1712,7 @@
 
         <span class="k">return</span> <span class="p">{</span><span class="n">mode_record_name</span><span class="p">:</span> <span class="n">table_updater</span><span class="o">.</span><span class="n">mode_record_info</span><span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">_make_uint</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_uint</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1728,7 +1741,7 @@
 
         <span class="k">return</span> <span class="n">record_dict</span>
 
-    <span class="k">def</span> <span class="nf">_make_uint_param</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_uint_param</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1744,7 +1757,7 @@
             <span class="n">PREC</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_make_uint_read</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_uint_read</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1760,7 +1773,7 @@
             <span class="n">PREC</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_make_uint_write</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_uint_write</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1777,7 +1790,7 @@
         <span class="p">)</span>
 
     <span class="c1"># TODO: Why don&#39;t I have a _make_int()? I do for other similar types</span>
-    <span class="k">def</span> <span class="nf">_make_int_param</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_int_param</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1796,7 +1809,7 @@
             <span class="p">)</span>
         <span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">_make_int_read</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_int_read</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1815,7 +1828,7 @@
             <span class="p">)</span>
         <span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">_make_int_write</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_int_write</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1833,7 +1846,7 @@
             <span class="p">)</span>
         <span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">_make_scalar</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_scalar</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1856,7 +1869,7 @@
 
         <span class="k">return</span> <span class="n">record_dict</span>
 
-    <span class="k">def</span> <span class="nf">_make_scalar_param</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_scalar_param</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1870,7 +1883,7 @@
             <span class="n">initial_value</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="n">record_name</span><span class="p">],</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_make_scalar_read</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_scalar_read</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1884,7 +1897,7 @@
             <span class="n">initial_value</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="n">record_name</span><span class="p">],</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_make_scalar_write</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_scalar_write</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1895,7 +1908,7 @@
             <span class="n">record_name</span><span class="p">,</span> <span class="n">field_info</span><span class="p">,</span> <span class="n">builder</span><span class="o">.</span><span class="n">aOut</span><span class="p">,</span> <span class="n">always_update</span><span class="o">=</span><span class="kc">True</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_make_bit</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_bit</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1916,7 +1929,7 @@
             <span class="p">)</span>
         <span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">_make_bit_param</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_bit_param</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1931,7 +1944,7 @@
             <span class="n">initial_value</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="n">record_name</span><span class="p">],</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_make_bit_read</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_bit_read</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1946,7 +1959,7 @@
             <span class="n">initial_value</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="n">record_name</span><span class="p">],</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_make_bit_write</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_bit_write</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1961,7 +1974,7 @@
             <span class="n">always_update</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_make_action_read</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_action_read</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -1972,7 +1985,7 @@
         <span class="p">)</span>
         <span class="k">return</span> <span class="p">{}</span>
 
-    <span class="k">def</span> <span class="nf">_make_action_write</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_action_write</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -2001,7 +2014,7 @@
 
         <span class="k">return</span> <span class="p">{</span><span class="n">record_name</span><span class="p">:</span> <span class="n">record_info</span><span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">_make_lut</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_lut</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -2021,7 +2034,7 @@
             <span class="p">),</span>
         <span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">_make_lut_param</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_lut_param</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -2036,7 +2049,7 @@
             <span class="n">initial_value</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="n">record_name</span><span class="p">],</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_make_lut_read</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_lut_read</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -2051,7 +2064,7 @@
             <span class="n">initial_value</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="n">record_name</span><span class="p">],</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_make_lut_write</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_lut_write</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -2066,7 +2079,7 @@
             <span class="n">always_update</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_make_enum</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_enum</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -2095,7 +2108,7 @@
             <span class="p">)</span>
         <span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">_make_enum_param</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_enum_param</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -2105,7 +2118,7 @@
             <span class="n">record_name</span><span class="p">,</span> <span class="n">field_info</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">builder</span><span class="o">.</span><span class="n">mbbOut</span><span class="p">,</span> <span class="n">PviGroup</span><span class="o">.</span><span class="n">PARAMETERS</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_make_enum_read</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_enum_read</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -2126,7 +2139,7 @@
             <span class="p">)</span>
         <span class="p">}</span>
 
-    <span class="k">def</span> <span class="nf">_make_enum_write</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_enum_write</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -2145,7 +2158,7 @@
             <span class="n">always_update</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">create_record</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_record</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
         <span class="n">field_info</span><span class="p">:</span> <span class="n">FieldInfo</span><span class="p">,</span>
@@ -2247,7 +2260,7 @@
         <span class="p">(</span><span class="s2">&quot;write&quot;</span><span class="p">,</span> <span class="s2">&quot;time&quot;</span><span class="p">):</span> <span class="n">_make_subtype_time_write</span><span class="p">,</span>
     <span class="p">}</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_arm_on_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_val</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_arm_on_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_val</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Process an update to the Arm record, to arm/disarm the PandA&quot;&quot;&quot;</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Entering HDF5:Arm record on_update method, value </span><span class="si">{</span><span class="n">new_val</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
@@ -2261,7 +2274,7 @@
         <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s2">&quot;Failure arming/disarming PandA&quot;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">create_block_records</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_block_records</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">block</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">block_info</span><span class="p">:</span> <span class="n">BlockInfo</span><span class="p">,</span>
@@ -2312,7 +2325,7 @@
 
         <span class="k">return</span> <span class="n">record_dict</span>
 
-    <span class="k">def</span> <span class="nf">create_version_records</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">firmware_versions</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">EpicsName</span><span class="p">,</span> <span class="nb">str</span><span class="p">]):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_version_records</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">firmware_versions</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">EpicsName</span><span class="p">,</span> <span class="nb">str</span><span class="p">]):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates handful of records for tracking versions of IOC/Firmware via EPICS</span>
 
 <span class="sd">        Args:</span>
@@ -2346,7 +2359,7 @@
                 <span class="n">builder</span><span class="o">.</span><span class="n">stringIn</span><span class="p">,</span>
             <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">initialise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dispatcher</span><span class="p">:</span> <span class="n">asyncio_dispatcher</span><span class="o">.</span><span class="n">AsyncioDispatcher</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">initialise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dispatcher</span><span class="p">:</span> <span class="n">asyncio_dispatcher</span><span class="o">.</span><span class="n">AsyncioDispatcher</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform any final initialisation code to create the records. No new</span>
 <span class="sd">        records may be created after this method is called.</span>
 
@@ -2358,7 +2371,7 @@
         <span class="n">softioc</span><span class="o">.</span><span class="n">iocInit</span><span class="p">(</span><span class="n">dispatcher</span><span class="p">)</span>
 
 
-<span class="k">async</span> <span class="k">def</span> <span class="nf">create_records</span><span class="p">(</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">create_records</span><span class="p">(</span>
     <span class="n">client</span><span class="p">:</span> <span class="n">AsyncioClient</span><span class="p">,</span>
     <span class="n">dispatcher</span><span class="p">:</span> <span class="n">asyncio_dispatcher</span><span class="o">.</span><span class="n">AsyncioDispatcher</span><span class="p">,</span>
     <span class="n">record_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -2454,7 +2467,7 @@
     <span class="k">return</span> <span class="p">(</span><span class="n">all_records</span><span class="p">,</span> <span class="n">all_values_dict</span><span class="p">,</span> <span class="n">block_info_dict</span><span class="p">)</span>
 
 
-<span class="k">async</span> <span class="k">def</span> <span class="nf">update</span><span class="p">(</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span>
     <span class="n">client</span><span class="p">:</span> <span class="n">AsyncioClient</span><span class="p">,</span>
     <span class="n">connection_status</span><span class="p">:</span> <span class="n">ConnectionStatus</span><span class="p">,</span>
     <span class="n">all_records</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">EpicsName</span><span class="p">,</span> <span class="n">RecordInfo</span><span class="p">],</span>
@@ -2536,6 +2549,18 @@
                 <span class="n">field</span> <span class="o">=</span> <span class="n">PandAName</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
                 <span class="n">field</span> <span class="o">=</span> <span class="n">panda_to_epics_name</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
 
+                <span class="k">if</span> <span class="n">block_label</span> <span class="o">:=</span> <span class="n">extract_label_from_metadata</span><span class="p">(</span>
+                    <span class="o">*</span><span class="n">field</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="n">maxsplit</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="p">):</span>
+                    <span class="n">block_label_no_number</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\d*$&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">block_label</span><span class="p">)</span>
+                    <span class="n">block_label</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">block_label</span><span class="si">}</span><span class="s2">:LABEL&quot;</span>
+                    <span class="n">block_label_no_number</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">block_label_no_number</span><span class="si">}</span><span class="s2">:LABEL&quot;</span>
+
+                    <span class="k">if</span> <span class="n">block_label_no_number</span> <span class="ow">in</span> <span class="n">all_records</span><span class="p">:</span>
+                        <span class="n">field</span> <span class="o">=</span> <span class="n">block_label_no_number</span>
+                    <span class="k">elif</span> <span class="n">block_label</span> <span class="ow">in</span> <span class="n">all_records</span><span class="p">:</span>
+                        <span class="n">field</span> <span class="o">=</span> <span class="n">block_label</span>
+
                 <span class="k">if</span> <span class="n">field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">all_records</span><span class="p">:</span>
                     <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
                         <span class="sa">f</span><span class="s2">&quot;Unknown field </span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2"> returned from GetChanges values&quot;</span>
@@ -2615,7 +2640,7 @@
             <span class="k">continue</span>
 
 
-<span class="k">def</span> <span class="nf">set_all_records_severity</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">set_all_records_severity</span><span class="p">(</span>
     <span class="n">all_records</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">EpicsName</span><span class="p">,</span> <span class="n">RecordInfo</span><span class="p">],</span> <span class="n">severity</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">alarm</span><span class="p">:</span> <span class="nb">int</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Set the severity of all possible records to the given state&quot;&quot;&quot;</span>
@@ -2652,8 +2677,8 @@
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../../_static/scripts/bootstrap.js?digest=26a4bc78f4c0ddb94549"></script>
-<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=26a4bc78f4c0ddb94549"></script>
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -2664,7 +2689,8 @@
       
         <div class="footer-item">
 <p class="theme-version">
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.0.
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
 </p></div>
       
     </div>
