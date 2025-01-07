@@ -859,13 +859,12 @@ def standard_responses(table_field_info, table_data_1, table_data_2):
                     "PCAP.GATE.DELAY": "1",
                     "PCAP.ARM": "0",
                     "*METADATA.LABEL_PCAP1": "PcapMetadataLabel",
+                    "*METADATA.LABEL_PULSE1": "OriginalLabel",
                     "PULSE.DELAY": "100",
                     "PULSE.DELAY.UNITS": "ms",
                 },
                 multiline_values={"SEQ.TABLE": table_data_1},
             ),
-            # 0.5 seconds of no changes in case the ioc setup completes
-            # before the test starts
             respond_with_no_changes(number_of_iterations=15),
             changes_iterator_wrapper(
                 values={
