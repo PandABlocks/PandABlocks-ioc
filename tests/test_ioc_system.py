@@ -83,6 +83,7 @@ async def test_introspect_panda(
         "PULSE:DELAY": "100",
         "PCAP:ARM": "0",
         "PULSE:DELAY:UNITS": "ms",
+        "PULSE:LABEL": "OriginalLabel",
         "SEQ:TABLE": table_data_1,
     }
 
@@ -539,6 +540,27 @@ async def test_metadata_parses_into_single_pv(mocked_panda_standard_responses):
     assert command_to_key(
         Put(field="*METADATA.LABEL_PCAP1", value="SomeOtherPcapMetadataLabel")
     ) in multiprocessing_queue_to_list(command_queue)
+
+
+async def test_metadata_label_update_from_panda_updates_pv(
+    mocked_panda_standard_responses,
+):
+    (
+        tmp_path,
+        child_conn,
+        response_handler,
+        command_queue,
+        test_prefix,
+    ) = mocked_panda_standard_responses
+    camonitor_queue = asyncio.Queue()
+    m1 = camonitor(
+        test_prefix + ":PULSE:LABEL", camonitor_queue.put, datatype=DBR_CHAR_STR
+    )
+    try:
+        assert await asyncio.wait_for(camonitor_queue.get(), TIMEOUT) == "OriginalLabel"
+        assert await asyncio.wait_for(camonitor_queue.get(), TIMEOUT) == "ANewLabel"
+    finally:
+        m1.close()
 
 
 async def test_metadata_parses_into_multiple_pvs_caput_single_pv(
