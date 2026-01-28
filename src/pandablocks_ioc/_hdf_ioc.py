@@ -3,9 +3,10 @@ import logging
 import os
 from asyncio import CancelledError
 from collections import deque
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from enum import Enum
+import importlib
 from importlib.util import find_spec
 from pathlib import Path
 from typing import Optional, Union
@@ -16,8 +17,11 @@ from pandablocks.hdf import (
     FrameData,
     Pipeline,
     StartData,
-    create_default_pipeline,
+    # create_default_pipeline,
+    create_pipeline,
     stop_pipeline,
+    FrameProcessor,
+    HDFWriter,
 )
 from pandablocks.responses import EndReason, ReadyData
 from softioc import alarm, builder
@@ -56,6 +60,35 @@ class NumCapturedSetter(Pipeline):
 
     def set_record(self, value: int):
         self.number_captured_setter(value)
+
+
+def create_custom_pipeline(
+    file_names: Iterator[str],
+    custom_pipelines: Iterator[Pipeline],
+    capture_record_hdf_names: dict[str, dict[str, str]],
+    *additional_downstream_pipelines: Pipeline,
+) -> list[Pipeline]:
+    """Create the processing pipeline consisting of one `FrameProcessor`,
+    and `HDFWriter`. Custom pipelines (from external packages) are called before
+    `HDFWriter`. See `create_pipeline` for more details.
+
+    Args:
+        file_names: Iterator of file names. Must be full file paths. Will be called once
+            per file created. As required by `HDFWriter`.
+        custom_pipelines: Iterator of user-provided pipelines.
+        capture_record_hdf_names: A dictionary of dataset names to use for each field.
+            The keys are record names, the values are another dictionary of
+            capture type to dataset name.
+        additional_downstream_pipelines: Any number of additional pipelines to add
+            downstream.
+    """
+
+    return create_pipeline(
+        FrameProcessor(),
+        *custom_pipelines,
+        HDFWriter(file_names, capture_record_hdf_names),
+        *additional_downstream_pipelines,
+    )
 
 
 class HDF5Buffer:
@@ -118,9 +151,45 @@ class HDF5Buffer:
         except Exception as ex:
             logging.exception(f"Failed to save the data to HDF5 file: {ex}")
 
+    def _add_custom_pipelines(self, dataset_name_cache):
+        """
+        Checks environment variable PANDABLOCKS_IOC_CUSTOM_PIPELINES for the list
+        of custom pipeline modules to add to the HDF5 writer. The pipeline modules
+        should be in the format 'module_name.PipelineClassName', multiple modules
+        should be separated by ':' or '|'.
+
+        Returns a list of custom pipeline instances. The list is empty if there are
+        no custom pipleines specified or if there was an error importing them.
+        """
+        custom_pipelines = []
+        custom_pipelines_str = os.getenv("PANDABLOCKS_IOC_CUSTOM_PIPELINES", None)
+        if custom_pipelines_str:
+            custom_pipelines_str_list = custom_pipelines_str.split(":|")  
+            for p in custom_pipelines_str_list:
+                components = p.rsplit(".")
+                if len(components) == 2:
+                    module_name, pipeline_name = components
+                    try:
+                        mod = importlib.import_module(module_name)
+                        pipeline_class = getattr(mod, pipeline_name)
+                        pipeline = pipeline_class(dataset_name_cache)  # Instantiate the pipeline class
+                        custom_pipelines.append(pipeline)
+                        logging.info(f"Adding custom pipeline {pipeline_name} from {module_name}")
+                    except Exception as e:
+                        logging.exception(
+                            f"Failed to import custom pipeline {pipeline_name} "
+                            f"from module {module_name}: {e}"
+                        )
+                else:
+                    logging.error(f"Incorrect formatting of custom pipeline module name {p}")
+
+        return custom_pipelines
+
     def start_pipeline(self):
-        self.pipeline = create_default_pipeline(
+        custom_pipelines = self._add_custom_pipelines(self.dataset_name_cache)
+        self.pipeline = create_custom_pipeline(
             iter([self.filepath]),
+            custom_pipelines,
             self.dataset_name_cache,
             self.number_captured_setter_pipeline,
         )
