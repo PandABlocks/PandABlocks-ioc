@@ -91,6 +91,52 @@ def create_custom_pipeline(
     )
 
 
+def collect_custom_pipeline_classes():
+    """
+    Checks environment variable PANDABLOCKS_IOC_CUSTOM_PIPELINES for the list
+    of custom pipeline modules to add to the HDF5 writer. The pipeline modules
+    should be in the format 'module_name.PipelineClassName', multiple modules
+    should be separated by ':' or '|'.
+
+    Returns a list of custom pipeline instances. The list is empty if there are
+    no custom pipleines specified or if there was an error importing them.
+    """
+    custom_pipeline_classes = []
+    custom_pipelines_str = os.getenv("PANDABLOCKS_IOC_CUSTOM_PIPELINES", None)
+    if custom_pipelines_str:
+        custom_pipelines_str_list = custom_pipelines_str.split(":|")
+        for p in custom_pipelines_str_list:
+            components = p.rsplit(".")
+            if len(components) == 2:
+                module_name, pipeline_name = components
+                try:
+                    mod = importlib.import_module(module_name)
+                    pipeline_class = getattr(mod, pipeline_name)
+
+                    # Run 'env_initialize()' static method (if available)
+                    env_initialize = getattr(pipeline_class, "env_initialize", None)
+                    if env_initialize:
+                        env_initialize()
+
+                    custom_pipeline_classes.append(pipeline_class)
+                    logging.info(
+                        f"Adding custom pipeline {pipeline_name} from {module_name}"
+                    )
+                except Exception as e:
+                    logging.exception(
+                        f"Failed to import custom pipeline {pipeline_name} "
+                        f"from module {module_name}: {e}"
+                    )
+            else:
+                logging.error(
+                    f"Incorrect formatting of custom pipeline module name {p}"
+                )
+
+    if custom_pipeline_classes:
+        logging.info(f"The number of custom pipelines: {len(custom_pipeline_classes)}")
+    return custom_pipeline_classes
+
+
 class HDF5Buffer:
     _buffer_index = None
     start_data = None
@@ -107,6 +153,7 @@ class HDF5Buffer:
         number_received_setter: Callable,
         number_captured_setter_pipeline: NumCapturedSetter,
         dataset_name_cache: dict[str, dict[str, str]],
+        custom_pipeline_classes: list[Pipeline],
     ):
         # Only one filename - user must stop capture and set new FileName/FilePath
         # for new files
@@ -131,6 +178,8 @@ class HDF5Buffer:
         self.number_captured_setter_pipeline = number_captured_setter_pipeline
         self.number_captured_setter_pipeline.number_captured_setter(0)
 
+        self.custom_pipeline_classes = custom_pipeline_classes
+
         self.dataset_name_cache = dataset_name_cache
 
         if (
@@ -151,7 +200,7 @@ class HDF5Buffer:
         except Exception as ex:
             logging.exception(f"Failed to save the data to HDF5 file: {ex}")
 
-    def _add_custom_pipelines(self, dataset_name_cache):
+    def _add_custom_pipelines(self, file_names, dataset_name_cache):
         """
         Checks environment variable PANDABLOCKS_IOC_CUSTOM_PIPELINES for the list
         of custom pipeline modules to add to the HDF5 writer. The pipeline modules
@@ -162,31 +211,15 @@ class HDF5Buffer:
         no custom pipleines specified or if there was an error importing them.
         """
         custom_pipelines = []
-        custom_pipelines_str = os.getenv("PANDABLOCKS_IOC_CUSTOM_PIPELINES", None)
-        if custom_pipelines_str:
-            custom_pipelines_str_list = custom_pipelines_str.split(":|")  
-            for p in custom_pipelines_str_list:
-                components = p.rsplit(".")
-                if len(components) == 2:
-                    module_name, pipeline_name = components
-                    try:
-                        mod = importlib.import_module(module_name)
-                        pipeline_class = getattr(mod, pipeline_name)
-                        pipeline = pipeline_class(dataset_name_cache)  # Instantiate the pipeline class
-                        custom_pipelines.append(pipeline)
-                        logging.info(f"Adding custom pipeline {pipeline_name} from {module_name}")
-                    except Exception as e:
-                        logging.exception(
-                            f"Failed to import custom pipeline {pipeline_name} "
-                            f"from module {module_name}: {e}"
-                        )
-                else:
-                    logging.error(f"Incorrect formatting of custom pipeline module name {p}")
-
+        for pipeline_class in self.custom_pipeline_classes:
+            pipeline = pipeline_class(file_names, dataset_name_cache)
+            custom_pipelines.append(pipeline)
         return custom_pipelines
 
     def start_pipeline(self):
-        custom_pipelines = self._add_custom_pipelines(self.dataset_name_cache)
+        custom_pipelines = self._add_custom_pipelines(
+            iter([self.filepath]), self.dataset_name_cache
+        )
         self.pipeline = create_custom_pipeline(
             iter([self.filepath]),
             custom_pipelines,
@@ -689,6 +722,8 @@ class HDF5RecordController:
             record_prefix + ":" + self.DATA_PREFIX + ":Status"
         )
 
+        self.custom_pipeline_classes = collect_custom_pipeline_classes()
+
     def _parameter_validate(self, record: RecordWrapper, new_val) -> bool:
         """Control when values can be written to parameter records
         (file name etc.) based on capturing record's value"""
@@ -801,6 +836,7 @@ class HDF5RecordController:
                 self._num_received_record.set,
                 number_captured_setter_pipeline,
                 self._datasets.hdf_writer_names(),
+                self.custom_pipeline_classes,
             )
             flush_period: float = self._flush_period_record.get()
             async for data in self._client.data(
