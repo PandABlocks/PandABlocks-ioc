@@ -153,7 +153,7 @@ class HDF5Buffer:
         number_received_setter: Callable,
         number_captured_setter_pipeline: NumCapturedSetter,
         dataset_name_cache: dict[str, dict[str, str]],
-        custom_pipeline_classes: list[Pipeline],
+        custom_pipeline_classes: Optional[list[Pipeline]] = None,
     ):
         # Only one filename - user must stop capture and set new FileName/FilePath
         # for new files
@@ -178,7 +178,7 @@ class HDF5Buffer:
         self.number_captured_setter_pipeline = number_captured_setter_pipeline
         self.number_captured_setter_pipeline.number_captured_setter(0)
 
-        self.custom_pipeline_classes = custom_pipeline_classes
+        self.custom_pipeline_classes = custom_pipeline_classes or []
 
         self.dataset_name_cache = dataset_name_cache
 
