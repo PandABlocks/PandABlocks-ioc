@@ -62,7 +62,7 @@ class NumCapturedSetter(Pipeline):
         self.number_captured_setter(value)
 
 
-def create_custom_pipeline(
+def create_ioc_pipeline(
     file_names: Iterator[str],
     custom_pipelines: Iterator[Pipeline],
     capture_record_hdf_names: dict[str, dict[str, str]],
@@ -220,7 +220,7 @@ class HDF5Buffer:
         custom_pipelines = self._add_custom_pipelines(
             iter([self.filepath]), self.dataset_name_cache
         )
-        self.pipeline = create_custom_pipeline(
+        self.pipeline = create_ioc_pipeline(
             iter([self.filepath]),
             custom_pipelines,
             self.dataset_name_cache,
