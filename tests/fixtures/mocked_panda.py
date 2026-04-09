@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import sys
@@ -10,7 +12,7 @@ from logging import handlers
 from multiprocessing import Queue, get_context, set_start_method
 from multiprocessing.connection import Connection
 from pathlib import Path
-from typing import Any, Optional, TypeVar
+from typing import Any, TypeVar
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -167,7 +169,7 @@ class ResponseHandler:
         try:
             response = next(self.responses[key])
         except StopIteration as err:  # Only happens if the client has disconnected
-            raise asyncio.TimeoutError from err
+            raise TimeoutError from err
 
         return response
 
@@ -190,8 +192,8 @@ class MockedAsyncioClient:
     def __init__(
         self,
         response_handler: ResponseHandler,
-        child_conn: Optional[Connection] = None,
-        command_queue: Optional[Queue] = None,
+        child_conn: Connection | None = None,
+        command_queue: Queue | None = None,
     ) -> None:
         self.response_handler = response_handler
         self.command_queue = command_queue
@@ -228,8 +230,8 @@ class MockedAsyncioClient:
     async def data(
         self,
         scaled: bool = True,
-        flush_period: Optional[float] = None,
-        frame_timeout: Optional[float] = None,
+        flush_period: float | None = None,
+        frame_timeout: float | None = None,
     ):
         flush_every_frame = flush_period is None
         conn = DataConnection()
@@ -331,9 +333,9 @@ def caplog_workaround():
         while not logger_queue.empty():
             log_record: logging.LogRecord = logger_queue.get()
             # Make mypy happy
-            assert (
-                log_record.args
-            ), f"args were none, how did that happen?\nRecord: {log_record}\n"
+            assert log_record.args, (
+                f"args were none, how did that happen?\nRecord: {log_record}\n"
+            )
             f"Args: {log_record.args}"
             logger._log(
                 level=log_record.levelno,
@@ -391,9 +393,9 @@ def create_subprocess_ioc_and_responses(
                 # there to ensure the test doesn't hang indefinitely during cleanup
 
     # We expect all tests to pass without warnings (or worse) logged.
-    assert (
-        len(caplog.messages) == 0
-    ), f"At least one warning/error/exception logged during test: {caplog.records}"
+    assert len(caplog.messages) == 0, (
+        f"At least one warning/error/exception logged during test: {caplog.records}"
+    )
 
 
 def changes_iterator_wrapper(values=None, multiline_values=None):

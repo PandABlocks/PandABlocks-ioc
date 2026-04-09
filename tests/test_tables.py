@@ -20,7 +20,7 @@ from pandablocks_ioc._tables import (
     TableModeEnum,
     TableUpdater,
 )
-from pandablocks_ioc._types import EpicsName, InErrorException, RecordInfo, RecordValue
+from pandablocks_ioc._types import EpicsName, RecordInfo, RecordValue, StateError
 
 PANDA_FORMAT_TABLE_NAME = "SEQ1.TABLE"
 EPICS_FORMAT_TABLE_NAME = "SEQ1:TABLE"
@@ -296,9 +296,9 @@ async def test_table_updater_update_mode_view(table_updater: TableUpdater):
     assert (
         not table_updater.client.send.called  # type: ignore
     ), "client send method was unexpectedly called"
-    assert (
-        not table_updater.mode_record_info.record.set.called
-    ), "record set method was unexpectedly called"
+    assert not table_updater.mode_record_info.record.set.called, (
+        "record set method was unexpectedly called"
+    )
 
 
 async def test_table_updater_update_mode_submit(
@@ -360,13 +360,13 @@ async def test_table_updater_update_mode_submit_exception(
 async def test_table_updater_update_mode_submit_exception_data_error(
     table_updater: TableUpdater, table_data_1: list[str]
 ):
-    """Test that update_mode with an exception from Put and an InErrorException behaves
+    """Test that update_mode with an exception from Put and an StateError behaves
     as expected"""
     assert isinstance(table_updater.client.send, AsyncMock)
     table_updater.client.send.side_effect = Exception("Mocked exception")
 
-    table_updater.all_values_dict[EpicsName(EPICS_FORMAT_TABLE_NAME)] = (
-        InErrorException("Mocked in error exception")
+    table_updater.all_values_dict[EpicsName(EPICS_FORMAT_TABLE_NAME)] = StateError(
+        "Mocked in error exception"
     )
 
     await table_updater.update_mode(TableModeEnum.SUBMIT.value)
