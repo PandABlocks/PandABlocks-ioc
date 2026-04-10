@@ -6,7 +6,6 @@ import typing
 from collections import OrderedDict
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 import numpy as np
 from epicsdbbuilder import RecordName
@@ -22,9 +21,9 @@ from softioc.pythonSoftIoc import RecordWrapper
 from ._pvi import Pvi, PviGroup, q_group_formatter
 from ._types import (
     EpicsName,
-    InErrorException,
     RecordInfo,
     RecordValue,
+    StateError,
     epics_to_panda_name,
     epics_to_pvi_name,
     trim_description,
@@ -54,7 +53,7 @@ class TableFieldRecordContainer:
     record."""
 
     field: TableFieldDetails
-    record_info: Optional[RecordInfo]
+    record_info: RecordInfo | None
 
 
 def make_bit_order(
@@ -118,8 +117,8 @@ class ReadOnlyPvaTable:
         self,
         row_names: list[str],
         initial_values: list[list],
-        length: Optional[int] = None,
-        default_data_type: Optional[type] = None,
+        length: int | None = None,
+        default_data_type: type | None = None,
     ):
         for idx, (row_name, initial_value) in enumerate(
             zip(row_names, initial_values, strict=False)
@@ -445,7 +444,7 @@ class TableUpdater:
                 assert self.table_name in self.all_values_dict
                 old_val = self.all_values_dict[self.table_name]
 
-                if isinstance(old_val, InErrorException):
+                if isinstance(old_val, StateError):
                     # If PythonSoftIOC issue #53 is fixed we could put some error state.
                     logging.error(
                         f"Cannot restore previous value to table {self.table_name}, "

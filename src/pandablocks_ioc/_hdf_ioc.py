@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from enum import Enum
 from importlib.util import find_spec
 from pathlib import Path
-from typing import Optional, Union
+from typing import Union
 
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.hdf import (
@@ -83,11 +83,11 @@ class HDF5Buffer:
 
         match capture_mode:
             case CaptureMode.FIRST_N:
-                self._handle_FrameData = self._capture_first_n
+                self._handle_frame_data = self._capture_first_n
             case CaptureMode.LAST_N:
-                self._handle_FrameData = self._capture_last_n
+                self._handle_frame_data = self._capture_last_n
             case CaptureMode.FOREVER:
-                self._handle_FrameData = self._capture_forever
+                self._handle_frame_data = self._capture_forever
             case _:
                 raise RuntimeError("Invalid capture mode")
 
@@ -125,7 +125,7 @@ class HDF5Buffer:
             self.number_captured_setter_pipeline,
         )
 
-    def _handle_StartData(self, data: StartData):
+    def _handle_start_data(self, data: StartData):
         if self.start_data and data != self.start_data:
             # PandA was disarmed, had config changed, and rearmed.
             # Cannot process to the same file with different start data.
@@ -258,7 +258,7 @@ class HDF5Buffer:
 
         self.number_received_setter(self.number_of_received_rows)
 
-    def _handle_EndData(self, data: EndData):
+    def _handle_end_data(self, data: EndData):
         match self.capture_mode:
             case CaptureMode.LAST_N:
                 # In LAST_N only write FrameData if the EndReason is OK
@@ -300,11 +300,11 @@ class HDF5Buffer:
                 pass
             case StartData():
                 self.status_message_setter("Starting capture")
-                self._handle_StartData(data)
+                self._handle_start_data(data)
             case FrameData():
-                self._handle_FrameData(data)
+                self._handle_frame_data(data)
             case EndData():
-                self._handle_EndData(data)
+                self._handle_end_data(data)
             case _:
                 raise RuntimeError(
                     f"Data was recieved that was of type {type(data)}, not"
@@ -387,7 +387,7 @@ class HDF5RecordController:
     _capture_control_record: RecordWrapper  # Turn capture on/off
     _status_message_record: RecordWrapper  # Reports status and error messages
 
-    _handle_hdf5_data_task: Optional[asyncio.Task] = None
+    _handle_hdf5_data_task: asyncio.Task | None = None
 
     def __init__(
         self,

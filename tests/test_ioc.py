@@ -30,9 +30,9 @@ from pandablocks_ioc._types import (
     ONAM_STR,
     ZNAM_STR,
     EpicsName,
-    InErrorException,
     RecordInfo,
     ScalarRecordValue,
+    StateError,
 )
 from pandablocks_ioc.ioc import (
     IocRecordFactory,
@@ -599,7 +599,7 @@ def test_create_record_action(ioc_record_factory: IocRecordFactory, type: str):
 def test_create_record_info_value_error(
     ioc_record_factory: IocRecordFactory, tmp_path: Path
 ):
-    """Test _create_record_info when value is an _InErrorException.
+    """Test _create_record_info when value is an _StateError.
     This test succeeds if no exceptions are thrown."""
 
     ioc_record_factory._create_record_info(
@@ -608,7 +608,7 @@ def test_create_record_info_value_error(
         builder.aOut,
         float,
         PviGroup.NONE,
-        initial_value=InErrorException("Mocked exception"),
+        initial_value=StateError("Mocked exception"),
     )
 
     ioc_record_factory._create_record_info(
@@ -617,7 +617,7 @@ def test_create_record_info_value_error(
         builder.aIn,
         float,
         PviGroup.NONE,
-        initial_value=InErrorException("Mocked exception"),
+        initial_value=StateError("Mocked exception"),
     )
 
     # TODO: Is this a stupid way to check the SEVR and STAT attributes?
@@ -629,12 +629,12 @@ def test_create_record_info_value_error(
     num_sevr = file_contents.count("SEVR")
     num_stat = file_contents.count("STAT")
 
-    assert (
-        num_sevr == 2
-    ), f"SEVR not found twice in record file contents: {file_contents}"
-    assert (
-        num_stat == 2
-    ), f"STAT not found twice in record file contents: {file_contents}"
+    assert num_sevr == 2, (
+        f"SEVR not found twice in record file contents: {file_contents}"
+    )
+    assert num_stat == 2, (
+        f"STAT not found twice in record file contents: {file_contents}"
+    )
 
 
 @patch("pandablocks_ioc.ioc.db_put_field")
@@ -785,7 +785,7 @@ async def test_update_on_error_marks_record(caplog):
             ),
             timeout=0.3,
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         pass
 
     record_info.record.set_alarm.assert_called_with(3, 17)
@@ -834,7 +834,7 @@ async def test_update_toggles_bit_field():
             ),
             timeout=0.5,
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         pass
 
     # Note that the update() method may run more than once, so we'll get an

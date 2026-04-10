@@ -3,19 +3,19 @@ import logging
 import re
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any, NewType, Optional, Union
+from typing import Any, NewType, Union
 
 from pandablocks.responses import FieldInfo
 from softioc import builder
 from softioc.pythonSoftIoc import RecordWrapper
 
 
-class InErrorException(Exception):
+class StateError(Exception):
     """Placeholder exception to mark a field as being in error as reported by PandA"""
 
 
 # Custom type aliases and new types
-ScalarRecordValue = Union[str, InErrorException]
+ScalarRecordValue = Union[str, StateError]
 TableRecordValue = list[str]
 RecordValue = Union[ScalarRecordValue, TableRecordValue]
 # EPICS format, i.e. ":" dividers
@@ -73,9 +73,9 @@ def device_and_record_to_panda_name(field_name: EpicsName) -> PandAName:
 
 def check_num_labels(labels: list[str], record_name: str):
     """Check that the number of labels can fit into an mbbi/mbbo record"""
-    assert (
-        len(labels) <= 16
-    ), f"Too many labels ({len(labels)}) to create record {record_name}"
+    assert len(labels) <= 16, (
+        f"Too many labels ({len(labels)}) to create record {record_name}"
+    )
 
 
 def trim_string_value(value: str, record_name: str) -> str:
@@ -90,7 +90,7 @@ def trim_string_value(value: str, record_name: str) -> str:
     return value
 
 
-def trim_description(description: Optional[str], record_name: str) -> Optional[str]:
+def trim_description(description: str | None, record_name: str) -> str | None:
     """Record description field is a maximum of 40 characters long. Ensure any string
     is shorter than that before setting it."""
     # TODO: Trim leading and trailing spaces?
@@ -142,12 +142,12 @@ class RecordInfo:
 
     record: RecordWrapper = field(init=False)
     data_type_func: Callable
-    labels: Optional[list[str]] = None
+    labels: list[str] | None = None
     # PythonSoftIOC issues #52 or #54 may remove need for is_in_record
     is_in_record: bool = True
-    on_changes_func: Optional[Callable[[Any], Awaitable[None]]] = None
+    on_changes_func: Callable[[Any], Awaitable[None]] | None = None
     _pending_change: bool = field(default=False, init=False)
-    _field_info: Optional[FieldInfo] = field(default=None, init=False)
+    _field_info: FieldInfo | None = field(default=None, init=False)
 
     def add_record(self, record: RecordWrapper) -> None:
         self.record = record

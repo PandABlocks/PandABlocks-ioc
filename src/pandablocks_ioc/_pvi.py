@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from os import remove
 from pathlib import Path
-from typing import Literal, Optional, Union
+from typing import Literal, Union
 
 from epicsdbbuilder import RecordName
 from pvi._format.dls import DLSFormatter
@@ -158,7 +158,7 @@ def add_automatic_pvi_info(
     Generates generic components from"""
     component: ComponentUnion
     writeable: bool = record_creation_func in OUT_RECORD_FUNCTIONS
-    useComboBox: bool = record_creation_func == builder.mbbOut
+    use_combo_box: bool = record_creation_func == builder.mbbOut
 
     pvi_name = epics_to_pvi_name(record_name)
 
@@ -179,7 +179,7 @@ def add_automatic_pvi_info(
             access = "x"
     elif writeable:
         text_read_widget: Union[ComboBox, TextWrite]
-        if useComboBox:
+        if use_combo_box:
             text_read_widget = ComboBox()
         else:
             if record_creation_func in (
@@ -295,9 +295,9 @@ def add_positions_table_row(
 class Pvi:
     """TODO: Docs"""
 
-    _screens_dir: Optional[Path] = None
+    _screens_dir: Path | None = None
     _clear_bobfiles: bool = False
-    record_prefix: Optional[str] = None
+    record_prefix: str | None = None
 
     # We may want general device refs, e.g every CAPTURE group having a reference
     # to the positions table
@@ -312,7 +312,7 @@ class Pvi:
     pvi_info_dict: dict[str, dict[PviGroup, list[ComponentUnion]]] = {}
 
     @staticmethod
-    def configure_pvi(screens_dir: Optional[str], clear_bobfiles: bool):
+    def configure_pvi(screens_dir: str | None, clear_bobfiles: bool):
         if screens_dir:
             Pvi._screens_dir = Path(screens_dir)
             assert Pvi._screens_dir.is_dir(), "Screens directory must exist"

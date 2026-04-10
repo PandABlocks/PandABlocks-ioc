@@ -311,7 +311,7 @@ async def test_bobfiles_created(mocked_panda_standard_responses):
 
     assert bobfile_temp_dir.exists() and BOBFILE_DIR.exists()
 
-    MISMATCHED_OUTPUT_MESSAGE = (
+    mismatched_output_message = (
         "Generated test bobfiles do not match `tests/test-bobfiles`. "
         "If changes have been made that would result in different bobfiles "
         "generated then regenerate the `test-bobfiles` with "
@@ -332,11 +332,11 @@ async def test_bobfiles_created(mocked_panda_standard_responses):
             .read_text()
             .replace(test_prefix, TEST_PREFIX)
             == file_path.read_text()
-        ), MISMATCHED_OUTPUT_MESSAGE
+        ), mismatched_output_message
 
     # And check that the same number of files are created
     new_files = list(Path.iterdir(bobfile_temp_dir))
-    assert len(old_files) == len(new_files), MISMATCHED_OUTPUT_MESSAGE
+    assert len(old_files) == len(new_files), mismatched_output_message
 
 
 async def test_create_bobfiles_fails_if_files_present(tmp_path, new_random_test_prefix):

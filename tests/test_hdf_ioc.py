@@ -325,9 +325,9 @@ def hdf5_subprocess_ioc(
                 # during cleanup
 
     # We expect all tests to pass without warnings (or worse) logged.
-    assert (
-        len(caplog.messages) == 0
-    ), f"At least one warning/error/exception logged during test: {caplog.records}"
+    assert len(caplog.messages) == 0, (
+        f"At least one warning/error/exception logged during test: {caplog.records}"
+    )
 
 
 async def test_hdf5_ioc(hdf5_subprocess_ioc):

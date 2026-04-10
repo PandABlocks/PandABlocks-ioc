@@ -6,7 +6,7 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from string import digits
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 from pandablocks.asyncio import AsyncioClient
@@ -56,11 +56,11 @@ from ._types import (
     OUT_RECORD_FUNCTIONS,
     ZNAM_STR,
     EpicsName,
-    InErrorException,
     PandAName,
     RecordInfo,
     RecordValue,
     ScalarRecordValue,
+    StateError,
     check_num_labels,
     device_and_record_to_panda_name,
     panda_to_epics_name,
@@ -85,7 +85,7 @@ class _BlockAndFieldInfo:
 
 # Keep a reference to the task, as specified in documentation:
 # https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task
-create_softioc_task: Optional[asyncio.Task] = None
+create_softioc_task: asyncio.Task | None = None
 
 
 def _when_finished(task):
@@ -130,7 +130,7 @@ async def _create_softioc(
 def create_softioc(
     client: AsyncioClient,
     record_prefix: str,
-    screens_dir: Optional[str] = None,
+    screens_dir: str | None = None,
     clear_bobfiles: bool = False,
 ) -> None:
     """Create a PythonSoftIOC from fields and attributes of a PandA.
@@ -205,8 +205,8 @@ def get_panda_versions(idn_repsonse: str) -> dict[EpicsName, str]:
     else:
         for firmware_name in firmware_versions:
             pattern = re.compile(
-                rf'{re.escape(firmware_name)}:\s*([^:]+?)(?=\s*\b(?: \
-                {"|".join(map(re.escape, firmware_versions))}):|$)'
+                rf"{re.escape(firmware_name)}:\s*([^:]+?)(?=\s*\b(?: \
+                {'|'.join(map(re.escape, firmware_versions))}):|$)"
             )
             if match := pattern.search(idn_repsonse):
                 firmware_versions[firmware_name] = match.group(1).strip()
@@ -361,9 +361,7 @@ def _create_dicts_from_changes(
     # Note any in_error fields so we can later set their records to a non-zero severity
     for block_and_field_name in changes.in_error:
         logging.error(f"PandA reports field in error: {block_and_field_name}")
-        _store_values(
-            block_and_field_name, InErrorException(block_and_field_name), values
-        )
+        _store_values(block_and_field_name, StateError(block_and_field_name), values)
 
     # Single dictionary that has all values for all types of field, as reported
     # from GetChanges
@@ -391,7 +389,7 @@ class _RecordUpdater:
     record_prefix: str
     client: AsyncioClient
     all_values_dict: dict[EpicsName, RecordValue]
-    labels: Optional[list[str]]
+    labels: list[str] | None
 
     # The incoming value's type depends on the record. Ensure you always cast it.
     async def update(self, new_val: Any):
@@ -400,11 +398,11 @@ class _RecordUpdater:
         )
         try:
             # If this is an enum record, retrieve the string value
-            val: Optional[str]
+            val: str | None
             if self.labels:
-                assert int(new_val) < len(
-                    self.labels
-                ), f"Invalid label index {new_val}, only {len(self.labels)} labels"
+                assert int(new_val) < len(self.labels), (
+                    f"Invalid label index {new_val}, only {len(self.labels)} labels"
+                )
                 val = self.labels[int(new_val)]
             elif new_val is not None:
                 # Necessary to wrap the data_type_func call in str() as we must
@@ -439,7 +437,7 @@ class _RecordUpdater:
 
                     assert record_name in self.all_values_dict
                     old_val = self.all_values_dict[record_name]
-                    if isinstance(old_val, InErrorException):
+                    if isinstance(old_val, StateError):
                         # If PythonSoftIOC issue #53 is fixed we could put error state.
                         logging.error(
                             "Cannot restore previous value to record "
@@ -591,7 +589,7 @@ class IocRecordFactory:
 
         # Most likely time we'll see an error is when PandA hardware has set invalid
         # enum value. No logging as already logged when seen from GetChanges.
-        if isinstance(record_value, InErrorException):
+        if isinstance(record_value, StateError):
             index = 0
         else:
             index = labels.index(record_value)
@@ -613,11 +611,11 @@ class IocRecordFactory:
     def _create_record_info(
         self,
         record_name: EpicsName,
-        description: Optional[str],
+        description: str | None,
         record_creation_func: Callable,
         data_type_func: Callable,
         group: PviGroup,
-        labels: Optional[list[str]] = None,
+        labels: list[str] | None = None,
         *args,
         **kwargs,
     ) -> RecordInfo:
@@ -653,9 +651,9 @@ class IocRecordFactory:
             labels = []
 
         extra_kwargs: dict[str, Any] = {}
-        assert (
-            record_creation_func in self._builder_methods
-        ), "Unrecognised record creation function passed to _create_record_info"
+        assert record_creation_func in self._builder_methods, (
+            "Unrecognised record creation function passed to _create_record_info"
+        )
 
         if (
             record_creation_func == builder.mbbIn
@@ -670,7 +668,7 @@ class IocRecordFactory:
         # returned as strings from Changes command.
         if "initial_value" in kwargs:
             initial_value = kwargs["initial_value"]
-            if isinstance(initial_value, InErrorException):
+            if isinstance(initial_value, StateError):
                 logging.warning(
                     f"Marking record {record_name} as invalid due to error from PandA"
                 )
@@ -1749,7 +1747,7 @@ class IocRecordFactory:
             str_vals = {
                 EpicsName(k): v
                 for (k, v) in field_values.items()
-                if isinstance(v, (str, InErrorException))
+                if isinstance(v, (str, StateError))
             }
 
             return self._field_record_mapping[key](
@@ -1766,7 +1764,7 @@ class IocRecordFactory:
 
     # Map a field's (type, subtype) to a function that creates and returns record(s)
     _field_record_mapping: dict[
-        tuple[str, Optional[str]],
+        tuple[str, str | None],
         Callable[
             [
                 "IocRecordFactory",
@@ -1832,7 +1830,7 @@ class IocRecordFactory:
         block: str,
         block_info: BlockInfo,
         block_values: dict[EpicsName, str],
-        default_longStringOut_length=256,
+        default_long_string_out_length=256,
     ) -> dict[EpicsName, RecordInfo]:
         """Create the block-level records, and any other one-off block initialisation
         required."""
@@ -1852,7 +1850,7 @@ class IocRecordFactory:
                 builder.longStringOut,
                 str,
                 PviGroup.INPUTS,
-                length=default_longStringOut_length,
+                length=default_long_string_out_length,
                 initial_value=value,
             )
 
@@ -2055,7 +2053,7 @@ async def update(
 
             try:
                 changes = await client.send(GetChanges(ChangeGroup.ALL, True), timeout)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # Indicates PandA did not reply within the timeout
                 logging.error(
                     f"PandA did not respond to GetChanges within {timeout} seconds. "
