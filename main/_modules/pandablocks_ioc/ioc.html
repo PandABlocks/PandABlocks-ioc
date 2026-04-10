@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pandablocks_ioc.ioc &#8212; PandABlocks-ioc 0.11.6.dev3+gc1e8056 documentation</title>
+    <title>pandablocks_ioc.ioc &#8212; PandABlocks-ioc 0.11.6.dev8+gc9ee0f884 documentation</title>
   
   
   
@@ -26,8 +26,8 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
-<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+  <link href="../../_static/styles/theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=7f76b32a3354e82990f2" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
@@ -35,39 +35,44 @@
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
   
   <!-- So that users can add custom icons -->
-  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <script defer src="../../_static/scripts/fontawesome.js?digest=7f76b32a3354e82990f2"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
-<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2" />
 
-    <script src="../../_static/documentation_options.js?v=9d3e7cc1"></script>
-    <script src="../../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/documentation_options.js?v=ff5f8d8a"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=30646c52"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pandablocks_ioc/ioc';</script>
     <script>
-        DOCUMENTATION_OPTIONS.theme_version = '0.16.1';
+        DOCUMENTATION_OPTIONS.theme_version = '0.17.0';
         DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://PandABlocks.github.io/PandABlocks-ioc/switcher.json';
         DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'main';
         DOCUMENTATION_OPTIONS.show_version_warning_banner =
             false;
         </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="icon" href="../../_static/dls-logo.svg"/>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="main" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
   </head>
-  
-  
-  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
-
+  <body data-default-mode="">
   
   
   <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
   
   <div id="pst-scroll-pixel-helper"></div>
   
@@ -99,7 +104,7 @@
 </div>
 
   
-    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
 <div class="bd-header__inner bd-page-width">
   <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
     <span class="fa-solid fa-bars"></span>
@@ -450,7 +455,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">string</span><span class="w"> </span><span class="kn">import</span> <span class="n">digits</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pandablocks.asyncio</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncioClient</span>
@@ -500,11 +505,11 @@
     <span class="n">OUT_RECORD_FUNCTIONS</span><span class="p">,</span>
     <span class="n">ZNAM_STR</span><span class="p">,</span>
     <span class="n">EpicsName</span><span class="p">,</span>
-    <span class="n">InErrorException</span><span class="p">,</span>
     <span class="n">PandAName</span><span class="p">,</span>
     <span class="n">RecordInfo</span><span class="p">,</span>
     <span class="n">RecordValue</span><span class="p">,</span>
     <span class="n">ScalarRecordValue</span><span class="p">,</span>
+    <span class="n">StateError</span><span class="p">,</span>
     <span class="n">check_num_labels</span><span class="p">,</span>
     <span class="n">device_and_record_to_panda_name</span><span class="p">,</span>
     <span class="n">panda_to_epics_name</span><span class="p">,</span>
@@ -529,7 +534,7 @@
 
 <span class="c1"># Keep a reference to the task, as specified in documentation:</span>
 <span class="c1"># https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task</span>
-<span class="n">create_softioc_task</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="n">create_softioc_task</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_when_finished</span><span class="p">(</span><span class="n">task</span><span class="p">):</span>
@@ -576,7 +581,7 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">create_softioc</span><span class="p">(</span>
     <span class="n">client</span><span class="p">:</span> <span class="n">AsyncioClient</span><span class="p">,</span>
     <span class="n">record_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">screens_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">screens_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">clear_bobfiles</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a PythonSoftIOC from fields and attributes of a PandA.</span>
@@ -652,8 +657,8 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">firmware_name</span> <span class="ow">in</span> <span class="n">firmware_versions</span><span class="p">:</span>
             <span class="n">pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
-                <span class="sa">rf</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">re</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="n">firmware_name</span><span class="p">)</span><span class="si">}</span><span class="s1">:\s*([^:]+?)(?=\s*\b(?: </span><span class="se">\</span>
-<span class="s1">                </span><span class="si">{</span><span class="s2">&quot;|&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">escape</span><span class="p">,</span><span class="w"> </span><span class="n">firmware_versions</span><span class="p">))</span><span class="si">}</span><span class="s1">):|$)&#39;</span>
+                <span class="sa">rf</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">re</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="n">firmware_name</span><span class="p">)</span><span class="si">}</span><span class="s2">:\s*([^:]+?)(?=\s*\b(?: </span><span class="se">\</span>
+<span class="s2">                </span><span class="si">{</span><span class="s1">&#39;|&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">escape</span><span class="p">,</span><span class="w"> </span><span class="n">firmware_versions</span><span class="p">))</span><span class="si">}</span><span class="s2">):|$)&quot;</span>
             <span class="p">)</span>
             <span class="k">if</span> <span class="n">match</span> <span class="o">:=</span> <span class="n">pattern</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">idn_repsonse</span><span class="p">):</span>
                 <span class="n">firmware_versions</span><span class="p">[</span><span class="n">firmware_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
@@ -808,9 +813,7 @@
     <span class="c1"># Note any in_error fields so we can later set their records to a non-zero severity</span>
     <span class="k">for</span> <span class="n">block_and_field_name</span> <span class="ow">in</span> <span class="n">changes</span><span class="o">.</span><span class="n">in_error</span><span class="p">:</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PandA reports field in error: </span><span class="si">{</span><span class="n">block_and_field_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">_store_values</span><span class="p">(</span>
-            <span class="n">block_and_field_name</span><span class="p">,</span> <span class="n">InErrorException</span><span class="p">(</span><span class="n">block_and_field_name</span><span class="p">),</span> <span class="n">values</span>
-        <span class="p">)</span>
+        <span class="n">_store_values</span><span class="p">(</span><span class="n">block_and_field_name</span><span class="p">,</span> <span class="n">StateError</span><span class="p">(</span><span class="n">block_and_field_name</span><span class="p">),</span> <span class="n">values</span><span class="p">)</span>
 
     <span class="c1"># Single dictionary that has all values for all types of field, as reported</span>
     <span class="c1"># from GetChanges</span>
@@ -838,7 +841,7 @@
     <span class="n">record_prefix</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">client</span><span class="p">:</span> <span class="n">AsyncioClient</span>
     <span class="n">all_values_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">EpicsName</span><span class="p">,</span> <span class="n">RecordValue</span><span class="p">]</span>
-    <span class="n">labels</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
+    <span class="n">labels</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
 
     <span class="c1"># The incoming value&#39;s type depends on the record. Ensure you always cast it.</span>
     <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_val</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
@@ -847,11 +850,11 @@
         <span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="c1"># If this is an enum record, retrieve the string value</span>
-            <span class="n">val</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+            <span class="n">val</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">:</span>
-                <span class="k">assert</span> <span class="nb">int</span><span class="p">(</span><span class="n">new_val</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">labels</span>
-                <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Invalid label index </span><span class="si">{</span><span class="n">new_val</span><span class="si">}</span><span class="s2">, only </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span><span class="si">}</span><span class="s2"> labels&quot;</span>
+                <span class="k">assert</span> <span class="nb">int</span><span class="p">(</span><span class="n">new_val</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">),</span> <span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Invalid label index </span><span class="si">{</span><span class="n">new_val</span><span class="si">}</span><span class="s2">, only </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span><span class="si">}</span><span class="s2"> labels&quot;</span>
+                <span class="p">)</span>
                 <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">new_val</span><span class="p">)]</span>
             <span class="k">elif</span> <span class="n">new_val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="c1"># Necessary to wrap the data_type_func call in str() as we must</span>
@@ -886,7 +889,7 @@
 
                     <span class="k">assert</span> <span class="n">record_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_values_dict</span>
                     <span class="n">old_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_values_dict</span><span class="p">[</span><span class="n">record_name</span><span class="p">]</span>
-                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">old_val</span><span class="p">,</span> <span class="n">InErrorException</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">old_val</span><span class="p">,</span> <span class="n">StateError</span><span class="p">):</span>
                         <span class="c1"># If PythonSoftIOC issue #53 is fixed we could put error state.</span>
                         <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
                             <span class="s2">&quot;Cannot restore previous value to record &quot;</span>
@@ -1038,7 +1041,7 @@
 
         <span class="c1"># Most likely time we&#39;ll see an error is when PandA hardware has set invalid</span>
         <span class="c1"># enum value. No logging as already logged when seen from GetChanges.</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">record_value</span><span class="p">,</span> <span class="n">InErrorException</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">record_value</span><span class="p">,</span> <span class="n">StateError</span><span class="p">):</span>
             <span class="n">index</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">index</span> <span class="o">=</span> <span class="n">labels</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">record_value</span><span class="p">)</span>
@@ -1060,11 +1063,11 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">_create_record_info</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">record_name</span><span class="p">:</span> <span class="n">EpicsName</span><span class="p">,</span>
-        <span class="n">description</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">record_creation_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
         <span class="n">data_type_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
         <span class="n">group</span><span class="p">:</span> <span class="n">PviGroup</span><span class="p">,</span>
-        <span class="n">labels</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">labels</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">*</span><span class="n">args</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RecordInfo</span><span class="p">:</span>
@@ -1100,9 +1103,9 @@
             <span class="n">labels</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="n">extra_kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">assert</span> <span class="p">(</span>
-            <span class="n">record_creation_func</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_builder_methods</span>
-        <span class="p">),</span> <span class="s2">&quot;Unrecognised record creation function passed to _create_record_info&quot;</span>
+        <span class="k">assert</span> <span class="n">record_creation_func</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_builder_methods</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;Unrecognised record creation function passed to _create_record_info&quot;</span>
+        <span class="p">)</span>
 
         <span class="k">if</span> <span class="p">(</span>
             <span class="n">record_creation_func</span> <span class="o">==</span> <span class="n">builder</span><span class="o">.</span><span class="n">mbbIn</span>
@@ -1117,7 +1120,7 @@
         <span class="c1"># returned as strings from Changes command.</span>
         <span class="k">if</span> <span class="s2">&quot;initial_value&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
             <span class="n">initial_value</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;initial_value&quot;</span><span class="p">]</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">initial_value</span><span class="p">,</span> <span class="n">InErrorException</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">initial_value</span><span class="p">,</span> <span class="n">StateError</span><span class="p">):</span>
                 <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;Marking record </span><span class="si">{</span><span class="n">record_name</span><span class="si">}</span><span class="s2"> as invalid due to error from PandA&quot;</span>
                 <span class="p">)</span>
@@ -2196,7 +2199,7 @@
             <span class="n">str_vals</span> <span class="o">=</span> <span class="p">{</span>
                 <span class="n">EpicsName</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="n">v</span>
                 <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="n">field_values</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">InErrorException</span><span class="p">))</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">StateError</span><span class="p">))</span>
             <span class="p">}</span>
 
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_field_record_mapping</span><span class="p">[</span><span class="n">key</span><span class="p">](</span>
@@ -2213,7 +2216,7 @@
 
     <span class="c1"># Map a field&#39;s (type, subtype) to a function that creates and returns record(s)</span>
     <span class="n">_field_record_mapping</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span>
-        <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+        <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">],</span>
         <span class="n">Callable</span><span class="p">[</span>
             <span class="p">[</span>
                 <span class="s2">&quot;IocRecordFactory&quot;</span><span class="p">,</span>
@@ -2279,7 +2282,7 @@
         <span class="n">block</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">block_info</span><span class="p">:</span> <span class="n">BlockInfo</span><span class="p">,</span>
         <span class="n">block_values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">EpicsName</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
-        <span class="n">default_longStringOut_length</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
+        <span class="n">default_long_string_out_length</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="n">EpicsName</span><span class="p">,</span> <span class="n">RecordInfo</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Create the block-level records, and any other one-off block initialisation</span>
 <span class="sd">        required.&quot;&quot;&quot;</span>
@@ -2299,7 +2302,7 @@
                 <span class="n">builder</span><span class="o">.</span><span class="n">longStringOut</span><span class="p">,</span>
                 <span class="nb">str</span><span class="p">,</span>
                 <span class="n">PviGroup</span><span class="o">.</span><span class="n">INPUTS</span><span class="p">,</span>
-                <span class="n">length</span><span class="o">=</span><span class="n">default_longStringOut_length</span><span class="p">,</span>
+                <span class="n">length</span><span class="o">=</span><span class="n">default_long_string_out_length</span><span class="p">,</span>
                 <span class="n">initial_value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span>
             <span class="p">)</span>
 
@@ -2502,7 +2505,7 @@
 
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">changes</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">GetChanges</span><span class="p">(</span><span class="n">ChangeGroup</span><span class="o">.</span><span class="n">ALL</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span> <span class="n">timeout</span><span class="p">)</span>
-            <span class="k">except</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">TimeoutError</span><span class="p">:</span>
+            <span class="k">except</span> <span class="ne">TimeoutError</span><span class="p">:</span>
                 <span class="c1"># Indicates PandA did not reply within the timeout</span>
                 <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;PandA did not respond to GetChanges within </span><span class="si">{</span><span class="n">timeout</span><span class="si">}</span><span class="s2"> seconds. &quot;</span>
@@ -2677,8 +2680,8 @@
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
-<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+  <script defer src="../../_static/scripts/bootstrap.js?digest=7f76b32a3354e82990f2"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=7f76b32a3354e82990f2"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -2690,7 +2693,7 @@
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.17.0.
 </p></div>
       
     </div>
