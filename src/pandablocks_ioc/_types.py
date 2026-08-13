@@ -109,6 +109,9 @@ def trim_description(description: str | None, record_name: str) -> str | None:
 ZNAM_STR = "0"
 ONAM_STR = "1"
 
+# Default display precision (PREC) for float records
+FLOAT_RECORD_PRECISION = 5
+
 # The list of all OUT record types
 OUT_RECORD_FUNCTIONS = [
     builder.aOut,
