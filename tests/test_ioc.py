@@ -22,7 +22,7 @@ from pandablocks.responses import (
     TimeFieldInfo,
     UintFieldInfo,
 )
-from softioc import builder, fields
+from softioc import builder
 
 from fixtures.mocked_panda import TEST_PREFIX
 from pandablocks_ioc._pvi import PviGroup
@@ -32,6 +32,7 @@ from pandablocks_ioc._types import (
     ZNAM_STR,
     EpicsName,
     RecordInfo,
+    RecordValue,
     ScalarRecordValue,
     StateError,
 )
@@ -638,32 +639,27 @@ def test_create_record_info_value_error(
     )
 
 
-@patch("pandablocks_ioc.ioc.db_put_field")
 @pytest.mark.parametrize("new_val", ["TEST2", 2])
 async def test_time_record_updater_update_egu(
-    db_put_field: MagicMock,
     mocked_time_record_updater: tuple[_TimeRecordUpdater, str],
     new_val,
 ):
     time_record_updater, test_prefix = mocked_time_record_updater
     time_record_updater.update_egu(new_val)
-    db_put_field.assert_called_once()
 
-    # Check the expected arguments are passed to db_put_field.
-    # Note we don't check the value of `array.ctypes.data` parameter as it's a pointer
-    # to a memory address so will always vary
-    put_field_args = db_put_field.call_args.args
-    expected_args = [test_prefix + ":BASE:RECORD.EGU", fields.DBF_STRING, 1]
-    for arg in expected_args:
-        assert arg in put_field_args
-    assert isinstance(put_field_args[2], int)
+    # Check the EGU field is set to the expected label via the record's set_field
+    base_record = time_record_updater.base_record
+    base_record.set_field.assert_called_once()
+    field, value = base_record.set_field.call_args.args
+    assert field == "EGU"
+    assert value == (new_val if isinstance(new_val, str) else "TEST3")
 
 
 def test_pos_out_scale_offset_have_precision(ioc_record_factory: IocRecordFactory):
     """Test that the SCALE and OFFSET float records of a pos_out field are given a
     display precision"""
     field_info = PosOutFieldInfo("pos_out", None, None, capture_labels=["No", "Diff"])
-    values: dict[EpicsName, ScalarRecordValue] = {
+    values: dict[EpicsName, RecordValue] = {
         TEST_RECORD: "0",
         EpicsName(f"{TEST_RECORD}:CAPTURE"): "Diff",
         EpicsName(f"{TEST_RECORD}:OFFSET"): "5",
@@ -685,7 +681,7 @@ def test_scalar_record_has_precision(ioc_record_factory: IocRecordFactory):
     field_info = ScalarFieldInfo(
         "param", "scalar", None, offset=0, scale=0.001, units="deg"
     )
-    values: dict[EpicsName, ScalarRecordValue] = {TEST_RECORD: "48.48"}
+    values: dict[EpicsName, RecordValue] = {TEST_RECORD: "48.48"}
 
     record_dict = ioc_record_factory.create_record(TEST_RECORD, field_info, values)
 
@@ -695,7 +691,7 @@ def test_scalar_record_has_precision(ioc_record_factory: IocRecordFactory):
 def test_time_record_has_precision(ioc_record_factory: IocRecordFactory):
     """Test that a time (float) record is given a display precision"""
     field_info = TimeFieldInfo("time", None, None, units_labels=["s", "ms", "min"])
-    values: dict[EpicsName, ScalarRecordValue] = {
+    values: dict[EpicsName, RecordValue] = {
         TEST_RECORD: "0.1",
         EpicsName(f"{TEST_RECORD}:UNITS"): "s",
     }

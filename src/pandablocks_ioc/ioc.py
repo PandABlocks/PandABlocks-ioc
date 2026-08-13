@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from string import digits
 from typing import Any
 
-import numpy as np
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import (
     Arm,
@@ -37,8 +36,7 @@ from pandablocks.responses import (
     TimeFieldInfo,
     UintFieldInfo,
 )
-from softioc import alarm, asyncio_dispatcher, builder, fields, softioc
-from softioc.imports import db_put_field
+from softioc import alarm, asyncio_dispatcher, builder, softioc
 from softioc.pythonSoftIoc import RecordWrapper
 
 from ._connection_status import ConnectionStatus, Statuses
@@ -503,13 +501,7 @@ class _TimeRecordUpdater(_RecordUpdater):
             new_egu = new_val
         else:
             new_egu = self.labels[new_val]
-        array = np.require(new_egu, dtype=np.dtype("S40"))
-        db_put_field(
-            f"{self.base_record.name}.EGU",
-            fields.DBF_STRING,
-            array.ctypes.data,
-            1,
-        )
+        self.base_record.set_field("EGU", new_egu)
 
 
 @dataclass
