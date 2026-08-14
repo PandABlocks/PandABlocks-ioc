@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from string import digits
 from typing import Any
 
-import numpy as np
 from pandablocks.asyncio import AsyncioClient
 from pandablocks.commands import (
     Arm,
@@ -37,8 +36,7 @@ from pandablocks.responses import (
     TimeFieldInfo,
     UintFieldInfo,
 )
-from softioc import alarm, asyncio_dispatcher, builder, fields, softioc
-from softioc.imports import db_put_field
+from softioc import alarm, asyncio_dispatcher, builder, softioc
 from softioc.pythonSoftIoc import RecordWrapper
 
 from ._connection_status import ConnectionStatus, Statuses
@@ -52,6 +50,7 @@ from ._pvi import (
 )
 from ._tables import TableRecordWrapper, TableUpdater
 from ._types import (
+    FLOAT_RECORD_PRECISION,
     ONAM_STR,
     OUT_RECORD_FUNCTIONS,
     ZNAM_STR,
@@ -502,13 +501,7 @@ class _TimeRecordUpdater(_RecordUpdater):
             new_egu = new_val
         else:
             new_egu = self.labels[new_val]
-        array = np.require(new_egu, dtype=np.dtype("S40"))
-        db_put_field(
-            f"{self.base_record.name}.EGU",
-            fields.DBF_STRING,
-            array.ctypes.data,
-            1,
-        )
+        self.base_record.set_field("EGU", new_egu)
 
 
 @dataclass
@@ -679,6 +672,10 @@ class IocRecordFactory:
                 kwargs["initial_value"] = trim_string_value(initial_value, record_name)
             elif isinstance(initial_value, str):
                 kwargs["initial_value"] = data_type_func(initial_value)
+
+        # Give float records a sensible display precision unless one is specified
+        if data_type_func is float and "PREC" not in kwargs:
+            extra_kwargs["PREC"] = FLOAT_RECORD_PRECISION
 
         record_info = RecordInfo(
             data_type_func=data_type_func,
