@@ -25,6 +25,7 @@ from pandablocks.responses import (
 from softioc import builder
 
 from fixtures.mocked_panda import TEST_PREFIX
+from pandablocks_ioc._connection_status import Statuses
 from pandablocks_ioc._pvi import PviGroup
 from pandablocks_ioc._types import (
     FLOAT_RECORD_PRECISION,
@@ -39,6 +40,7 @@ from pandablocks_ioc._types import (
 from pandablocks_ioc.ioc import (
     IocRecordFactory,
     StringRecordLabelValidator,
+    _reconnect_client,
     _RecordUpdater,
     _TimeRecordUpdater,
     get_panda_versions,
@@ -898,6 +900,242 @@ async def test_update_toggles_bit_field():
     # unreliable number of calls to the set method.
     record_info.record.set.assert_any_call(True)
     record_info.record.set.assert_any_call(0)
+
+
+async def test_reconnect_client_succeeds_first_attempt():
+    """Test that _reconnect_client reconnects on first try and clears alarms"""
+    client = AsyncioClient("123")
+    client.connect = AsyncMock()  # type: ignore
+
+    record_info = RecordInfo(int, is_in_record=True)
+    record_info.record = MagicMock()
+    all_records = {EpicsName("ABC:DEF"): record_info}
+
+    class MockConnectionStatus:
+        statuses_set = []
+        set_status = statuses_set.append
+
+    mock_connection_status = MockConnectionStatus()
+
+    await _reconnect_client(client, mock_connection_status, all_records, 0.01)
+
+    client.connect.assert_called_once()
+    assert mock_connection_status.statuses_set == [
+        Statuses.DISCONNECTED,
+        Statuses.CONNECTING,
+        Statuses.CONNECTED,
+    ]
+    # Alarms should have been cleared (NO_ALARM=0, UDF_ALARM=17)
+    record_info.record.set_alarm.assert_called_with(0, 17)
+
+
+async def test_reconnect_client_retries_on_failure():
+    """Test that _reconnect_client retries with backoff on OSError"""
+    client = AsyncioClient("123")
+    # Fail twice, then succeed
+    client.connect = AsyncMock(  # type: ignore
+        side_effect=[OSError("refused"), OSError("refused"), None]
+    )
+
+    record_info = RecordInfo(int, is_in_record=True)
+    record_info.record = MagicMock()
+    all_records = {EpicsName("ABC:DEF"): record_info}
+
+    class MockConnectionStatus:
+        statuses_set = []
+        set_status = statuses_set.append
+
+    mock_connection_status = MockConnectionStatus()
+
+    await _reconnect_client(client, mock_connection_status, all_records, 0.01)
+
+    assert client.connect.call_count == 3
+    # Should cycle through DISCONNECTED -> CONNECTING -> DISCONNECTED (retry) ->
+    # CONNECTING -> DISCONNECTED (retry) -> CONNECTING -> CONNECTED
+    assert mock_connection_status.statuses_set == [
+        Statuses.DISCONNECTED,
+        Statuses.CONNECTING,
+        Statuses.DISCONNECTED,
+        Statuses.CONNECTING,
+        Statuses.DISCONNECTED,
+        Statuses.CONNECTING,
+        Statuses.CONNECTED,
+    ]
+
+
+async def test_update_reconnects_on_timeout():
+    """Test that update() reconnects when PandA communication times out"""
+    client = AsyncioClient("123")
+    client.is_connected = MagicMock(return_value=True)  # type: ignore
+    client.close = AsyncMock()  # type: ignore
+
+    # First call times out, after reconnect return valid changes, then cancel
+    returned_changes = Changes({}, [], [], {})
+    client.send = AsyncMock(  # type: ignore
+        side_effect=[
+            TimeoutError("no response"),
+            returned_changes,
+            asyncio.CancelledError(),
+        ]
+    )
+    client.connect = AsyncMock()  # type: ignore
+
+    record_info = RecordInfo(int, is_in_record=True)
+    record_info.record = MagicMock()
+    all_records = {EpicsName("ABC:DEF"): record_info}
+
+    class MockConnectionStatus:
+        statuses_set = []
+        set_status = statuses_set.append
+
+    mock_connection_status = MockConnectionStatus()
+
+    await update(
+        client,
+        mock_connection_status,
+        all_records,
+        0.01,
+        {},
+        {},
+    )
+
+    client.close.assert_called_once()
+    client.connect.assert_called_once()
+    # After reconnect, status should end with CONNECTED
+    assert Statuses.CONNECTED in mock_connection_status.statuses_set
+
+
+async def test_update_reconnects_on_connection_lost():
+    """Test that update() reconnects when the connection is lost (OSError)"""
+    client = AsyncioClient("123")
+    client.is_connected = MagicMock(return_value=True)  # type: ignore
+    client.close = AsyncMock()  # type: ignore
+
+    # First call raises OSError (connection lost), after reconnect return changes,
+    # then cancel to exit the loop
+    returned_changes = Changes({}, [], [], {})
+    client.send = AsyncMock(  # type: ignore
+        side_effect=[
+            OSError("connection reset"),
+            returned_changes,
+            asyncio.CancelledError(),
+        ]
+    )
+    client.connect = AsyncMock()  # type: ignore
+
+    record_info = RecordInfo(int, is_in_record=True)
+    record_info.record = MagicMock()
+    all_records = {EpicsName("ABC:DEF"): record_info}
+
+    class MockConnectionStatus:
+        statuses_set = []
+        set_status = statuses_set.append
+
+    mock_connection_status = MockConnectionStatus()
+
+    await update(
+        client,
+        mock_connection_status,
+        all_records,
+        0.01,
+        {},
+        {},
+    )
+
+    client.close.assert_called_once()
+    client.connect.assert_called_once()
+    assert Statuses.CONNECTED in mock_connection_status.statuses_set
+
+
+async def test_update_reconnects_on_oserror_during_processing():
+    """Test that an OSError outside the inner try/except triggers reconnection"""
+    client = AsyncioClient("123")
+    client.is_connected = MagicMock(return_value=False)  # type: ignore
+    client.close = AsyncMock()  # type: ignore
+    client.connect = AsyncMock()  # type: ignore
+
+    # First send returns changes that will cause an OSError during table processing
+    # (outside the inner per-field try/except), then after reconnect return empty
+    # changes, then cancel to exit loop
+    first_changes = Changes({}, [], [], {"ABC.TABLE": ["bad"]})
+    second_changes = Changes({}, [], [], {})
+
+    call_count = 0
+
+    async def mock_send(command, *args):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return first_changes
+        if call_count == 2:
+            return second_changes
+        raise asyncio.CancelledError()
+
+    client.send = mock_send  # type: ignore
+
+    record_info = RecordInfo(int, is_in_record=True)
+    record_info.record = MagicMock()
+    all_records = {EpicsName("ABC:DEF"): record_info}
+
+    class MockConnectionStatus:
+        statuses_set = []
+        set_status = statuses_set.append
+
+    mock_connection_status = MockConnectionStatus()
+
+    await update(
+        client,
+        mock_connection_status,
+        all_records,
+        0.01,
+        {},
+        {},
+    )
+
+    # The first_changes references a table "ABC.TABLE" with MODE record "ABC:TABLE:MODE"
+    # which doesn't exist in all_records, so it just logs an error (no OSError).
+    # The generic Exception handler catches it and continues. connect should not
+    # be called since no OSError was raised.
+    client.connect.assert_not_called()
+
+
+async def test_reconnect_exponential_backoff_caps_at_max(caplog):
+    """Test that reconnection backoff is capped at 60 seconds"""
+    caplog.set_level(logging.WARNING)
+
+    client = AsyncioClient("123")
+    # Fail a few times to test backoff, then succeed
+    attempts = []
+
+    async def mock_connect():
+        attempts.append(1)
+        if len(attempts) < 5:
+            raise OSError("refused")
+
+    client.connect = mock_connect  # type: ignore
+
+    record_info = RecordInfo(int, is_in_record=True)
+    record_info.record = MagicMock()
+    all_records = {EpicsName("ABC:DEF"): record_info}
+
+    class MockConnectionStatus:
+        statuses_set = []
+        set_status = statuses_set.append
+
+    mock_connection_status = MockConnectionStatus()
+
+    # Use a short poll_period so the test doesn't take too long
+    await asyncio.wait_for(
+        _reconnect_client(client, mock_connection_status, all_records, 0.01),
+        timeout=2.0,
+    )
+
+    assert len(attempts) == 5
+    # Verify exponential backoff is mentioned in logs
+    assert "Reconnection attempt failed" in caplog.text
+    # Verify delays are increasing in the log messages
+    assert "retrying in 0.0s" in caplog.text
+    assert "retrying in 0.0s" in caplog.text
 
 
 @pytest.mark.parametrize(

@@ -2015,6 +2015,39 @@ async def create_records(
     return (all_records, all_values_dict, block_info_dict)
 
 
+async def _reconnect_client(
+    client: AsyncioClient,
+    connection_status: ConnectionStatus,
+    all_records: dict[EpicsName, RecordInfo],
+    poll_period: float,
+):
+    """Attempt to reconnect to the PandA with exponential backoff.
+
+    Sets all records to alarm state, then retries connecting until successful.
+    """
+    connection_status.set_status(Statuses.DISCONNECTED)
+    set_all_records_severity(all_records, alarm.MAJOR_ALARM, alarm.READ_ACCESS_ALARM)
+
+    retry_delay = poll_period
+    max_retry_delay = 60.0
+
+    while True:
+        await asyncio.sleep(retry_delay)
+        connection_status.set_status(Statuses.CONNECTING)
+        try:
+            await client.connect()
+            logging.info("Reconnected to PandA successfully")
+            connection_status.set_status(Statuses.CONNECTED)
+            set_all_records_severity(all_records, alarm.NO_ALARM, alarm.UDF_ALARM)
+            return
+        except OSError:
+            logging.warning(
+                f"Reconnection attempt failed, retrying in {retry_delay:.1f}s"
+            )
+            connection_status.set_status(Statuses.DISCONNECTED)
+            retry_delay = min(retry_delay * 2, max_retry_delay)
+
+
 async def update(
     client: AsyncioClient,
     connection_status: ConnectionStatus,
@@ -2050,18 +2083,18 @@ async def update(
 
             try:
                 changes = await client.send(GetChanges(ChangeGroup.ALL, True), timeout)
-            except TimeoutError:
-                # Indicates PandA did not reply within the timeout
+            except (TimeoutError, OSError):
+                # Indicates PandA did not reply or the connection was lost
                 logging.error(
-                    f"PandA did not respond to GetChanges within {timeout} seconds. "
-                    "Setting all records to major alarm state and disconnecting."
+                    "PandA communication error. "
+                    "Setting all records to major alarm state and reconnecting."
                 )
-                connection_status.set_status(Statuses.DISCONNECTED)
-                set_all_records_severity(
-                    all_records, alarm.MAJOR_ALARM, alarm.READ_ACCESS_ALARM
+                if client.is_connected():
+                    await client.close()
+                await _reconnect_client(
+                    client, connection_status, all_records, poll_period
                 )
-                await client.close()
-                break
+                continue
 
             _, new_all_values_dict = _create_dicts_from_changes(
                 changes, block_info_dict
@@ -2183,6 +2216,15 @@ async def update(
         # Only here for testing purposes
         except asyncio.CancelledError:
             break
+        except OSError:
+            logging.exception(
+                "Connection error while processing updates from PandA. "
+                "Attempting reconnection."
+            )
+            if client.is_connected():
+                await client.close()
+            await _reconnect_client(client, connection_status, all_records, poll_period)
+            continue
         except Exception:
             logging.exception("Exception while processing updates from PandA")
             continue
