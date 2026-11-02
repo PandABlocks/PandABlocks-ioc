@@ -31,7 +31,11 @@ class FakeMalcolm:
         for ws, msg_id in self.subscribers:
             await ws.send(
                 json.dumps(
-                    {"typeid": "malcolm:core/Update:1.0", "id": msg_id, "value": self.table}
+                    {
+                        "typeid": "malcolm:core/Update:1.0",
+                        "id": msg_id,
+                        "value": self.table,
+                    }
                 )
             )
 

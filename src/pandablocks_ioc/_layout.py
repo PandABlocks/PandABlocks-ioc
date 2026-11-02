@@ -57,7 +57,9 @@ class MalcolmLayoutClient:
             )
             message = json.loads(await asyncio.wait_for(ws.recv(), self._timeout))
             if message.get("typeid") != _UPDATE_TYPEID:
-                raise MalcolmError(f"Unexpected response to layout subscribe: {message}")
+                raise MalcolmError(
+                    f"Unexpected response to layout subscribe: {message}"
+                )
         except BaseException:
             await ws.close()
             raise
