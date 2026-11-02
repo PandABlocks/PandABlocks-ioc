@@ -90,6 +90,7 @@ class PviGroup(Enum):
     HDF = "HDF"
     TABLE = "Table"  # TODO: May not need this anymore
     VERSIONS = "Versions"
+    LAYOUT = "Layout"
 
 
 @dataclass

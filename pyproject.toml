@@ -20,6 +20,7 @@ dependencies = [
   "softioc>=4.4.0",
   "pandablocks~=0.10.0",
   "pvi~=0.10.0",
+  "websockets>=13",
   "typing-extensions;python_version<'3.8'",
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 

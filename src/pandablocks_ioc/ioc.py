@@ -41,6 +41,12 @@ from softioc.pythonSoftIoc import RecordWrapper
 
 from ._connection_status import ConnectionStatus, Statuses
 from ._hdf_ioc import Dataset, HDF5RecordController
+from ._layout import (
+    MALCOLM_PORT,
+    VISIBLE_LABELS,
+    LayoutTable,
+    MalcolmLayoutClient,
+)
 from ._pvi import (
     Pvi,
     PviGroup,
@@ -92,11 +98,26 @@ def _when_finished(task):
     create_softioc_task = None
 
 
+async def _connect_layout_client(host: str, port: int) -> MalcolmLayoutClient | None:
+    layout_client = MalcolmLayoutClient(host, port)
+    try:
+        await layout_client.connect()
+    except Exception:
+        logging.warning(
+            f"Unable to read block layout from Malcolm at {host}:{port}, "
+            "layout records will not be created",
+            exc_info=True,
+        )
+        return None
+    return layout_client
+
+
 async def _create_softioc(
     client: AsyncioClient,
     record_prefix: str,
     connection_status: ConnectionStatus,
     dispatcher: asyncio_dispatcher.AsyncioDispatcher,
+    malcolm_port: int | None = MALCOLM_PORT,
 ):
     """Asynchronous wrapper for IOC creation"""
     try:
@@ -104,9 +125,17 @@ async def _create_softioc(
     except OSError:
         logging.exception("Unable to connect to PandA")
         raise
+
+    layout_client = None
+    if malcolm_port is not None:
+        layout_client = await _connect_layout_client(client._host, malcolm_port)
+
     (all_records, all_values_dict, block_info_dict) = await create_records(
-        client, dispatcher, record_prefix
+        client, dispatcher, record_prefix, layout_client
     )
+
+    if layout_client:
+        layout_client.start()
 
     global create_softioc_task
     if create_softioc_task:
@@ -131,6 +160,7 @@ def create_softioc(
     record_prefix: str,
     screens_dir: str | None = None,
     clear_bobfiles: bool = False,
+    malcolm_port: int | None = MALCOLM_PORT,
 ) -> None:
     """Create a PythonSoftIOC from fields and attributes of a PandA.
 
@@ -143,6 +173,8 @@ def create_softioc(
         screens_dir: The directory to export bobfiles to.
         clear_bobfiles: Can only be true if screens_dir is provided. Clears the
             screens_dir of bobfiles before creating new ones.
+        malcolm_port: Port of the PandA web GUI's Malcolm server, used to read and
+            write block layout. None disables the layout records.
     """
     # TODO: This needs to read/take in a YAML configuration file, for various aspects
     # e.g. the update() wait time between calling GetChanges
@@ -158,7 +190,9 @@ def create_softioc(
         connection_status = ConnectionStatus(record_prefix)
         connection_status.set_status(Statuses.CONNECTING)
         asyncio.run_coroutine_threadsafe(
-            _create_softioc(client, record_prefix, connection_status, dispatcher),
+            _create_softioc(
+                client, record_prefix, connection_status, dispatcher, malcolm_port
+            ),
             dispatcher.loop,
         ).result()
         connection_status.set_status(Statuses.CONNECTED)
@@ -562,6 +596,9 @@ class IocRecordFactory:
         # A dataset cache for storing dataset names and capture modes for different
         # capture records
         self._dataset_cache: dict[EpicsName, Dataset] = {}
+
+        # Layout records keyed by Malcolm block name then layout table column
+        self._layout_records: dict[str, dict[str, RecordInfo]] = {}
 
     def _process_labels(
         self, labels: list[str], record_value: ScalarRecordValue
@@ -1873,6 +1910,77 @@ class IocRecordFactory:
 
         return record_dict
 
+    def create_layout_records(
+        self, block: str, layout_name: str, layout_client: MalcolmLayoutClient
+    ) -> dict[EpicsName, RecordInfo]:
+        """Create records to read and write the web GUI layout position and
+        visibility of a block instance.
+
+        Args:
+            block: The (suffixed) block name used for the record names e.g. PULSE1
+            layout_name: The name of the block in the Malcolm layout table
+            layout_client: Client used to write changes back to Malcolm
+        """
+        index = layout_client.table["name"].index(layout_name)
+        columns = self._layout_records.setdefault(layout_name, {})
+        record_dict: dict[EpicsName, RecordInfo] = {}
+
+        def make_on_update(column: str) -> Callable:
+            async def on_update(new_val: Any) -> None:
+                value = bool(new_val) if column == "visible" else float(new_val)
+                try:
+                    await layout_client.put(layout_name, **{column: value})
+                except Exception:
+                    logging.exception(
+                        f"Failed to set layout {column} of {layout_name} to {value}"
+                    )
+                    current = layout_client.table[column][
+                        layout_client.table["name"].index(layout_name)
+                    ]
+                    columns[column].record.set(
+                        _layout_record_value(column, current), process=False
+                    )
+
+            return on_update
+
+        for column in ("x", "y"):
+            record_name = EpicsName(f"{block}:LAYOUT:{column.upper()}")
+            columns[column] = self._create_record_info(
+                record_name,
+                f"Web GUI layout {column} position",
+                builder.aOut,
+                float,
+                PviGroup.LAYOUT,
+                initial_value=float(layout_client.table[column][index]),
+                on_update=make_on_update(column),
+            )
+            record_dict[record_name] = columns[column]
+
+        record_name = EpicsName(f"{block}:LAYOUT:VISIBLE")
+        columns["visible"] = self._create_record_info(
+            record_name,
+            "Web GUI layout visibility",
+            builder.mbbOut,
+            int,
+            PviGroup.LAYOUT,
+            labels=VISIBLE_LABELS,
+            initial_value=_layout_record_value(
+                "visible", layout_client.table["visible"][index]
+            ),
+            on_update=make_on_update("visible"),
+        )
+        record_dict[record_name] = columns["visible"]
+
+        return record_dict
+
+    def update_layout_records(self, table: LayoutTable) -> None:
+        """Update layout records from a new Malcolm layout table"""
+        for index, name in enumerate(table["name"]):
+            for column, record_info in self._layout_records.get(name, {}).items():
+                value = _layout_record_value(column, table[column][index])
+                if record_info.record.get() != value:
+                    record_info.record.set(value, process=False)
+
     def create_version_records(self, firmware_versions: dict[EpicsName, str]):
         """Creates handful of records for tracking versions of IOC/Firmware via EPICS
 
@@ -1919,10 +2027,16 @@ class IocRecordFactory:
         softioc.iocInit(dispatcher)
 
 
+def _layout_record_value(column: str, value: Any) -> float | int:
+    """Convert a Malcolm layout table value into the matching record value"""
+    return int(bool(value)) if column == "visible" else float(value)
+
+
 async def create_records(
     client: AsyncioClient,
     dispatcher: asyncio_dispatcher.AsyncioDispatcher,
     record_prefix: str,
+    layout_client: MalcolmLayoutClient | None = None,
 ) -> tuple[
     dict[EpicsName, RecordInfo],
     dict[
@@ -2005,11 +2119,26 @@ async def create_records(
 
                 block_records.update(records)
 
+            if layout_client:
+                layout_names = layout_client.table.get("name", [])
+                # Malcolm may number single-instance blocks e.g. "PCAP1"
+                candidates = (suffixed_block, f"{block}{block_num + 1}")
+                layout_name = next((n for n in candidates if n in layout_names), None)
+                if layout_name:
+                    block_records.update(
+                        record_factory.create_layout_records(
+                            suffixed_block, layout_name, layout_client
+                        )
+                    )
+
         all_records.update(block_records)
 
     Pvi.create_pvi_records(record_prefix)
 
     record_factory.initialise(dispatcher)
+
+    if layout_client:
+        layout_client.on_update = record_factory.update_layout_records
 
     block_info_dict = {key: value.block_info for key, value in panda_dict.items()}
     return (all_records, all_values_dict, block_info_dict)
