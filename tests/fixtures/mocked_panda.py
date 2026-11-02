@@ -308,6 +308,7 @@ def ioc_wrapper(
             test_prefix,
             screens_dir=bobfile_dir,
             clear_bobfiles=clear_bobfiles,
+            malcolm_port=None,
         )
 
         # Leave this process running until its torn down by pytest

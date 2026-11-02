@@ -3,6 +3,7 @@ import logging
 import click
 from pandablocks.asyncio import AsyncioClient
 
+from pandablocks_ioc._layout import MALCOLM_PORT
 from pandablocks_ioc.ioc import create_softioc
 
 __all__ = ["cli"]
@@ -46,11 +47,26 @@ def cli(ctx, log_level: str):
     is_flag=True,
     help="Clear bobfiles from the given `--screens-dir` before generating new ones.",
 )
+@click.option(
+    "--malcolm-port",
+    default=MALCOLM_PORT,
+    show_default=True,
+    type=int,
+    help="Port of the PandA web GUI's Malcolm server, used for block layout records.",
+)
+@click.option(
+    "--no-layout",
+    default=False,
+    is_flag=True,
+    help="Do not create block layout records.",
+)
 def softioc(
     host: str,
     prefix: str,
     screens_dir: str,
     clear_bobfiles: bool,
+    malcolm_port: int,
+    no_layout: bool,
 ):
     """
     Connect to the given HOST and create an IOC with the given PREFIX.
@@ -64,6 +80,7 @@ def softioc(
         record_prefix=prefix,
         screens_dir=screens_dir,
         clear_bobfiles=clear_bobfiles,
+        malcolm_port=None if no_layout else malcolm_port,
     )
 
 
